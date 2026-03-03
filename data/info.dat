@@ -1,0 +1,8 @@
+{
+    "WIFI_SSID": "Tuoi",
+    "WIFI_PASS": "25062011@##@",
+    "CORE_IOT_TOKEN": "token_từ_dashboard",
+    "CORE_IOT_SERVER": "app.coreiot.io",
+    "CORE_IOT_PORT": "1883"
+}
+

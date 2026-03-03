@@ -1,0 +1,43 @@
+/*
+ * global_vars.cpp - Định nghĩa biến toàn cục
+ */
+#include "global_vars.h"
+
+// ==================== DỮ LIỆU CẢM BIẾN ====================
+float g_temperature    = 25.0f;     // Giá trị khởi tạo an toàn
+float g_humidity       = 60.0f;
+float g_soilMoisture   = 50.0f;
+float g_lightLux       = 1000.0f;   // Mặc định "sáng" để tránh bật grow light ngay
+bool  g_dhtError       = true;      // true cho đến khi đọc thành công lần đầu
+bool  g_lightError     = false;
+
+// ==================== TRẠNG THÁI THIẾT BỊ ====================
+bool g_pumpState       = false;
+bool g_fanState        = false;
+bool g_ledGrowState    = false;
+bool g_pumpManual      = false;
+
+// ==================== THỜI GIAN BƠM ====================
+unsigned long g_pumpStartTime   = 0;
+unsigned long g_pumpLastOffTime = 0;
+bool          g_pumpCooldown    = false;
+
+// ==================== HIỂN THỊ LCD ====================
+int           g_lcdPage         = 0;
+unsigned long g_lcdPageTimer    = 0;
+
+// ==================== CHẾ ĐỘ HỆ THỐNG ====================
+bool g_autoMode = true;
+
+// ==================== CẢNH BÁO ====================
+bool g_alertTemp     = false;
+bool g_alertHumidity = false;
+bool g_alertSoil     = false;
+bool g_alertLight    = false;
+
+// ==================== LED RGB ====================
+RGBColor_t g_currentLEDColor = {0, 0, 0};
+
+// ==================== THỐNG KÊ ====================
+unsigned long g_totalPumpTime = 0;
+uint32_t      g_pumpCount     = 0;

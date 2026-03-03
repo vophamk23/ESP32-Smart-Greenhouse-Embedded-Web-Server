@@ -1,0 +1,1277 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Greenhouse IoT – Sơ đồ khối mạch</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;600;700&family=Bebas+Neue&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #f5f2eb;
+        --ink: #1a1a18;
+        --ink2: #3a3a35;
+        --ink3: #8a8a7a;
+        --line: #c8c4b4;
+        --esp32: #1a3a5c;
+        --sensor: #2d5a27;
+        --actuator: #6b2020;
+        --power: #5c4a00;
+        --ui: #2a3a5c;
+        --accent: #d4580a;
+        --white: #ffffff;
+        --paper: #faf8f3;
+        --shadow: rgba(26, 26, 24, 0.12);
+        --font: "JetBrains Mono", monospace;
+        --title: "Bebas Neue", sans-serif;
+      }
+
+      body {
+        background: var(--bg);
+        font-family: var(--font);
+        color: var(--ink);
+        min-height: 100vh;
+        padding: 40px 32px 60px;
+        position: relative;
+      }
+
+      /* Subtle ruled paper effect */
+      body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        background-image: repeating-linear-gradient(
+          transparent,
+          transparent 31px,
+          rgba(180, 170, 140, 0.25) 31px,
+          rgba(180, 170, 140, 0.25) 32px
+        );
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .page {
+        position: relative;
+        z-index: 1;
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      /* ── HEADER ── */
+      header {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        border-bottom: 3px solid var(--ink);
+        padding-bottom: 12px;
+        margin-bottom: 36px;
+      }
+      .title-block h1 {
+        font-family: var(--title);
+        font-size: 52px;
+        letter-spacing: 4px;
+        line-height: 1;
+        color: var(--ink);
+      }
+      .title-block p {
+        font-size: 11px;
+        color: var(--ink3);
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-top: 4px;
+      }
+      .header-meta {
+        text-align: right;
+        font-size: 10px;
+        color: var(--ink3);
+        letter-spacing: 1px;
+        line-height: 1.8;
+      }
+      .header-meta b {
+        color: var(--ink);
+      }
+
+      /* ── LEGEND ── */
+      .legend {
+        display: flex;
+        gap: 20px;
+        flex-wrap: wrap;
+        margin-bottom: 28px;
+        padding: 10px 14px;
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: var(--paper);
+      }
+      .leg-item {
+        display: flex;
+        align-items: center;
+        gap: 7px;
+        font-size: 10px;
+        letter-spacing: 1.2px;
+        text-transform: uppercase;
+        color: var(--ink2);
+      }
+      .leg-dot {
+        width: 14px;
+        height: 14px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+
+      /* ── MAIN DIAGRAM SVG ── */
+      .diagram-wrap {
+        background: var(--paper);
+        border: 1px solid var(--line);
+        border-radius: 3px;
+        padding: 0;
+        overflow: hidden;
+        box-shadow: 4px 4px 0 var(--shadow);
+      }
+
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      /* SVG element styles */
+      .blk-esp32 {
+        fill: var(--esp32);
+      }
+      .blk-sensor {
+        fill: var(--sensor);
+      }
+      .blk-act {
+        fill: var(--actuator);
+      }
+      .blk-power {
+        fill: var(--power);
+      }
+      .blk-ui {
+        fill: var(--ui);
+      }
+      .blk-relay {
+        fill: #5c2a00;
+      }
+
+      .blk-label {
+        fill: white;
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 700;
+        font-size: 11px;
+        letter-spacing: 1px;
+        text-anchor: middle;
+        dominant-baseline: middle;
+      }
+      .blk-sub {
+        fill: rgba(255, 255, 255, 0.65);
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 400;
+        font-size: 9px;
+        letter-spacing: 0.5px;
+        text-anchor: middle;
+        dominant-baseline: middle;
+      }
+      .blk-gpio {
+        fill: rgba(255, 255, 255, 0.45);
+        font-family: "JetBrains Mono", monospace;
+        font-weight: 400;
+        font-size: 8px;
+        letter-spacing: 0.5px;
+        text-anchor: middle;
+        dominant-baseline: middle;
+      }
+
+      /* Section label */
+      .section-lbl {
+        font-family: "Bebas Neue", sans-serif;
+        font-size: 13px;
+        letter-spacing: 3px;
+        fill: var(--ink3);
+      }
+
+      /* Connector lines */
+      .wire-data {
+        stroke: #2d5a27;
+        stroke-width: 2;
+        fill: none;
+        marker-end: url(#arr-data);
+      }
+      .wire-power {
+        stroke: #8b0000;
+        stroke-width: 2.5;
+        fill: none;
+        stroke-dasharray: 6, 3;
+        marker-end: url(#arr-power);
+      }
+      .wire-i2c {
+        stroke: #00589c;
+        stroke-width: 2;
+        fill: none;
+        marker-end: url(#arr-i2c);
+      }
+      .wire-adc {
+        stroke: #9c5c00;
+        stroke-width: 2;
+        fill: none;
+        marker-end: url(#arr-adc);
+      }
+      .wire-ctrl {
+        stroke: #7a1a1a;
+        stroke-width: 2;
+        fill: none;
+        marker-end: url(#arr-ctrl);
+      }
+      .wire-neo {
+        stroke: #6a0080;
+        stroke-width: 2;
+        fill: none;
+        marker-end: url(#arr-neo);
+      }
+      .wire-bus {
+        stroke: #00589c;
+        stroke-width: 3;
+        fill: none;
+      }
+
+      /* Wire labels */
+      .wire-lbl {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 8px;
+        fill: var(--ink3);
+        letter-spacing: 0.5px;
+      }
+
+      /* Bus bar */
+      .bus-bar {
+        fill: #00589c;
+        opacity: 0.15;
+        rx: 2;
+      }
+      .bus-lbl {
+        font-family: "JetBrains Mono", monospace;
+        font-size: 9px;
+        fill: #00589c;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+
+      /* Border */
+      .diagram-border {
+        fill: none;
+        stroke: var(--line);
+        stroke-width: 1;
+      }
+
+      /* ── NOTES TABLE ── */
+      .notes {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 16px;
+        margin-top: 24px;
+      }
+      .note-card {
+        border: 1px solid var(--line);
+        border-radius: 2px;
+        background: var(--paper);
+        padding: 14px 16px;
+        box-shadow: 2px 2px 0 var(--shadow);
+      }
+      .note-title {
+        font-family: var(--title);
+        font-size: 16px;
+        letter-spacing: 2px;
+        color: var(--ink);
+        border-bottom: 1px solid var(--line);
+        padding-bottom: 6px;
+        margin-bottom: 10px;
+      }
+      .note-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
+        font-size: 10px;
+        padding: 3px 0;
+        border-bottom: 1px dashed var(--line);
+        gap: 8px;
+      }
+      .note-row:last-child {
+        border-bottom: none;
+      }
+      .note-row .lbl {
+        color: var(--ink3);
+        letter-spacing: 0.8px;
+        flex-shrink: 0;
+      }
+      .note-row .val {
+        color: var(--ink);
+        font-weight: 600;
+        text-align: right;
+      }
+      .note-row .pin {
+        color: var(--accent);
+        font-weight: 700;
+      }
+
+      footer {
+        margin-top: 28px;
+        font-size: 9px;
+        color: var(--ink3);
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        text-align: center;
+        border-top: 1px solid var(--line);
+        padding-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <header>
+        <div class="title-block">
+          <h1>GREENHOUSE IoT</h1>
+          <p>
+            Block Diagram — Sơ đồ khối mạch điện tử &nbsp;·&nbsp; ESP32 Dev
+            Module
+          </p>
+        </div>
+        <div class="header-meta">
+          <b>Platform:</b> ESP32 (Xtensa LX6, 240MHz)<br />
+          <b>Version:</b> v2.0 · PlatformIO<br />
+          <b>Bus:</b> I²C / 1-Wire / ADC / GPIO<br />
+          <b>Power:</b> 5V USB / 3.3V regulated
+        </div>
+      </header>
+
+      <div class="legend">
+        <div class="leg-item">
+          <div class="leg-dot" style="background: #1a3a5c"></div>
+          MCU / ESP32
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background: #2d5a27"></div>
+          Sensor
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background: #6b2020"></div>
+          Actuator
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background: #5c4a00"></div>
+          Power Supply
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background: #2a3a5c"></div>
+          UI Display
+        </div>
+        <div class="leg-item">
+          <div class="leg-dot" style="background: #5c2a00"></div>
+          Relay Module
+        </div>
+        <div class="leg-item">
+          <svg width="28" height="10">
+            <line
+              x1="0"
+              y1="5"
+              x2="28"
+              y2="5"
+              stroke="#2d5a27"
+              stroke-width="2"
+              marker-end="url(#arr-data-lg)"
+            />
+            <defs>
+              <marker
+                id="arr-data-lg"
+                markerWidth="6"
+                markerHeight="6"
+                refX="5"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L6,3 L0,6 Z" fill="#2d5a27" />
+              </marker>
+            </defs>
+          </svg>
+          Digital / 1-Wire
+        </div>
+        <div class="leg-item">
+          <svg width="28" height="10">
+            <line
+              x1="0"
+              y1="5"
+              x2="28"
+              y2="5"
+              stroke="#00589c"
+              stroke-width="2"
+              marker-end="url(#arr-i2c-lg)"
+            />
+            <defs>
+              <marker
+                id="arr-i2c-lg"
+                markerWidth="6"
+                markerHeight="6"
+                refX="5"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L6,3 L0,6 Z" fill="#00589c" />
+              </marker>
+            </defs>
+          </svg>
+          I²C Bus
+        </div>
+        <div class="leg-item">
+          <svg width="28" height="10">
+            <line
+              x1="0"
+              y1="5"
+              x2="28"
+              y2="5"
+              stroke="#9c5c00"
+              stroke-width="2"
+              marker-end="url(#arr-adc-lg)"
+            />
+            <defs>
+              <marker
+                id="arr-adc-lg"
+                markerWidth="6"
+                markerHeight="6"
+                refX="5"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L6,3 L0,6 Z" fill="#9c5c00" />
+              </marker>
+            </defs>
+          </svg>
+          ADC Analog
+        </div>
+        <div class="leg-item">
+          <svg width="28" height="10">
+            <line
+              x1="0"
+              y1="5"
+              x2="28"
+              y2="5"
+              stroke="#7a1a1a"
+              stroke-width="2"
+              marker-end="url(#arr-ctrl-lg)"
+            />
+            <defs>
+              <marker
+                id="arr-ctrl-lg"
+                markerWidth="6"
+                markerHeight="6"
+                refX="5"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L6,3 L0,6 Z" fill="#7a1a1a" />
+              </marker>
+            </defs>
+          </svg>
+          Control GPIO
+        </div>
+        <div class="leg-item">
+          <svg width="28" height="10">
+            <line
+              x1="0"
+              y1="5"
+              x2="28"
+              y2="5"
+              stroke="#8b0000"
+              stroke-width="2.5"
+              stroke-dasharray="5,3"
+              marker-end="url(#arr-pwr-lg)"
+            />
+            <defs>
+              <marker
+                id="arr-pwr-lg"
+                markerWidth="6"
+                markerHeight="6"
+                refX="5"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L6,3 L0,6 Z" fill="#8b0000" />
+              </marker>
+            </defs>
+          </svg>
+          Power (5V/3.3V)
+        </div>
+        <div class="leg-item">
+          <svg width="28" height="10">
+            <line
+              x1="0"
+              y1="5"
+              x2="28"
+              y2="5"
+              stroke="#6a0080"
+              stroke-width="2"
+              marker-end="url(#arr-neo-lg)"
+            />
+            <defs>
+              <marker
+                id="arr-neo-lg"
+                markerWidth="6"
+                markerHeight="6"
+                refX="5"
+                refY="3"
+                orient="auto"
+              >
+                <path d="M0,0 L6,3 L0,6 Z" fill="#6a0080" />
+              </marker>
+            </defs>
+          </svg>
+          NeoPixel Data
+        </div>
+      </div>
+
+      <div class="diagram-wrap">
+        <svg viewBox="0 0 1160 700" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <!-- Arrow markers -->
+            <marker
+              id="arr-data"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
+              orient="auto"
+            >
+              <path d="M0,0 L7,3.5 L0,7 Z" fill="#2d5a27" />
+            </marker>
+            <marker
+              id="arr-power"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
+              orient="auto"
+            >
+              <path d="M0,0 L7,3.5 L0,7 Z" fill="#8b0000" />
+            </marker>
+            <marker
+              id="arr-i2c"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
+              orient="auto"
+            >
+              <path d="M0,0 L7,3.5 L0,7 Z" fill="#00589c" />
+            </marker>
+            <marker
+              id="arr-adc"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
+              orient="auto"
+            >
+              <path d="M0,0 L7,3.5 L0,7 Z" fill="#9c5c00" />
+            </marker>
+            <marker
+              id="arr-ctrl"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
+              orient="auto"
+            >
+              <path d="M0,0 L7,3.5 L0,7 Z" fill="#7a1a1a" />
+            </marker>
+            <marker
+              id="arr-neo"
+              markerWidth="7"
+              markerHeight="7"
+              refX="6"
+              refY="3.5"
+              orient="auto"
+            >
+              <path d="M0,0 L7,3.5 L0,7 Z" fill="#6a0080" />
+            </marker>
+            <!-- Both-direction markers -->
+            <marker
+              id="arr-i2c-l"
+              markerWidth="7"
+              markerHeight="7"
+              refX="1"
+              refY="3.5"
+              orient="auto"
+            >
+              <path d="M7,0 L0,3.5 L7,7 Z" fill="#00589c" />
+            </marker>
+          </defs>
+
+          <!-- Background -->
+          <rect width="1160" height="700" fill="#faf8f3" />
+
+          <!-- ══════════════════════════════════════════════════════════
+         SECTION LABELS
+    ══════════════════════════════════════════════════════════ -->
+          <text x="30" y="28" class="section-lbl">INPUT SENSORS</text>
+          <text x="460" y="28" class="section-lbl">MCU — ESP32</text>
+          <text x="840" y="28" class="section-lbl">OUTPUT ACTUATORS</text>
+
+          <!-- Divider lines -->
+          <line
+            x1="420"
+            y1="14"
+            x2="420"
+            y2="686"
+            stroke="#c8c4b4"
+            stroke-width="1"
+            stroke-dasharray="4,4"
+          />
+          <line
+            x1="820"
+            y1="14"
+            x2="820"
+            y2="686"
+            stroke="#c8c4b4"
+            stroke-width="1"
+            stroke-dasharray="4,4"
+          />
+
+          <!-- ══════════════════════════════════════════════════════════
+         POWER SUPPLY (top-left)
+    ══════════════════════════════════════════════════════════ -->
+          <rect
+            x="30"
+            y="44"
+            width="140"
+            height="54"
+            rx="3"
+            class="blk-power"
+          />
+          <text x="100" y="64" class="blk-label">USB 5V</text>
+          <text x="100" y="78" class="blk-sub">Power Supply</text>
+          <text x="100" y="90" class="blk-gpio">Micro-USB / USB-C</text>
+
+          <!-- 5V → ESP32 power -->
+          <path d="M170,71 L340,71 L340,110" class="wire-power" />
+          <text x="250" y="65" class="wire-lbl" text-anchor="middle">5V</text>
+
+          <!-- 3.3V regulator note on ESP32 -->
+
+          <!-- ══════════════════════════════════════════════════════════
+         ESP32 — CENTER
+    ══════════════════════════════════════════════════════════ -->
+          <rect
+            x="430"
+            y="44"
+            width="360"
+            height="612"
+            rx="4"
+            class="blk-esp32"
+            opacity="0.08"
+          />
+          <rect
+            x="430"
+            y="44"
+            width="360"
+            height="612"
+            rx="4"
+            fill="none"
+            stroke="#1a3a5c"
+            stroke-width="2"
+          />
+
+          <!-- ESP32 chip block -->
+          <rect
+            x="460"
+            y="90"
+            width="300"
+            height="100"
+            rx="4"
+            class="blk-esp32"
+          />
+          <text x="610" y="120" class="blk-label" style="font-size: 13px">
+            ESP32 Dev Module
+          </text>
+          <text x="610" y="137" class="blk-sub">
+            Xtensa LX6 Dual-Core · 240MHz
+          </text>
+          <text x="610" y="152" class="blk-sub">4MB Flash · 520KB SRAM</text>
+          <text x="610" y="166" class="blk-gpio">
+            WiFi / BT (unused) · 3.3V I/O
+          </text>
+
+          <!-- Scheduler block inside ESP32 -->
+          <rect x="470" y="210" width="280" height="50" rx="3" fill="#0f2a47" />
+          <text x="610" y="230" class="blk-label">Cooperative Scheduler</text>
+          <text x="610" y="246" class="blk-sub">
+            HW Timer 10ms/tick · 9 Tasks
+          </text>
+
+          <!-- Sub-modules inside ESP32 -->
+          <rect x="470" y="280" width="128" height="44" rx="3" fill="#0f2a47" />
+          <text x="534" y="298" class="blk-label" style="font-size: 9px">
+            sensor_handler
+          </text>
+          <text x="534" y="312" class="blk-sub">DHT · LDR · Soil</text>
+
+          <rect x="622" y="280" width="128" height="44" rx="3" fill="#0f2a47" />
+          <text x="686" y="298" class="blk-label" style="font-size: 9px">
+            actuator_handler
+          </text>
+          <text x="686" y="312" class="blk-sub">Relay · NeoPixel</text>
+
+          <rect x="470" y="344" width="128" height="44" rx="3" fill="#0f2a47" />
+          <text x="534" y="362" class="blk-label" style="font-size: 9px">
+            lcd_display
+          </text>
+          <text x="534" y="376" class="blk-sub">I²C · 4 pages</text>
+
+          <rect x="622" y="344" width="128" height="44" rx="3" fill="#0f2a47" />
+          <text x="686" y="362" class="blk-label" style="font-size: 9px">
+            app_tasks
+          </text>
+          <text x="686" y="376" class="blk-sub">9 scheduled tasks</text>
+
+          <!-- GPIO pin labels on ESP32 right edge -->
+          <text
+            x="758"
+            y="430"
+            class="blk-gpio"
+            text-anchor="start"
+            fill="#6ab0e0"
+          >
+            GPIO25 → RELAY_PUMP
+          </text>
+          <text
+            x="758"
+            y="450"
+            class="blk-gpio"
+            text-anchor="start"
+            fill="#6ab0e0"
+          >
+            GPIO26 → RELAY_FAN
+          </text>
+          <text
+            x="758"
+            y="470"
+            class="blk-gpio"
+            text-anchor="start"
+            fill="#6ab0e0"
+          >
+            GPIO32 → NEOPIXEL
+          </text>
+
+          <!-- GPIO pin labels on ESP32 left edge -->
+          <text
+            x="462"
+            y="430"
+            class="blk-gpio"
+            text-anchor="end"
+            fill="#6ab0e0"
+          >
+            GPIO27 ← DHT11
+          </text>
+          <text
+            x="462"
+            y="450"
+            class="blk-gpio"
+            text-anchor="end"
+            fill="#6ab0e0"
+          >
+            GPIO34 ← LDR DO
+          </text>
+          <text
+            x="462"
+            y="470"
+            class="blk-gpio"
+            text-anchor="end"
+            fill="#6ab0e0"
+          >
+            GPIO35 ← SOIL ADC
+          </text>
+          <text
+            x="462"
+            y="496"
+            class="blk-gpio"
+            text-anchor="end"
+            fill="#6ab0e0"
+          >
+            GPIO21 (SDA) → LCD
+          </text>
+          <text
+            x="462"
+            y="512"
+            class="blk-gpio"
+            text-anchor="end"
+            fill="#6ab0e0"
+          >
+            GPIO22 (SCL) → LCD
+          </text>
+
+          <!-- I2C Bus bar inside ESP32 -->
+          <rect
+            x="470"
+            y="528"
+            width="280"
+            height="18"
+            rx="2"
+            fill="#00589c"
+            opacity="0.15"
+          />
+          <text x="610" y="540" class="bus-lbl" text-anchor="middle">
+            I²C BUS · SDA=GPIO21 · SCL=GPIO22
+          </text>
+
+          <!-- Serial / USB -->
+          <rect x="470" y="564" width="280" height="34" rx="3" fill="#0a1a2a" />
+          <text x="610" y="578" class="blk-label" style="font-size: 9px">
+            UART0 Serial Monitor
+          </text>
+          <text x="610" y="592" class="blk-sub">
+            115200 baud · Commands: a p f n s r ?
+          </text>
+
+          <!-- 3.3V regulator inside -->
+          <rect x="470" y="618" width="130" height="28" rx="3" fill="#3a2200" />
+          <text x="535" y="632" class="blk-label" style="font-size: 9px">
+            3.3V Reg
+          </text>
+          <text x="535" y="644" class="blk-sub">AMS1117</text>
+
+          <rect x="620" y="618" width="130" height="28" rx="3" fill="#1a2a1a" />
+          <text x="685" y="632" class="blk-label" style="font-size: 9px">
+            ADC 12-bit
+          </text>
+          <text x="685" y="644" class="blk-sub">0–3.3V · 11dB</text>
+
+          <!-- ══════════════════════════════════════════════════════════
+         SENSORS (left column)
+    ══════════════════════════════════════════════════════════ -->
+
+          <!-- DHT11 -->
+          <rect
+            x="30"
+            y="140"
+            width="140"
+            height="64"
+            rx="3"
+            class="blk-sensor"
+          />
+          <text x="100" y="162" class="blk-label">DHT11</text>
+          <text x="100" y="178" class="blk-sub">Temp + Humidity</text>
+          <text x="100" y="193" class="blk-gpio">±2°C · ±5%RH</text>
+
+          <!-- LDR Module -->
+          <rect
+            x="30"
+            y="240"
+            width="140"
+            height="64"
+            rx="3"
+            class="blk-sensor"
+          />
+          <text x="100" y="262" class="blk-label">LDR Module</text>
+          <text x="100" y="278" class="blk-sub">Light DO Digital</text>
+          <text x="100" y="293" class="blk-gpio">LM393 Comparator</text>
+
+          <!-- Soil Sensor -->
+          <rect
+            x="30"
+            y="340"
+            width="140"
+            height="64"
+            rx="3"
+            class="blk-sensor"
+          />
+          <text x="100" y="362" class="blk-label">Soil Sensor</text>
+          <text x="100" y="378" class="blk-sub">Capacitive ADC</text>
+          <text x="100" y="393" class="blk-gpio">0–100% · 12-bit</text>
+
+          <!-- ══════════════════════════════════════════════════════════
+         SENSOR WIRES → ESP32
+    ══════════════════════════════════════════════════════════ -->
+
+          <!-- DHT11 → GPIO27 (1-wire digital) -->
+          <path d="M170,172 L430,172" class="wire-data" />
+          <text x="295" y="165" class="wire-lbl" text-anchor="middle">
+            1-Wire · GPIO27
+          </text>
+
+          <!-- LDR → GPIO34 (digital) -->
+          <path d="M170,272 L430,272" class="wire-data" />
+          <text x="295" y="265" class="wire-lbl" text-anchor="middle">
+            DO Digital · GPIO34
+          </text>
+
+          <!-- Soil → GPIO35 (ADC) -->
+          <path d="M170,372 L430,372" class="wire-adc" />
+          <text x="295" y="365" class="wire-lbl" text-anchor="middle">
+            Analog · GPIO35
+          </text>
+
+          <!-- Power to sensors (3.3V from ESP32) -->
+          <path
+            d="M170,185 L200,185 L200,130 L430,130"
+            class="wire-power"
+            stroke-dasharray="5,3"
+          />
+          <text x="310" y="125" class="wire-lbl" text-anchor="middle">
+            3.3V
+          </text>
+
+          <!-- ══════════════════════════════════════════════════════════
+         ACTUATORS (right column)
+    ══════════════════════════════════════════════════════════ -->
+
+          <!-- Relay Module -->
+          <rect
+            x="840"
+            y="140"
+            width="140"
+            height="64"
+            rx="3"
+            class="blk-relay"
+          />
+          <text x="910" y="158" class="blk-label">Relay Module</text>
+          <text x="910" y="174" class="blk-sub">2-Channel · 5V</text>
+          <text x="910" y="189" class="blk-gpio">Active-LOW · 10A/250VAC</text>
+
+          <!-- Pump -->
+          <rect
+            x="1010"
+            y="115"
+            width="130"
+            height="50"
+            rx="3"
+            class="blk-act"
+          />
+          <text x="1075" y="136" class="blk-label">Bơm Nước</text>
+          <text x="1075" y="152" class="blk-sub">Water Pump</text>
+          <text x="1075" y="163" class="blk-gpio">DC 5V–12V</text>
+
+          <!-- Fan -->
+          <rect
+            x="1010"
+            y="185"
+            width="130"
+            height="50"
+            rx="3"
+            class="blk-act"
+          />
+          <text x="1075" y="206" class="blk-label">Quạt</text>
+          <text x="1075" y="222" class="blk-sub">Cooling Fan</text>
+          <text x="1075" y="233" class="blk-gpio">DC 5V–12V</text>
+
+          <!-- NeoPixel -->
+          <rect x="840" y="260" width="300" height="64" rx="3" fill="#3a006a" />
+          <text x="990" y="280" class="blk-label">NeoPixel WS2812B ×4</text>
+          <text x="990" y="296" class="blk-sub">RGB LED Strip · GPIO32</text>
+          <text x="990" y="311" class="blk-gpio">
+            GRN=OK · YLW=WARN · RED=CRIT · BLU=WATER · WHT=GROW
+          </text>
+
+          <!-- LCD -->
+          <rect x="840" y="360" width="300" height="64" rx="3" class="blk-ui" />
+          <text x="990" y="380" class="blk-label">LCD 16×2 I²C</text>
+          <text x="990" y="396" class="blk-sub">
+            Addr: 0x27 · 4 Pages auto-switch
+          </text>
+          <text x="990" y="411" class="blk-gpio">
+            SDA=GPIO21 · SCL=GPIO22 · 5V backlight
+          </text>
+
+          <!-- External Power for loads -->
+          <rect
+            x="840"
+            y="460"
+            width="140"
+            height="54"
+            rx="3"
+            class="blk-power"
+          />
+          <text x="910" y="480" class="blk-label">Power 5V–12V</text>
+          <text x="910" y="496" class="blk-sub">External Supply</text>
+          <text x="910" y="508" class="blk-gpio">Pump / Fan loads</text>
+
+          <!-- ══════════════════════════════════════════════════════════
+         ACTUATOR WIRES: ESP32 → Relay
+    ══════════════════════════════════════════════════════════ -->
+
+          <!-- GPIO25 → Relay IN1 (PUMP) -->
+          <path d="M790,430 L820,430 L820,155 L840,155" class="wire-ctrl" />
+          <text x="830" y="145" class="wire-lbl" text-anchor="middle">
+            GPIO25
+          </text>
+
+          <!-- GPIO26 → Relay IN2 (FAN) - shared path -->
+          <path
+            d="M790,450 L815,450 L815,168 L840,168"
+            class="wire-ctrl"
+            stroke-dasharray="3,2"
+          />
+          <text x="826" y="180" class="wire-lbl" text-anchor="middle">
+            GPIO26
+          </text>
+
+          <!-- Relay → Pump -->
+          <path d="M980,140 L1010,140" class="wire-ctrl" />
+          <text x="994" y="133" class="wire-lbl" text-anchor="middle">
+            COM/NO
+          </text>
+
+          <!-- Relay → Fan -->
+          <path d="M980,165 L1010,210" class="wire-ctrl" />
+
+          <!-- GPIO32 → NeoPixel -->
+          <path d="M790,470 L808,470 L808,292 L840,292" class="wire-neo" />
+          <text x="824" y="285" class="wire-lbl" text-anchor="middle">
+            GPIO32
+          </text>
+
+          <!-- I2C → LCD (from ESP32 bottom) -->
+          <path d="M610,528 L610,520 L950,520 L950,424" class="wire-i2c" />
+          <text x="790" y="515" class="wire-lbl" text-anchor="middle">
+            SDA/SCL · I²C
+          </text>
+
+          <!-- External power → Relay COM -->
+          <path d="M910,460 L910,430 L980,430 L980,172" class="wire-power" />
+          <text x="996" y="460" class="wire-lbl" text-anchor="end">
+            12V load
+          </text>
+
+          <!-- ESP32 3.3V → NeoPixel & LCD power -->
+          <path d="M600,618 L600,600 L835,600 L835,278" class="wire-power" />
+          <text x="760" y="595" class="wire-lbl" text-anchor="middle">
+            5V (from USB)
+          </text>
+
+          <!-- ══════════════════════════════════════════════════════════
+         DECOUPLING CAPS note
+    ══════════════════════════════════════════════════════════ -->
+          <rect
+            x="30"
+            y="450"
+            width="140"
+            height="64"
+            rx="3"
+            fill="#3a3a30"
+            opacity="0.7"
+          />
+          <text x="100" y="470" class="blk-label" style="font-size: 9px">
+            Decoupling
+          </text>
+          <text x="100" y="485" class="blk-sub">100nF ceramic</text>
+          <text x="100" y="499" class="blk-sub">on each VCC pin</text>
+          <text x="100" y="511" class="blk-gpio">EMI protection</text>
+
+          <!-- ══════════════════════════════════════════════════════════
+         GND BUS (bottom)
+    ══════════════════════════════════════════════════════════ -->
+          <rect
+            x="30"
+            y="670"
+            width="1100"
+            height="14"
+            rx="2"
+            fill="#1a1a18"
+            opacity="0.12"
+          />
+          <text
+            x="580"
+            y="680"
+            class="bus-lbl"
+            text-anchor="middle"
+            fill="#1a1a18"
+            opacity="0.5"
+          >
+            GND ═══════════════════════ COMMON GROUND
+          </text>
+
+          <!-- GND lines from all components -->
+          <line
+            x1="100"
+            y1="204"
+            x2="100"
+            y2="670"
+            stroke="#1a1a18"
+            stroke-width="1"
+            stroke-dasharray="3,5"
+            opacity="0.3"
+          />
+          <line
+            x1="100"
+            y1="304"
+            x2="100"
+            y2="670"
+            stroke="#1a1a18"
+            stroke-width="1"
+            stroke-dasharray="3,5"
+            opacity="0.3"
+          />
+          <line
+            x1="100"
+            y1="404"
+            x2="100"
+            y2="670"
+            stroke="#1a1a18"
+            stroke-width="1"
+            stroke-dasharray="3,5"
+            opacity="0.3"
+          />
+          <line
+            x1="610"
+            y1="656"
+            x2="610"
+            y2="670"
+            stroke="#1a1a18"
+            stroke-width="1"
+            stroke-dasharray="3,5"
+            opacity="0.3"
+          />
+          <line
+            x1="910"
+            y1="514"
+            x2="910"
+            y2="670"
+            stroke="#1a1a18"
+            stroke-width="1"
+            stroke-dasharray="3,5"
+            opacity="0.3"
+          />
+          <line
+            x1="990"
+            y1="324"
+            x2="990"
+            y2="670"
+            stroke="#1a1a18"
+            stroke-width="1"
+            stroke-dasharray="3,5"
+            opacity="0.3"
+          />
+
+          <!-- Border -->
+          <rect x="1" y="1" width="1158" height="698" class="diagram-border" />
+        </svg>
+      </div>
+
+      <!-- NOTES TABLE -->
+      <div class="notes">
+        <div class="note-card">
+          <div class="note-title">GPIO MAP</div>
+          <div class="note-row">
+            <span class="lbl">DHT11 Data</span><span class="pin">GPIO 27</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">LDR DO Digital</span
+            ><span class="pin">GPIO 34</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">Soil ADC</span><span class="pin">GPIO 35</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">Relay Pump (IN1)</span
+            ><span class="pin">GPIO 25</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">Relay Fan (IN2)</span
+            ><span class="pin">GPIO 26</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">NeoPixel Data</span
+            ><span class="pin">GPIO 32</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">I²C SDA (LCD)</span
+            ><span class="pin">GPIO 21</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">I²C SCL (LCD)</span
+            ><span class="pin">GPIO 22</span>
+          </div>
+        </div>
+
+        <div class="note-card">
+          <div class="note-title">NGƯỠNG ĐIỀU KHIỂN</div>
+          <div class="note-row">
+            <span class="lbl">TEMP_CRITICAL</span
+            ><span class="val">≥ 40°C → LED RED</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">TEMP_HIGH (Fan ON)</span
+            ><span class="val">≥ 32°C</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">TEMP_LOW (Fan OFF)</span
+            ><span class="val">< 28°C</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">SOIL_DRY (Pump ON)</span
+            ><span class="val">< 30%</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">SOIL_WET (Pump OFF)</span
+            ><span class="val">≥ 70%</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">HUMI range</span
+            ><span class="val">40% – 85%</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">Pump MAX time</span
+            ><span class="val">5 phút</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">Pump Cooldown</span
+            ><span class="val">3 phút</span>
+          </div>
+        </div>
+
+        <div class="note-card">
+          <div class="note-title">TASK SCHEDULER</div>
+          <div class="note-row">
+            <span class="lbl">Timer tick</span
+            ><span class="val">10 ms/tick</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">ReadAirSensors</span
+            ><span class="val">2000 ms</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">ReadSoilSensor</span
+            ><span class="val">5000 ms</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">CheckAlerts</span><span class="val">1000 ms</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">AutoControl</span><span class="val">1000 ms</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">PumpWatchdog</span
+            ><span class="val">1000 ms</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">UpdateLED / LCD</span
+            ><span class="val">500 ms</span>
+          </div>
+          <div class="note-row">
+            <span class="lbl">LCD auto-switch</span
+            ><span class="val">5000 ms</span>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        Greenhouse IoT System v2.0 &nbsp;·&nbsp; ESP32 Dev Module &nbsp;·&nbsp;
+        Platform: PlatformIO / Arduino Framework &nbsp;·&nbsp; 2026
+      </footer>
+    </div>
+  </body>
+</html>
