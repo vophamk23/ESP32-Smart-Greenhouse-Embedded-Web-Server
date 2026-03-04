@@ -15,68 +15,52 @@
 #include "config.h"
 #include "iot_bridge.h"
 
-// ============================================================================
-// TASK 1: ĐỌC CẢM BIẾN KHÔNG KHÍ (3 giây)
-// ============================================================================
+// Task 1: ĐỌC CẢM BIẾN KHÔNG KHÍ (2 giây)
 void Task_ReadAirSensors(void)
 {
     readDHT();
     readLightSensor();
 }
 
-// ============================================================================
-// TASK 2: ĐỌC ĐỘ ẨM ĐẤT (5 giây)
-// ============================================================================
+// Task 2: ĐỌC CẢM BIẾN ĐẤT (5 giây)
 void Task_ReadSoilSensor(void)
 {
     readSoilMoisture();
 }
 
 
-// ============================================================================
-// TASK 3: CẬP NHẬT LCD (500ms)
-// ============================================================================
+// Task 3: CẬP NHẬT LCD (500ms)
 void Task_UpdateLCD(void)
 {
     updateLCDPage();
 }
 
-// ============================================================================
-// TASK 4: TỰ ĐỘNG CHUYỂN TRANG LCD (5 giây)
-// ============================================================================
+// Task 4: TỰ ĐỘNG CHUYỂN TRANG LCD (5 giây)
 void Task_AutoSwitchLCDPage(void)
 {
     nextLCDPage();
 }
 
-// ============================================================================
-// TASK 5: LOGIC TỰ ĐỘNG (1 giây)
-// ============================================================================
+// Task 5: LOGIC ĐIỀU KHIỂN TỰ ĐỘNG (1 giây)
 void Task_AutoControl(void)
 {
     autoControlPump();
     autoControlFan();
 }
 
-// ============================================================================
-// TASK 6: CẬP NHẬT MÀU LED (500ms)
-// ============================================================================
+// Task 6: CẬP NHẬT TRẠNG THÁI LED (500ms)
 void Task_UpdateLEDStatus(void)
 {
     autoControlLED();
 }
 
-// ============================================================================
-// TASK 7: KIỂM TRA CẢNH BÁO (1 giây)
-// ============================================================================
+// Task 7: KIỂM TRA CẢNH BÁO (1 giây)
 void Task_CheckAlerts(void)
 {
     updateAlerts();
 }
 
-// ============================================================================
-// TASK 8: HEARTBEAT (5 giây) - in tóm tắt trạng thái hệ thống
-// ============================================================================
+// Task 8: HEARTBEAT (5 giây) - in tóm tắt trạng thái hệ thống
 void Task_Heartbeat(void)
 {
     Serial.println("========== GREENHOUSE STATUS ==========");
@@ -137,7 +121,7 @@ void Task_PumpWatchdog(void)
 }
 
 // ============================================================================
-// TASK MỚI 1: GỬI TELEMETRY LÊN CLOUD (mỗi 5 giây)
+// TASK 10 : GỬI TELEMETRY LÊN CLOUD (mỗi 5 giây)
 // Đóng gói snapshot dữ liệu hiện tại vào queue cho CoreIoT task đọc
 // ============================================================================
 void Task_SendTelemetry(void)
@@ -149,7 +133,7 @@ void Task_SendTelemetry(void)
 }
 
 // ============================================================================
-// TASK MỚI 2: XỬ LÝ LỆNH RPC TỪ CLOUD (mỗi 200ms)
+// TASK 11 : XỬ LÝ LỆNH RPC TỪ CLOUD (mỗi 200ms)
 // Đọc các lệnh pending trong queue và thực thi
 // Tách ra khỏi Task_AutoControl để không bị chặn bởi chế độ AUTO
 // ============================================================================

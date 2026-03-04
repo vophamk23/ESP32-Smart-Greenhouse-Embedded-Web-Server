@@ -53,7 +53,7 @@ void pumpOn()
         g_pumpCooldown = false;
     }
 
-    digitalWrite(RELAY_PUMP_PIN, RELAY_ON);
+    digitalWrite(RELAY_PUMP_PIN, RELAY_ON); 
     g_pumpState     = true;
     g_pumpStartTime = millis();
     g_pumpCount++;
@@ -150,7 +150,7 @@ void turnOffAllLEDs()
     g_currentLEDColor = {0, 0, 0};
 }
 
-// ---- Màu preset ----
+// Các màu trạng thái chuẩn (có thể tùy chỉnh thêm nếu muốn)
 void ledColorGood()      { setAllLEDs(0,   255, 0);   }   // Xanh lá
 void ledColorWarning()   { setAllLEDs(255, 200, 0);   }   // Vàng cam
 void ledColorDanger()    { setAllLEDs(255, 0,   0);   }   // Đỏ

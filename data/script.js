@@ -109,20 +109,6 @@ function initApp() {
 // ══════════════════════════════════════════════
 // WEBSOCKET (UC13: Nhận dữ liệu real-time)
 // ══════════════════════════════════════════════
-// function connectWS() {
-//   const dot = document.getElementById("wsDot");
-//   const label = document.getElementById("wsLabel");
-
-//   dot.className = "ws-dot";
-//   label.textContent = "Đang kết nối...";
-
-//   // In production: ws = new WebSocket('ws://' + location.host + '/ws');
-//   // For demo: simulate with mock data
-//   simulateMockData();
-//   dot.className = "ws-dot connected";
-//   label.textContent = "Đã kết nối (Demo)";
-// }
-
 function connectWS() {
   const dot = document.getElementById("wsDot");
   const label = document.getElementById("wsLabel");

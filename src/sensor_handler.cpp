@@ -1,11 +1,5 @@
 /*
  * sensor_handler.cpp - Đọc cảm biến DHT11/22, LDR DO, Soil ADC
- *
- * FIXES & IMPROVEMENTS:
- *   1. readSoilMoisture() bỏ delay(2) -> không chặn scheduler
- *   2. DHT retry logic: bỏ qua giá trị NaN thay vì xóa toàn bộ dữ liệu
- *   3. Thêm lọc low-pass đơn giản cho soil ADC (EMA filter)
- *   4. GPIO ADC-only (34, 35) không set pinMode INPUT (gây warning trên ESP32)
  */
 
 #include "sensor_handler.h"
@@ -29,7 +23,6 @@ void initSensors()
                   (DHT_TYPE == DHT11) ? "11" : "22", DHT_PIN);
 
     // ---- Cảm biến ánh sáng LDR (ADC) ----
-    // GPIO34: input-only, không gọi pinMode
     //  ADC config: 12-bit, 11dB attenuation (đọc 0~3.3V full range)
     analogReadResolution(12);       // 12-bit: 0-4095
     analogSetAttenuation(ADC_11db); // Đọc full range 0-3.3V
@@ -40,7 +33,6 @@ void initSensors()
 
 
     // ---- Cảm biến đất (ADC) ----
-    // GPIO35: input-only, không gọi pinMode
     // ADC config: 12-bit, 11dB attenuation (đọc 0~3.3V full range)
     analogReadResolution(12);
     analogSetAttenuation(ADC_11db);
@@ -100,9 +92,9 @@ void readLightSensor()
         sum += analogRead(LIGHT_SENSOR_PIN);
     int avgADC = (int)(sum / LIGHT_ADC_SAMPLES);
 
-    // constrain đúng thứ tự: min trước, max sau
+    // Clamp ADC trong vùng calibration để tránh giá trị ngoại lai làm lệch kết quả ánh sáng
     int clamped = constrain(avgADC, LIGHT_ADC_DARK, LIGHT_ADC_BRIGHT);
-    //                               500              4000  ← min < max ✅
+    
 
     // ADC cao = sáng, ADC thấp = tối → map thuận chiều
     g_lightLux = ((float)(clamped - LIGHT_ADC_DARK) /

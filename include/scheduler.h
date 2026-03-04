@@ -7,8 +7,8 @@
 
 #include <Arduino.h>
 
-#define SCH_MAX_TASKS       20
-#define NO_TASK_ID          0
+#define SCH_MAX_TASKS       20      // Số lượng task tối đa có thể đăng ký
+#define NO_TASK_ID          0       // ID trả về khi thêm task thất bại
 #define TIMER_TICK_MS       10      // Tick 10ms
 
 #define ERROR_SCH_TOO_MANY_TASKS    1

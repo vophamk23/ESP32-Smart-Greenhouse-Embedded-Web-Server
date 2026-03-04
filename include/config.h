@@ -4,18 +4,28 @@
  */
 
 // ============================================================================
-// CHÂN GPIO
+// CHÂN GPIO (ESP32) - Nguồn 3.3V
 // ============================================================================
 #define DHT_PIN             27      // DHT11/22 data pin
-#define LIGHT_SENSOR_PIN    34      // LDR module (DO digital) - GPIO34 input only
-#define SOIL_MOISTURE_PIN   35      // Capacitive soil sensor ADC - GPIO35 input only
-#define RELAY_PUMP_PIN      25      // Relay bơm nước (IN1)
-#define FAN_S1_PIN          26      // Fan Yolo S1 (quay thuận)
-#define NEO_PIN             32      // NeoPixel data pin
+#define LIGHT_SENSOR_PIN    34      // LDR module (DO digital) 
+#define SOIL_MOISTURE_PIN   33      // Capacitive soil sensor ADC 
+#define RELAY_PUMP_PIN      17      // Relay bơm nước (IN1)
+#define NEO_PIN             26      // NeoPixel data pin
 #define NEO_COUNT            4      // Số LED NeoPixel
+#define FAN_S1_PIN          25      // Fan Yolo S1 (quay thuận)
 #define BTN_MODE_PIN        19      // Toggle AUTO <-> MANUAL
 #define BTN_PUMP_PIN        18      // Toggle Pump  (chỉ MANUAL)
 #define BTN_FAN_PIN         5     // Toggle Fan   (chỉ MANUAL)
+
+// ============================================================================
+// LCD 16x2 I2C (Nguồn 5V, SDA=GPIO21, SCL=GPIO22)
+// ============================================================================
+#define LCD_ADDRESS         0x27    // Thử 0x3F nếu không hiển thị
+#define LCD_COLS            16
+#define LCD_ROWS             2
+#define LCD_PAGE_COUNT       4      // Tổng số trang màn hình
+#define SDA_PIN             21
+#define SCL_PIN             22
 
 // ============================================================================
 // CẤU HÌNH CẢM BIẾN
@@ -42,18 +52,17 @@
 // RELAY LOGIC
 // ============================================================================
 // Relay active-LOW: IN=LOW -> relay bật, IN=HIGH -> relay tắt
-// Đổi thành HIGH/LOW nếu dùng relay active-HIGH
-#define RELAY_ON            LOW
-#define RELAY_OFF           HIGH
+#define RELAY_ON    LOW     
+#define RELAY_OFF   HIGH    
 
 // ============================================================================
 // NGƯỠNG ĐIỀU KHIỂN TỰ ĐỘNG
 // ============================================================================
 
 // Nhiệt độ (°C)
-#define TEMP_CRITICAL       31.0f   // Nguy hiểm cực cao -> LED đỏ
-#define TEMP_HIGH_THRESHOLD 30.0f   // Bật quạt
-#define TEMP_LOW_THRESHOLD  28.0f   // Tắt quạt (hysteresis)
+#define TEMP_CRITICAL       37.0f   // Nguy hiểm cực cao -> LED đỏ
+#define TEMP_HIGH_THRESHOLD 32.0f   // Bật quạt
+#define TEMP_LOW_THRESHOLD  30.0f   // Tắt quạt (hysteresis)
 
 // Độ ẩm không khí (%)
 #define HUMIDITY_HIGH_THRESHOLD  85.0f
@@ -85,16 +94,9 @@
 // Thời gian chờ bắt buộc sau khi bơm tắt, trước khi được phép bơm lần tiếp theo
 #define PUMP_COOLDOWN_MS     (2UL * 60UL * 1000UL) // 2 phút chờ giữa các lần bơm 
 
-// ============================================================================
-// LCD 16x2 I2C
-// ============================================================================
-#define LCD_ADDRESS         0x27    // Thử 0x3F nếu không hiển thị
-#define LCD_COLS            16
-#define LCD_ROWS             2
-#define LCD_PAGE_COUNT       4      // Tổng số trang màn hình
 
 // ============================================================================
-// NEOPIXEL BRIGHTNESS
+// NEOPIXEL BRIGHTNESS (0-255)
 // ============================================================================
 #define NEO_BRIGHTNESS      150     // 0-255 (150 ~ 60%)
 

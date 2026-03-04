@@ -1,12 +1,6 @@
 /*
  * main_updated.cpp - Greenhouse IoT System (+ CoreIoT + WebServer)
  *
- * Thay thế main.cpp cũ với phần bổ sung:
- *   1. Khởi tạo LittleFS và đọc config WiFi/token
- *   2. Khởi tạo iot_bridge (queues + semaphores)
- *   3. Tạo FreeRTOS tasks trên Core 0 (WiFi, CoreIoT, WebServer)
- *   4. Thêm 2 scheduler tasks mới (SendTelemetry, ProcessRpc)
- *
  * Dual-core layout:
  *   Core 0: greenhouse_wifi_task (priority 3)
  *           greenhouse_coreiot_task (priority 2)
@@ -27,6 +21,7 @@
 #include "iot_bridge.h"
 #include "task_coreiot_greenhouse.h"
 #include "task_webserver_greenhouse.h"
+#include "task_wifi_greenhouse.h"
 
 // ============================================================================
 // CẤU HÌNH (đọc từ LittleFS)
@@ -67,9 +62,9 @@ void setup()
 {
     Serial.begin(115200);
     delay(200);
-    Serial.println("\n================================");
-    Serial.println("  Greenhouse IoT + CoreIoT v2.0");
-    Serial.println("================================");
+    Serial.println("\n==============================");
+    Serial.println("  Greenhouse IoT + CoreIoT ");
+    Serial.println("==============================");
 
     // ===== 1. LittleFS + Config =====
     if (!LittleFS.begin(true))
@@ -78,7 +73,6 @@ void setup()
         loadConfig();
 
     // ===== 2. HARDWARE =====
-    Serial.println("[INIT] Hardware...");
     initLCD();
     initActuators();
     initSensors();
@@ -87,12 +81,15 @@ void setup()
     readDHT();
     readLightSensor();
     readSoilMoisture();
-    Serial.println("[INIT] Sensors OK");
 
-    // ===== 3. IOT BRIDGE (queues + semaphores) =====
+    
+    // ===== 3. WIFI =====
+    initWiFi();
+
+    // ===== 4. IOT BRIDGE (queues + semaphores) =====
     iotBridge_init();
 
-    // ===== 4. FREERTOS TASKS trên Core 0 =====
+    // ===== 5. FREERTOS TASKS trên Core 0 =====
     // Priority: wifi(3) > coreiot(2) > webserver(1)
     xTaskCreatePinnedToCore(
         greenhouse_wifi_task, "wifi",
@@ -106,13 +103,12 @@ void setup()
         greenhouse_webserver_task, "webserver",
         8192, nullptr, 1, nullptr, 0);
 
-    // Serial.println("[INIT] FreeRTOS tasks created on Core 0");
 
-    // ===== 5. COOPERATIVE SCHEDULER (Core 1) =====
+    // ===== 6. COOPERATIVE SCHEDULER (Core 1) =====
     SCH_Init();
     SCH_Init_Timer();
 
-    // Tasks cũ (giữ nguyên)
+    // Đăng ký các task vào scheduler (Core 1)
     SCH_Add_Task(Task_ReadAirSensors,    0, TASK_SENSOR_READ_TICKS);
     SCH_Add_Task(Task_ReadSoilSensor,    0, TASK_SOIL_READ_TICKS);
     SCH_Add_Task(Task_CheckAlerts,       0, TASK_ALERT_CHECK_TICKS);
@@ -124,13 +120,9 @@ void setup()
     SCH_Add_Task(Task_Heartbeat,         0, TASK_HEARTBEAT_TICKS);
     SCH_Add_Task(Task_ScanButtons,       0, BTN_DEBOUNCE_TICKS);
 
-    // // Tasks (IoT)
+    // 
     SCH_Add_Task(Task_SendTelemetry,     0, TASK_TELEMETRY_TICKS);   // 5s
     SCH_Add_Task(Task_ProcessRpc,        0, TASK_RPC_POLL_TICKS);    // 200ms
-
-    Serial.println("[INIT] All tasks registered");
-    Serial.printf("[INIT] Free heap: %u bytes\n", ESP.getFreeHeap());
-    Serial.println("[INIT] System running!\n");
 }
 
 // ============================================================================

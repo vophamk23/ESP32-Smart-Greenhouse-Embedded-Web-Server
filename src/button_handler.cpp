@@ -9,9 +9,7 @@
 #include "config.h"
 #include "App_Tasks.h"
 
-// ============================================================================
-// CẤU TRÚC NÚT NHẤN
-// ============================================================================
+// ==================== ĐỐI TƯỢNG NÚT NHẤN ====================
 struct Button_t
 {
     uint8_t       pin;
@@ -24,9 +22,7 @@ static Button_t s_btnMode = { BTN_MODE_PIN, HIGH, HIGH, 0 };
 static Button_t s_btnPump = { BTN_PUMP_PIN, HIGH, HIGH, 0 };
 static Button_t s_btnFan  = { BTN_FAN_PIN,  HIGH, HIGH, 0 };
 
-// ============================================================================
-// KHỞI TẠO
-// ============================================================================
+// Khởi tạo chân và trạng thái nút
 void initButtons()
 {
     pinMode(BTN_MODE_PIN, INPUT_PULLUP);

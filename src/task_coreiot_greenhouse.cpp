@@ -270,73 +270,9 @@ void greenhouse_coreiot_task(void *pvParameters)
     }
 }
 
-// ============================================================================
-// WIFI TASK (Core 0)
-// ============================================================================
-void greenhouse_wifi_task(void *pvParameters)
-{
-    Serial.println("[WiFi] Starting WiFi task...");
 
-    if (WIFI_SSID.isEmpty())
-    {
-        // Chưa cấu hình → bật AP mode để setup
-        WiFi.mode(WIFI_AP);
-        WiFi.softAP("Greenhouse-AP", "12345678");
-        Serial.printf("[WiFi] AP mode: Greenhouse-AP / IP: %s\n",
-                      WiFi.softAPIP().toString().c_str());
-        // AP task không release semaphore → CoreIoT task sẽ timeout và chờ
-        vTaskDelete(nullptr);
-        return;
-    }
 
-    // STA mode
-    WiFi.mode(WIFI_STA);
-    WiFi.begin(WIFI_SSID.c_str(),
-               WIFI_PASS.isEmpty() ? nullptr : WIFI_PASS.c_str());
 
-    Serial.printf("[WiFi] Connecting to %s...\n", WIFI_SSID.c_str());
-
-    uint32_t t0 = millis();
-    while (WiFi.status() != WL_CONNECTED)
-    {
-        vTaskDelay(pdMS_TO_TICKS(200));
-        if (millis() - t0 > 20000)
-        {
-            Serial.println("[WiFi] Timeout! Restarting...");
-            ESP.restart();
-        }
-    }
-
-    Serial.printf("[WiFi] Connected! IP: %s\n",
-                  WiFi.localIP().toString().c_str());
-
-    // Signal: WiFi sẵn sàng
-    if (xSemaphoreWiFiReady)
-        xSemaphoreGive(xSemaphoreWiFiReady);
-
-    // Giám sát kết nối và auto-reconnect
-    for (;;)
-    {
-        vTaskDelay(pdMS_TO_TICKS(10000)); // kiểm tra mỗi 10s
-
-        if (WiFi.status() != WL_CONNECTED)
-        {
-            Serial.println("[WiFi] Disconnected! Reconnecting...");
-            WiFi.reconnect();
-
-            uint32_t t = millis();
-            while (WiFi.status() != WL_CONNECTED && millis() - t < 15000)
-                vTaskDelay(pdMS_TO_TICKS(500));
-
-            if (WiFi.status() == WL_CONNECTED)
-            {
-                Serial.printf("[WiFi] Reconnected! IP: %s\n",
-                              WiFi.localIP().toString().c_str());
-                xSemaphoreGive(xSemaphoreWiFiReady);
-            }
-        }
-    }
-}
 
 
 // void greenhouse_wifi_task(void *pvParameters)

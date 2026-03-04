@@ -13,5 +13,6 @@
 #include <Arduino.h>
 #include "lcd_display.h"
 
+// Khai báo hàm xử lý nút nhấn
 void initButtons();         // Gọi trong setup()
 void Task_ScanButtons();    // Đăng ký vào scheduler, period BTN_DEBOUNCE_MS/TIMER_TICK_MS ticks

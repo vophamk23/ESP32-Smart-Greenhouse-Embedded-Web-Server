@@ -15,6 +15,7 @@ portMUX_TYPE timerMux = portMUX_INITIALIZER_UNLOCKED;
 
 static void SCH_Update_Marking(void);
 
+// Timer ISR: cập nhật scheduler mỗi 10ms
 void IRAM_ATTR onTimer()
 {
     portENTER_CRITICAL_ISR(&timerMux);
@@ -22,15 +23,17 @@ void IRAM_ATTR onTimer()
     portEXIT_CRITICAL_ISR(&timerMux);
 }
 
+// Khởi tạo timer để gọi onTimer() mỗi 10ms
 void SCH_Init_Timer(void)
 {
     timer = timerBegin(0, 80, true);           // 80MHz / 80 = 1MHz
-    timerAttachInterrupt(timer, &onTimer, true);
+   timerAttachInterrupt(timer, &onTimer, false);
     timerAlarmWrite(timer, TIMER_TICK_MS * 1000, true); // 10ms
     timerAlarmEnable(timer);
     Serial.println("[SCH] Timer 10ms started");
 }
 
+// Khởi tạo scheduler: xóa tất cả task, reset biến đếm
 void SCH_Init(void)
 {
     for (uint32_t i = 0; i < SCH_MAX_TASKS; i++)
@@ -47,6 +50,7 @@ void SCH_Init(void)
     Error_code_G = 0;
 }
 
+// Thêm task mới vào scheduler, trả về TaskID hoặc NO_TASK_ID nếu thất bại
 uint32_t SCH_Add_Task(void (*pFunction)(), uint32_t DELAY, uint32_t PERIOD)
 {
     if (task_count == 0)
@@ -85,6 +89,7 @@ uint32_t SCH_Add_Task(void (*pFunction)(), uint32_t DELAY, uint32_t PERIOD)
     return insert_index;
 }
 
+// Xóa task tại TASK_INDEX, trả về RETURN_NORMAL hoặc RETURN_ERROR nếu thất bại
 uint8_t SCH_Delete_Task(const uint32_t TASK_INDEX)
 {
     if (TASK_INDEX >= task_count || task_count == 0)
@@ -111,6 +116,8 @@ uint8_t SCH_Delete_Task(const uint32_t TASK_INDEX)
     return RETURN_NORMAL;
 }
 
+
+// Cập nhật MARKING array: đánh dấu task nào có Delay bằng Delay của task đầu tiên
 static void SCH_Update_Marking(void)
 {
     if (task_count == 0) return;
@@ -119,6 +126,7 @@ static void SCH_Update_Marking(void)
         MARKING[n] = (SCH_tasks_G[n].Delay == first_delay) ? 1 : 0;
 }
 
+// Cập nhật scheduler: giảm Delay của tất cả task, đánh dấu RunMe nếu Delay về 0
 void SCH_Update(void)
 {
     if (task_count > 0)
@@ -129,6 +137,7 @@ void SCH_Update(void)
     }
 }
 
+// Dispatch các task có RunMe > 0, chạy task, xóa nếu không lặp lại hoặc reset Delay nếu có Period
 void SCH_Dispatch_Tasks(void)
 {
 //  Đảm bảo tính nhất quán của task list khi onTimer() có thể đang cập nhật cùng lúc 
@@ -182,4 +191,5 @@ void SCH_Dispatch_Tasks(void)
     portEXIT_CRITICAL(&timerMux);
 }
 
+// Trả về số lượng task hiện tại trong scheduler
 uint32_t SCH_Get_Current_Size(void) { return task_count; }

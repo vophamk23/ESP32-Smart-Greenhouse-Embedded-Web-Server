@@ -41,7 +41,7 @@
 
 
 // ==================== TASK PROTOTYPES ====================
-void Task_ReadAirSensors(void);     // Đọc DHT20 + BH1750
+void Task_ReadAirSensors(void);     // Đọc nhiệt độ, độ ẩm không khí
 void Task_ReadSoilSensor(void);     // Đọc độ ẩm đất
 void Task_UpdateLCD(void);          // Cập nhật hiển thị LCD
 void Task_AutoSwitchLCDPage(void);  // Tự động chuyển trang LCD

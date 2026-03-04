@@ -186,6 +186,9 @@ void greenhouse_webserver_task(void *pvParameters)
                 doc["pumpCount"]        = (int)g_pumpCount;
                 doc["totalPumpTimeSec"] = (long)(g_totalPumpTime / 1000UL);
                 doc["dhtError"]         = g_dhtError;
+                doc["wifiRssi"]         = WiFi.RSSI();         
+                doc["freeHeap"]         = ESP.getFreeHeap();   
+                doc["lcdPage"]          = g_lcdPage;
 
                 char ledHex[8];
                 snprintf(ledHex, sizeof(ledHex), "#%02X%02X%02X",
