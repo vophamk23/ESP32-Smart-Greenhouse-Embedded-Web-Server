@@ -1,5 +1,5 @@
 /*
- * main_updated.cpp - Greenhouse IoT System (+ CoreIoT + WebServer)
+ * main.cpp - Greenhouse IoT System (+ CoreIoT + WebServer)
  *
  * Dual-core layout:
  *   Core 0: greenhouse_wifi_task (priority 3)
@@ -9,7 +9,6 @@
  */
 
 #include <Arduino.h>
-#include <LittleFS.h>
 #include "config.h"
 #include "global_vars.h"
 #include "scheduler.h"
@@ -19,41 +18,19 @@
 #include "app_tasks.h"
 #include "button_handler.h"
 #include "iot_bridge.h"
-#include "task_coreiot_greenhouse.h"
-#include "task_webserver_greenhouse.h"
-#include "task_wifi_greenhouse.h"
+#include "check_info.h"                  // ← thay loadConfig() nội bộ
+#include "coreiot_greenhouse.h"
+#include "webserver_greenhouse.h"
+#include "wifi_greenhouse.h"
 
 // ============================================================================
-// CẤU HÌNH (đọc từ LittleFS)
+// BIẾN CONFIG TOÀN CỤC (định nghĩa ở đây, extern ở các file khác)
 // ============================================================================
 String WIFI_SSID       = "";
 String WIFI_PASS       = "";
 String CORE_IOT_TOKEN  = "";
 String CORE_IOT_SERVER = "";
 String CORE_IOT_PORT   = "1883";
-
-static void loadConfig()
-{
-    File file = LittleFS.open("/info.dat", "r");
-    if (!file)
-    {
-        Serial.println("[CFG] /info.dat not found - using defaults");
-        return;
-    }
-
-    DynamicJsonDocument doc(1024);
-    if (deserializeJson(doc, file) == DeserializationError::Ok)
-    {
-        if (doc["WIFI_SSID"].is<const char*>())   WIFI_SSID       = doc["WIFI_SSID"].as<String>();
-        if (doc["WIFI_PASS"].is<const char*>())   WIFI_PASS       = doc["WIFI_PASS"].as<String>();
-        if (doc["CORE_IOT_TOKEN"].is<const char*>()) CORE_IOT_TOKEN  = doc["CORE_IOT_TOKEN"].as<String>();
-        if (doc["CORE_IOT_SERVER"].is<const char*>()) CORE_IOT_SERVER = doc["CORE_IOT_SERVER"].as<String>();
-        if (doc["CORE_IOT_PORT"].is<const char*>()) CORE_IOT_PORT   = doc["CORE_IOT_PORT"].as<String>();
-        Serial.printf("[CFG] Loaded: SSID=%s, Server=%s:%s\n",
-                      WIFI_SSID.c_str(), CORE_IOT_SERVER.c_str(), CORE_IOT_PORT.c_str());
-    }
-    file.close();
-}
 
 // ============================================================================
 // SETUP
@@ -67,10 +44,9 @@ void setup()
     Serial.println("==============================");
 
     // ===== 1. LittleFS + Config =====
-    if (!LittleFS.begin(true))
-        Serial.println("[INIT] LittleFS failed!");
-    else
-        loadConfig();
+    // check_info_File(false): mount LittleFS + load /info.dat
+    // Nếu chưa có config → tự động bật AP để cấu hình
+    check_info_File(false);
 
     // ===== 2. HARDWARE =====
     initLCD();
@@ -82,7 +58,6 @@ void setup()
     readLightSensor();
     readSoilMoisture();
 
-    
     // ===== 3. WIFI =====
     initWiFi();
 
@@ -90,7 +65,6 @@ void setup()
     iotBridge_init();
 
     // ===== 5. FREERTOS TASKS trên Core 0 =====
-    // Priority: wifi(3) > coreiot(2) > webserver(1)
     xTaskCreatePinnedToCore(
         greenhouse_wifi_task, "wifi",
         4096, nullptr, 3, nullptr, 0);
@@ -103,12 +77,10 @@ void setup()
         greenhouse_webserver_task, "webserver",
         8192, nullptr, 1, nullptr, 0);
 
-
     // ===== 6. COOPERATIVE SCHEDULER (Core 1) =====
     SCH_Init();
     SCH_Init_Timer();
 
-    // Đăng ký các task vào scheduler (Core 1)
     SCH_Add_Task(Task_ReadAirSensors,    0, TASK_SENSOR_READ_TICKS);
     SCH_Add_Task(Task_ReadSoilSensor,    0, TASK_SOIL_READ_TICKS);
     SCH_Add_Task(Task_CheckAlerts,       0, TASK_ALERT_CHECK_TICKS);
@@ -119,10 +91,8 @@ void setup()
     SCH_Add_Task(Task_AutoSwitchLCDPage, 0, TASK_LCD_PAGE_SWITCH_TICKS);
     SCH_Add_Task(Task_Heartbeat,         0, TASK_HEARTBEAT_TICKS);
     SCH_Add_Task(Task_ScanButtons,       0, BTN_DEBOUNCE_TICKS);
-
-    // 
-    SCH_Add_Task(Task_SendTelemetry,     0, TASK_TELEMETRY_TICKS);   // 5s
-    SCH_Add_Task(Task_ProcessRpc,        0, TASK_RPC_POLL_TICKS);    // 200ms
+    SCH_Add_Task(Task_SendTelemetry,     0, TASK_TELEMETRY_TICKS);
+    SCH_Add_Task(Task_ProcessRpc,        0, TASK_RPC_POLL_TICKS);
 }
 
 // ============================================================================
@@ -132,7 +102,6 @@ void loop()
 {
     SCH_Dispatch_Tasks();
 
-    // Serial debug commands (giữ nguyên từ phiên bản cũ)
     if (Serial.available())
     {
         char cmd = Serial.read();
@@ -140,8 +109,7 @@ void loop()
         {
             case 'a': case 'A':
                 g_autoMode = !g_autoMode;
-                if (g_autoMode)
-                    g_pumpManual = false;
+                if (g_autoMode) g_pumpManual = false;
                 Serial.printf("[CMD] Mode -> %s\n", g_autoMode ? "AUTO" : "MANUAL");
                 setLCDPage(2);
                 break;
@@ -161,7 +129,6 @@ void loop()
                 printSensorData();
                 break;
             case 'i': case 'I':
-                // In thông tin IoT
                 Serial.printf("[IOT] WiFi: %s | IP: %s\n",
                     WiFi.status() == WL_CONNECTED ? "OK" : "DISCONNECTED",
                     WiFi.localIP().toString().c_str());

@@ -1,13 +1,11 @@
 /* ═══════════════════════════════════════════════
-   GREENHOUSE IoT — script.js
-   14 Use Cases: Monitoring, Control, Management, System
+   GREENHOUSE IoT — script.js  (FIXED)
+   - Removed "Demo" label
+   - Added null-check in updateUI()
+   - WebSocket nhận data thật từ ESP32
 ═══════════════════════════════════════════════ */
-
 "use strict";
 
-// ══════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════
 const State = {
   user: null,
   data: {},
@@ -30,9 +28,7 @@ const State = {
 
 const USERS = { admin: "admin123", greenhouse: "iot2024" };
 
-// ══════════════════════════════════════════════
-// UC9: AUTH
-// ══════════════════════════════════════════════
+// ── UC9: AUTH ──────────────────────────────────
 function doLogin() {
   const u = document.getElementById("loginUser").value.trim();
   const p = document.getElementById("loginPass").value;
@@ -51,7 +47,6 @@ function doLogin() {
     document.getElementById("loginPass").value = "";
   }
 }
-
 document.getElementById("loginPass").addEventListener("keydown", (e) => {
   if (e.key === "Enter") doLogin();
 });
@@ -89,9 +84,7 @@ function saveAccount() {
   showToast("✓ Đã lưu thông tin tài khoản");
 }
 
-// ══════════════════════════════════════════════
-// INIT
-// ══════════════════════════════════════════════
+// ── INIT ──────────────────────────────────────
 function initApp() {
   startClock();
   loadFromStorage();
@@ -106,9 +99,7 @@ function initApp() {
   navigate("dashboard");
 }
 
-// ══════════════════════════════════════════════
-// WEBSOCKET (UC13: Nhận dữ liệu real-time)
-// ══════════════════════════════════════════════
+// ── UC8: WEBSOCKET ─────────────────────────────
 function connectWS() {
   const dot = document.getElementById("wsDot");
   const label = document.getElementById("wsLabel");
@@ -121,22 +112,24 @@ function connectWS() {
 
   State.ws.onopen = () => {
     dot.className = "ws-dot connected";
-    label.textContent = "Đã kết nối"; // bỏ chữ Demo
+    label.textContent = "Đã kết nối"; // ← KHÔNG có chữ "Demo"
     State.wsRetry = 0;
     console.log("[WS] Connected:", wsUrl);
 
+    // Lấy snapshot ngay khi connect
     fetch("/api/status")
       .then((r) => r.json())
       .then((d) => {
         updateUI(d);
         State.data = { ...State.data, ...d };
       })
-      .catch((e) => console.warn("[API]", e));
+      .catch((e) => console.warn("[API] /api/status failed:", e));
   };
 
   State.ws.onmessage = (event) => {
     try {
       const d = JSON.parse(event.data);
+      console.log("[WS] Received:", d); // debug - xóa khi ổn
       State.autoMode = d.autoMode;
       updateUI(d);
       State.data = { ...State.data, ...d };
@@ -150,114 +143,70 @@ function connectWS() {
         State.data._pumpWasOn = false;
       }
     } catch (e) {
-      console.warn("[WS] Parse error:", e);
+      console.warn("[WS] Parse error:", e, "raw:", event.data);
     }
   };
 
   State.ws.onclose = () => {
     dot.className = "ws-dot error";
     label.textContent = "Mất kết nối - thử lại...";
+    console.warn("[WS] Closed, retry in 3s");
     setTimeout(connectWS, 3000);
   };
 
-  State.ws.onerror = () => {
+  State.ws.onerror = (err) => {
     dot.className = "ws-dot error";
     label.textContent = "Lỗi kết nối";
+    console.error("[WS] Error:", err);
   };
 }
 
-// // ─── Mock data simulation ───
-// function simulateMockData() {
-//   function gen() {
-//     const d = {
-//       temperature: 22 + Math.random() * 16,
-//       humidity: 40 + Math.random() * 45,
-//       soilMoisture: 15 + Math.random() * 70,
-//       lightLux: Math.random() > 0.4 ? 1200 : 80,
-//       pump: State.data.pump || false,
-//       fan: State.data.fan || false,
-//       autoMode: State.autoMode,
-//       alertTemp: false,
-//       alertHumidity: false,
-//       alertSoil: false,
-//       alertLight: false,
-//       dhtError: false,
-//       pumpCount: State.pumpLogs.length,
-//       totalPumpTimeSec: State.pumpLogs.reduce(
-//         (a, l) => a + (l.duration || 0),
-//         0,
-//       ),
-//       ledColor: "#00FF00",
-//       wifiRssi: -40 + Math.floor(Math.random() * -30),
-//       freeHeap: 220000 + Math.floor(Math.random() * 50000),
-//       lcdPage: Math.floor(Math.random() * 4),
-//     };
-//     // Compute alerts
-//     d.alertTemp = d.temperature > State.thresholds.tempHigh;
-//     d.alertHumidity = d.humidity < 30 || d.humidity > 90;
-//     d.alertSoil = d.soilMoisture < State.thresholds.dry;
-//     d.alertLight = d.lightLux < 200;
-//     // LED color logic
-//     if (d.temperature > 45) d.ledColor = "#FF0000";
-//     else if (d.pump) d.ledColor = "#0064FF";
-//     else if (d.alertTemp || d.alertSoil) d.ledColor = "#FFC800";
-//     else if (d.lightLux < 200) d.ledColor = "#FFFFFF";
-//     else d.ledColor = "#00FF00";
-
-//     // UC12: Auto pump logic
-//     if (State.autoMode && !d.pump && d.soilMoisture < State.thresholds.dry) {
-//       d.pump = true;
-//       State.data.pump = true;
-//       addPumpLog("AUTO — Đất khô (" + d.soilMoisture.toFixed(0) + "%)");
-//     }
-//     if (State.autoMode && d.pump && d.soilMoisture >= State.thresholds.wet) {
-//       d.pump = false;
-//       State.data.pump = false;
-//       closePumpLog("OK");
-//     }
-
-//     updateUI(d);
-//     State.data = { ...State.data, ...d };
-//   }
-//   gen();
-//   setInterval(gen, 3000);
-// }
-
-// ══════════════════════════════════════════════
-// UC1 + UC2: UPDATE UI
-// ══════════════════════════════════════════════
+// ── UC1 + UC2: UPDATE UI ──────────────────────
 function updateUI(d) {
-  // UC1: Sensors
-  const tempOk = !d.dhtError;
-  setText("val-temp", tempOk ? d.temperature.toFixed(1) : "ERR");
-  setText("val-humi", tempOk ? d.humidity.toFixed(0) : "--");
-  setText("val-soil", d.soilMoisture.toFixed(0));
+  // Guard: bỏ qua nếu data không hợp lệ
+  if (!d || typeof d !== "object") return;
 
-  const bright = d.lightLux > 500;
+  // UC1: Sensors — null-safe
+  const tempOk = !d.dhtError;
+  setText(
+    "val-temp",
+    tempOk && d.temperature != null ? d.temperature.toFixed(1) : "ERR",
+  );
+  setText(
+    "val-humi",
+    tempOk && d.humidity != null ? d.humidity.toFixed(0) : "--",
+  );
+  setText(
+    "val-soil",
+    d.soilMoisture != null ? d.soilMoisture.toFixed(0) : "--",
+  );
+
+  const bright = (d.lightLux || 0) > 500;
   setText("val-light", bright ? "SÁNG" : "TỐI");
   setText("unit-light", bright ? "☀️" : "🌙");
 
-  setStyle(
-    "bar-temp",
-    "width",
-    Math.min((d.temperature / 50) * 100, 100) + "%",
-  );
-  setStyle("bar-humi", "width", d.humidity + "%");
-  setStyle("bar-soil", "width", d.soilMoisture + "%");
+  if (d.temperature != null)
+    setStyle(
+      "bar-temp",
+      "width",
+      Math.min((d.temperature / 50) * 100, 100) + "%",
+    );
+  if (d.humidity != null) setStyle("bar-humi", "width", d.humidity + "%");
+  if (d.soilMoisture != null)
+    setStyle("bar-soil", "width", d.soilMoisture + "%");
 
-  toggleClass("sc-temp", "alert", d.alertTemp);
-  toggleClass("sc-humi", "alert", d.alertHumidity);
-  toggleClass("sc-soil", "alert", d.alertSoil);
-  toggleClass("sc-light", "alert", d.alertLight);
+  toggleClass("sc-temp", "alert", !!d.alertTemp);
+  toggleClass("sc-humi", "alert", !!d.alertHumidity);
+  toggleClass("sc-soil", "alert", !!d.alertSoil);
+  toggleClass("sc-light", "alert", !!d.alertLight);
 
   // UC2: Device status
-  const pumpOn = d.pump,
-    fanOn = d.fan;
+  const pumpOn = !!d.pump,
+    fanOn = !!d.fan;
   setText("dstate-pump", pumpOn ? "● RUNNING" : "○ STANDBY");
   setText("dstate-fan", fanOn ? "● RUNNING" : "○ STANDBY");
   setLedState("dled-pump", pumpOn);
   setLedState("dled-fan", fanOn);
-
   toggleClass("dstat-pump", "active", pumpOn);
   toggleClass("dstat-fan", "active", fanOn);
 
@@ -277,7 +226,6 @@ function updateUI(d) {
   setText("dstate-mode", d.autoMode ? "AUTO" : "MANUAL");
   setText("dstate-led", d.ledColor === "#000000" ? "Tắt" : "Đang sáng");
 
-  // LED preview
   const ledEl = document.getElementById("dled-color");
   if (ledEl) {
     ledEl.style.background = d.ledColor || "#000";
@@ -303,7 +251,6 @@ function updateUI(d) {
     sec >= 60 ? Math.floor(sec / 60) + "m" + (sec % 60) + "s" : sec + "s",
   );
   setText("stat-heap", d.freeHeap ? d.freeHeap.toLocaleString() : "--");
-
   const now = new Date();
   setText(
     "stat-uptime",
@@ -314,12 +261,10 @@ function updateUI(d) {
       now.getSeconds().toString().padStart(2, "0"),
   );
 
-  // Control page badges
   updateControlPage(d);
 }
 
 function updateControlPage(d) {
-  // Mode
   State.autoMode = d.autoMode;
   const banner = document.getElementById("modeBanner");
   const bannerText = document.getElementById("modeBannerText");
@@ -336,7 +281,6 @@ function updateControlPage(d) {
   if (mManBtn)
     mManBtn.className = "mode-btn" + (!d.autoMode ? " active-manual" : "");
 
-  // Pump badge
   const bPump = document.getElementById("badge-pump");
   if (bPump) {
     bPump.textContent = d.pump ? "ON" : "OFF";
@@ -354,9 +298,7 @@ function updateControlPage(d) {
   if (cFan) cFan.className = "ctrl-card" + (d.fan ? " active-fan" : "");
 }
 
-// ══════════════════════════════════════════════
-// UC5: MANUAL CONTROL
-// ══════════════════════════════════════════════
+// ── UC5: MANUAL CONTROL ───────────────────────
 function ctrlDevice(device, action) {
   if (State.autoMode) {
     showToast("⚠ Chuyển sang MANUAL trước", true);
@@ -364,7 +306,6 @@ function ctrlDevice(device, action) {
   }
   const on = action === "on";
   State.data[device] = on;
-
   if (device === "pump") {
     if (on) {
       addPumpLog("MANUAL — Người dùng bật");
@@ -376,8 +317,6 @@ function ctrlDevice(device, action) {
   } else {
     showToast("✓ " + (on ? "Bật" : "Tắt") + " quạt");
   }
-
-  // Send to ESP32 via WS
   sendWS({
     cmd: "set" + device.charAt(0).toUpperCase() + device.slice(1),
     value: on,
@@ -394,11 +333,8 @@ function setMode(mode) {
   showToast("✓ Chế độ: " + mode);
 }
 
-// ══════════════════════════════════════════════
-// PUMP LOG HELPERS (UC4)
-// ══════════════════════════════════════════════
+// ── PUMP LOG (UC4) ────────────────────────────
 let activePumpLog = null;
-
 function addPumpLog(reason) {
   activePumpLog = {
     id: State.pumpLogs.length + 1,
@@ -410,7 +346,6 @@ function addPumpLog(reason) {
   };
   State.pumpLogs.unshift(activePumpLog);
 }
-
 function closePumpLog(status) {
   if (!activePumpLog) return;
   activePumpLog.end = new Date();
@@ -423,20 +358,16 @@ function closePumpLog(status) {
   saveToStorage();
 }
 
-// ══════════════════════════════════════════════
-// UC4: LOGS
-// ══════════════════════════════════════════════
+// ── UC4: LOGS ─────────────────────────────────
 function renderLogs() {
   const tbody = document.getElementById("logTbody");
   if (!tbody) return;
-
   const filtered = State.pumpLogs.filter(
     (l) =>
       !State.logFilter ||
       l.reason.toLowerCase().includes(State.logFilter.toLowerCase()) ||
       fmtDate(l.start).includes(State.logFilter),
   );
-
   const perPage = 10;
   const total = Math.ceil(filtered.length / perPage) || 1;
   if (State.logPage > total) State.logPage = total;
@@ -444,14 +375,13 @@ function renderLogs() {
     (State.logPage - 1) * perPage,
     State.logPage * perPage,
   );
-
   if (slice.length === 0) {
     tbody.innerHTML =
       '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px">Chưa có nhật ký bơm</td></tr>';
   } else {
     tbody.innerHTML = slice
       .map((l) => {
-        const reasonClass = l.reason.startsWith("AUTO")
+        const rc = l.reason.startsWith("AUTO")
           ? "log-reason-auto"
           : l.reason.startsWith("MANUAL")
             ? "log-reason-manual"
@@ -460,35 +390,24 @@ function renderLogs() {
               : l.reason.startsWith("SCHED")
                 ? "log-reason-sched"
                 : "log-reason-smart";
-        const statusHtml =
+        const sh =
           l.status === "running"
             ? '<span class="log-status-ok">Đang chạy</span>'
             : l.status === "OK"
               ? '<span class="log-status-ok">Hoàn thành</span>'
               : '<span class="log-status-err">Lỗi/Watchdog</span>';
-        return `<tr>
-        <td>${l.id}</td>
-        <td>${fmtDate(l.start)}</td>
-        <td>${l.end ? fmtDate(l.end) : "—"}</td>
-        <td>${l.duration != null ? l.duration + "s" : "..."}</td>
-        <td class="${reasonClass}">${l.reason}</td>
-        <td>${statusHtml}</td>
-      </tr>`;
+        return `<tr><td>${l.id}</td><td>${fmtDate(l.start)}</td><td>${l.end ? fmtDate(l.end) : "—"}</td><td>${l.duration != null ? l.duration + "s" : "..."}</td><td class="${rc}">${l.reason}</td><td>${sh}</td></tr>`;
       })
       .join("");
   }
-
-  // Pagination
   const pgEl = document.getElementById("logPagination");
   if (pgEl) {
     let html = "";
-    for (let i = 1; i <= total; i++) {
+    for (let i = 1; i <= total; i++)
       html += `<button class="pg-btn${i === State.logPage ? " active" : ""}" onclick="goLogPage(${i})">${i}</button>`;
-    }
     pgEl.innerHTML = html;
   }
 }
-
 function filterLogs(v) {
   State.logFilter = v;
   State.logPage = 1;
@@ -498,7 +417,6 @@ function goLogPage(n) {
   State.logPage = n;
   renderLogs();
 }
-
 function clearLogs() {
   showConfirm("Xóa nhật ký", "Xóa toàn bộ nhật ký hoạt động?", () => {
     State.pumpLogs = [];
@@ -508,7 +426,6 @@ function clearLogs() {
     saveToStorage();
   });
 }
-
 function exportLogs() {
   const csv = ["#,Bắt đầu,Kết thúc,Thời lượng,Lý do,Trạng thái"]
     .concat(
@@ -518,28 +435,27 @@ function exportLogs() {
       ),
     )
     .join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+  a.href = URL.createObjectURL(
+    new Blob([csv], { type: "text/csv;charset=utf-8;" }),
+  );
   a.download = "pump_logs_" + new Date().toISOString().slice(0, 10) + ".csv";
   a.click();
   showToast("✓ Xuất CSV thành công");
 }
 
-// ══════════════════════════════════════════════
-// UC3: HISTORY CHARTS
-// ══════════════════════════════════════════════
+// ── UC3: HISTORY CHARTS ───────────────────────
 function generateHistoryData() {
-  function genSeries(count, base, range) {
+  function genSeries(n, base, range) {
     return Array.from(
-      { length: count },
+      { length: n },
       () => +(base + (Math.random() - 0.5) * range).toFixed(1),
     );
   }
-  function genLabels(count, unit) {
-    const labels = [];
-    const now = new Date();
-    for (let i = count - 1; i >= 0; i--) {
+  function genLabels(n, unit) {
+    const labels = [],
+      now = new Date();
+    for (let i = n - 1; i >= 0; i--) {
       const d = new Date(now - i * unit);
       labels.push(
         unit < 86400000
@@ -573,16 +489,13 @@ function generateHistoryData() {
     pump: Array.from({ length: 30 }, () => Math.floor(Math.random() * 4)),
   };
 }
-
 function initCharts() {
   if (State.charts.history) return;
-
   const histCtx = document.getElementById("historyChart");
   const pumpCtx = document.getElementById("pumpChart");
   if (!histCtx || !pumpCtx) return;
-
   const d = State.histData.day;
-  const chartDefaults = {
+  const base = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -612,7 +525,6 @@ function initCharts() {
       },
     },
   };
-
   State.charts.history = new Chart(histCtx, {
     type: "line",
     data: {
@@ -645,9 +557,9 @@ function initCharts() {
       ],
     },
     options: {
-      ...chartDefaults,
+      ...base,
       plugins: {
-        ...chartDefaults.plugins,
+        ...base.plugins,
         title: {
           display: true,
           text: "Cảm biến theo thời gian",
@@ -657,7 +569,6 @@ function initCharts() {
       },
     },
   });
-
   State.charts.pump = new Chart(pumpCtx, {
     type: "bar",
     data: {
@@ -674,9 +585,9 @@ function initCharts() {
       ],
     },
     options: {
-      ...chartDefaults,
+      ...base,
       plugins: {
-        ...chartDefaults.plugins,
+        ...base.plugins,
         title: {
           display: true,
           text: "Lần bơm theo giờ",
@@ -687,43 +598,40 @@ function initCharts() {
     },
   });
 }
-
 function setChartRange(range, btn) {
   document
     .querySelectorAll(".ctab")
     .forEach((b) => b.classList.remove("active"));
   btn.classList.add("active");
-
   const d = State.histData[range];
   if (!State.charts.history || !d) return;
-
   const ch = State.charts.history;
   ch.data.labels = d.labels;
   ch.data.datasets[0].data = d.temp;
   ch.data.datasets[1].data = d.humi;
   ch.data.datasets[2].data = d.soil;
   ch.update();
-
   const cp = State.charts.pump;
   cp.data.labels = d.labels;
   cp.data.datasets[0].data = d.pump;
   cp.update();
 }
 
-// ══════════════════════════════════════════════
-// UC6: THRESHOLDS
-// ══════════════════════════════════════════════
+// ── UC6: THRESHOLDS ───────────────────────────
 function updateThresholdDisplay() {
-  const ids = ["threshDry", "threshWet", "pumpMax", "pumpCool", "tempHigh"];
-  const units = ["%", "%", "s", "s", "°C"];
-  ids.forEach((id, i) => {
+  [
+    ["threshDry", "%"],
+    ["threshWet", "%"],
+    ["pumpMax", "s"],
+    ["pumpCool", "s"],
+    ["tempHigh", "°C"],
+  ].forEach(([id, u]) => {
     const el = document.getElementById(id);
-    const valEl = document.getElementById(id + "Val");
-    if (el && valEl) valEl.textContent = el.value + units[i];
+    const v = document.getElementById(id + "Val");
+    if (el && v) v.textContent = el.value + u;
   });
   renderThresholdPreview();
 }
-
 function renderThresholdPreview() {
   const el = document.getElementById("threshPreview");
   if (!el) return;
@@ -739,7 +647,6 @@ function renderThresholdPreview() {
     document.getElementById("tempHigh")?.value || State.thresholds.tempHigh;
   el.innerHTML = `Đất &lt; <strong style="color:var(--red)">${dry}%</strong> → BẬT bơm &nbsp;|&nbsp; Đất ≥ <strong style="color:var(--green2)">${wet}%</strong> → TẮT bơm &nbsp;|&nbsp; Bơm max <strong style="color:var(--yellow)">${pmax}s</strong> &nbsp;|&nbsp; Chờ <strong style="color:var(--teal)">${cool}s</strong> &nbsp;|&nbsp; Quạt bật khi T ≥ <strong style="color:var(--orange)">${th}°C</strong>`;
 }
-
 function saveThreshold() {
   State.thresholds = {
     dry: +document.getElementById("threshDry").value,
@@ -756,7 +663,6 @@ function saveThreshold() {
   saveToStorage();
   showToast("✓ Đã lưu ngưỡng tưới");
 }
-
 function resetThreshold() {
   document.getElementById("threshDry").value = 30;
   document.getElementById("threshWet").value = 70;
@@ -767,53 +673,30 @@ function resetThreshold() {
   showToast("✓ Đặt lại mặc định");
 }
 
-// ══════════════════════════════════════════════
-// UC7: SCHEDULE
-// ══════════════════════════════════════════════
+// ── UC7: SCHEDULE ─────────────────────────────
 function toggleSchedule() {
   State.schedActive = document.getElementById("schedEnable").checked;
   sendWS({ cmd: "setScheduleEnabled", value: State.schedActive });
   showToast(State.schedActive ? "✓ Bật lịch tưới" : "✓ Tắt lịch tưới");
 }
-
 function renderScheduleList() {
-  if (State.schedules.length === 0) {
+  if (State.schedules.length === 0)
     State.schedules = [
       { id: 1, time: "05:00", duration: 30, days: "daily", enabled: true },
       { id: 2, time: "17:30", duration: 20, days: "daily", enabled: true },
     ];
-  }
   const el = document.getElementById("scheduleList");
   if (!el) return;
   el.innerHTML = State.schedules
     .map(
-      (s) => `
-    <div class="schedule-item">
-      <span class="sched-label">🕐 Giờ tưới</span>
-      <input type="time" value="${s.time}" onchange="updateSched(${s.id},'time',this.value)" />
-      <span class="sched-label">⏱ Thời lượng (giây)</span>
-      <input type="number" min="5" max="300" value="${s.duration}" style="width:80px" onchange="updateSched(${s.id},'duration',this.value)" />
-      <select onchange="updateSched(${s.id},'days',this.value)">
-        <option value="daily"   ${s.days === "daily" ? "selected" : ""}>Hằng ngày</option>
-        <option value="weekday" ${s.days === "weekday" ? "selected" : ""}>Ngày thường</option>
-        <option value="weekend" ${s.days === "weekend" ? "selected" : ""}>Cuối tuần</option>
-      </select>
-      <label class="toggle" style="margin-left:auto">
-        <input type="checkbox" ${s.enabled ? "checked" : ""} onchange="updateSched(${s.id},'enabled',this.checked)" />
-        <div class="toggle-track"></div>
-        <div class="toggle-thumb"></div>
-      </label>
-      <button class="btn-del-sched" onclick="deleteSched(${s.id})">✕</button>
-    </div>
-  `,
+      (s) =>
+        `<div class="schedule-item"><span class="sched-label">🕐 Giờ tưới</span><input type="time" value="${s.time}" onchange="updateSched(${s.id},'time',this.value)" /><span class="sched-label">⏱ Thời lượng (giây)</span><input type="number" min="5" max="300" value="${s.duration}" style="width:80px" onchange="updateSched(${s.id},'duration',this.value)" /><select onchange="updateSched(${s.id},'days',this.value)"><option value="daily" ${s.days === "daily" ? "selected" : ""}>Hằng ngày</option><option value="weekday" ${s.days === "weekday" ? "selected" : ""}>Ngày thường</option><option value="weekend" ${s.days === "weekend" ? "selected" : ""}>Cuối tuần</option></select><label class="toggle" style="margin-left:auto"><input type="checkbox" ${s.enabled ? "checked" : ""} onchange="updateSched(${s.id},'enabled',this.checked)" /><div class="toggle-track"></div><div class="toggle-thumb"></div></label><button class="btn-del-sched" onclick="deleteSched(${s.id})">✕</button></div>`,
     )
     .join("");
 }
-
 function addSchedule() {
-  const id = Date.now();
   State.schedules.push({
-    id,
+    id: Date.now(),
     time: "08:00",
     duration: 30,
     days: "daily",
@@ -821,32 +704,27 @@ function addSchedule() {
   });
   renderScheduleList();
 }
-
-function updateSched(id, key, val) {
+function updateSched(id, k, v) {
   const s = State.schedules.find((s) => s.id === id);
-  if (s)
-    s[key] = key === "duration" ? +val : key === "enabled" ? Boolean(val) : val;
+  if (s) s[k] = k === "duration" ? +v : k === "enabled" ? Boolean(v) : v;
 }
-
 function deleteSched(id) {
   State.schedules = State.schedules.filter((s) => s.id !== id);
   renderScheduleList();
 }
-
 function saveSchedule() {
   sendWS({ cmd: "setSchedules", value: State.schedules });
   saveToStorage();
   showToast("✓ Đã lưu lịch tưới");
 }
 
-// UC12: Check schedules
 setInterval(() => {
   if (!State.schedActive) return;
-  const now = new Date();
-  const hm =
-    now.getHours().toString().padStart(2, "0") +
-    ":" +
-    now.getMinutes().toString().padStart(2, "0");
+  const now = new Date(),
+    hm =
+      now.getHours().toString().padStart(2, "0") +
+      ":" +
+      now.getMinutes().toString().padStart(2, "0");
   State.schedules.forEach((s) => {
     if (s.enabled && s.time === hm && !State.data.pump) {
       State.data.pump = true;
@@ -859,17 +737,13 @@ setInterval(() => {
   });
 }, 60000);
 
-// ══════════════════════════════════════════════
-// UC8: SMART LOGIC
-// ══════════════════════════════════════════════
+// ── UC8: SMART LOGIC ──────────────────────────
 function toggleSmart() {
   State.smartActive = document.getElementById("smartEnable").checked;
-  const form = document.getElementById("smartForm");
-  if (form)
-    form.className = "smart-form" + (State.smartActive ? " enabled" : "");
+  const f = document.getElementById("smartForm");
+  if (f) f.className = "smart-form" + (State.smartActive ? " enabled" : "");
   showToast(State.smartActive ? "✓ Smart Logic bật" : "✓ Smart Logic tắt");
 }
-
 function saveSmartLogic() {
   State.smartSettings = {
     apiKey: document.getElementById("weatherApiKey")?.value || "",
@@ -879,14 +753,13 @@ function saveSmartLogic() {
   saveToStorage();
   showToast("✓ Đã lưu Smart Logic");
 }
-
 function fetchWeather() {
-  const container = document.getElementById("weatherPreview");
-  if (!container) return;
-  container.innerHTML =
+  const c = document.getElementById("weatherPreview");
+  if (!c) return;
+  c.innerHTML =
     '<div style="color:var(--teal);font-family:JetBrains Mono,monospace;font-size:13px">Đang lấy dữ liệu thời tiết...</div>';
   setTimeout(() => {
-    const mock = {
+    const m = {
       city: "Ho Chi Minh City",
       temp: 31,
       humi: 78,
@@ -894,26 +767,12 @@ function fetchWeather() {
       desc: "Nắng nhẹ",
       icon: "🌤",
     };
-    container.innerHTML = `
-      <div style="font-size:13px;color:var(--text2);margin-bottom:10px">📍 ${mock.city}</div>
-      <div class="weather-info">
-        <div class="w-item"><div class="w-val">${mock.temp}°C</div><div class="w-desc">Nhiệt độ</div></div>
-        <div class="w-item"><div class="w-val">${mock.humi}%</div><div class="w-desc">Độ ẩm KK</div></div>
-        <div class="w-item"><div class="w-val">${mock.rain}%</div><div class="w-desc">Xác suất mưa</div></div>
-      </div>
-      <div style="margin-top:12px;font-size:13px">
-        ${mock.icon} ${mock.desc} &nbsp;→&nbsp;
-        <span style="color:${mock.rain < 60 ? "var(--green2)" : "var(--yellow)"}">
-          ${mock.rain < 60 ? "✓ Nên tưới hôm nay" : "⚠ Có thể mưa, không cần tưới"}
-        </span>
-      </div>`;
+    c.innerHTML = `<div style="font-size:13px;color:var(--text2);margin-bottom:10px">📍 ${m.city}</div><div class="weather-info"><div class="w-item"><div class="w-val">${m.temp}°C</div><div class="w-desc">Nhiệt độ</div></div><div class="w-item"><div class="w-val">${m.humi}%</div><div class="w-desc">Độ ẩm KK</div></div><div class="w-item"><div class="w-val">${m.rain}%</div><div class="w-desc">Xác suất mưa</div></div></div><div style="margin-top:12px;font-size:13px">${m.icon} ${m.desc} &nbsp;→&nbsp; <span style="color:${m.rain < 60 ? "var(--green2)" : "var(--yellow)"}">${m.rain < 60 ? "✓ Nên tưới hôm nay" : "⚠ Có thể mưa, không cần tưới"}</span></div>`;
     showToast("✓ Đã lấy dữ liệu thời tiết");
   }, 1200);
 }
 
-// ══════════════════════════════════════════════
-// UC10: NOTIFICATIONS
-// ══════════════════════════════════════════════
+// ── UC10: NOTIFICATIONS ───────────────────────
 function switchNotifyTab(tab, btn) {
   document
     .querySelectorAll(".ntab")
@@ -924,25 +783,22 @@ function switchNotifyTab(tab, btn) {
   btn.classList.add("active");
   document.getElementById("ntab-" + tab).classList.add("active");
 }
-
 function testTelegram() {
-  const token = document.getElementById("tgToken")?.value;
-  if (!token) {
+  const t = document.getElementById("tgToken")?.value;
+  if (!t) {
     showToast("⚠ Nhập Bot Token trước", true);
     return;
   }
   showToast("✓ Gửi tin nhắn test thành công (Demo)");
 }
-
 function testEmail() {
-  const email = document.getElementById("emailTo")?.value;
-  if (!email) {
+  const e = document.getElementById("emailTo")?.value;
+  if (!e) {
     showToast("⚠ Nhập email trước", true);
     return;
   }
   showToast("✓ Gửi email test thành công (Demo)");
 }
-
 function saveNotify() {
   State.notifySettings = {
     tgToken: document.getElementById("tgToken")?.value,
@@ -961,9 +817,7 @@ function saveNotify() {
   showToast("✓ Đã lưu cài đặt thông báo");
 }
 
-// ══════════════════════════════════════════════
-// UC11: DEVICES (Factory Method)
-// ══════════════════════════════════════════════
+// ── UC11: DEVICES ─────────────────────────────
 function initDevices() {
   if (State.devices.length > 0) return;
   State.devices = [
@@ -1032,7 +886,6 @@ function initDevices() {
     },
   ];
 }
-
 const DEVICE_TYPE_MAP = {
   sensor_temp: { icon: "🌡", label: "Cảm biến nhiệt độ" },
   sensor_humi: { icon: "💧", label: "Cảm biến độ ẩm" },
@@ -1043,58 +896,34 @@ const DEVICE_TYPE_MAP = {
   actuator_led: { icon: "🔆", label: "LED" },
   display_lcd: { icon: "🖥", label: "Màn hình LCD" },
 };
-
 function renderDeviceGrid() {
   const el = document.getElementById("deviceGrid");
   if (!el) return;
   el.innerHTML = State.devices
     .map((d) => {
       const t = DEVICE_TYPE_MAP[d.type] || { icon: "⚙️", label: d.type };
-      return `
-      <div class="device-card ${d.status}">
-        <div class="dc-header">
-          <span class="dc-type-ico">${t.icon}</span>
-          <div><div class="dc-name">${d.name}</div><div class="dc-type">${t.label}</div></div>
-        </div>
-        <div class="dc-status">
-          <div class="dc-dot ${d.status}"></div>
-          <span>${d.status === "online" ? "Online" : "Offline"}</span>
-        </div>
-        <div class="dc-meta">GPIO: ${d.gpio} &nbsp;|&nbsp; Factory: ${d.factory}</div>
-        <div class="dc-meta" style="margin-top:4px">${d.desc}</div>
-        <div class="dc-actions">
-          <button class="btn-dc-del" onclick="deleteDevice(${d.id})">🗑 Xóa</button>
-        </div>
-      </div>`;
+      return `<div class="device-card ${d.status}"><div class="dc-header"><span class="dc-type-ico">${t.icon}</span><div><div class="dc-name">${d.name}</div><div class="dc-type">${t.label}</div></div></div><div class="dc-status"><div class="dc-dot ${d.status}"></div><span>${d.status === "online" ? "Online" : "Offline"}</span></div><div class="dc-meta">GPIO: ${d.gpio} &nbsp;|&nbsp; Factory: ${d.factory}</div><div class="dc-meta" style="margin-top:4px">${d.desc}</div><div class="dc-actions"><button class="btn-dc-del" onclick="deleteDevice(${d.id})">🗑 Xóa</button></div></div>`;
     })
     .join("");
 }
-
 function openAddDevice() {
   document.getElementById("addDeviceModal").style.display = "flex";
   document.getElementById("deviceType").value = "";
   document.getElementById("deviceFormFields").innerHTML = "";
 }
-
 function closeAddDevice() {
   document.getElementById("addDeviceModal").style.display = "none";
 }
-
 function onDeviceTypeChange() {
   const type = document.getElementById("deviceType").value;
-  const container = document.getElementById("deviceFormFields");
+  const c = document.getElementById("deviceFormFields");
   if (!type) {
-    container.innerHTML = "";
+    c.innerHTML = "";
     return;
   }
   const t = DEVICE_TYPE_MAP[type];
-  container.innerHTML = `
-    <div class="form-group"><label>Tên thiết bị</label><input type="text" id="newDevName" placeholder="${t.label} #${State.devices.length + 1}" /></div>
-    <div class="form-group"><label>GPIO Pin</label><input type="number" id="newDevGpio" placeholder="4" min="0" max="39" /></div>
-    <div class="form-group"><label>Mô tả</label><input type="text" id="newDevDesc" placeholder="Mô tả thiết bị..." /></div>
-  `;
+  c.innerHTML = `<div class="form-group"><label>Tên thiết bị</label><input type="text" id="newDevName" placeholder="${t.label} #${State.devices.length + 1}" /></div><div class="form-group"><label>GPIO Pin</label><input type="number" id="newDevGpio" placeholder="4" min="0" max="39" /></div><div class="form-group"><label>Mô tả</label><input type="text" id="newDevDesc" placeholder="Mô tả thiết bị..." /></div>`;
 }
-
 function registerDevice() {
   const type = document.getElementById("deviceType").value;
   if (!type) {
@@ -1125,7 +954,6 @@ function registerDevice() {
   saveToStorage();
   showToast("✓ Đã đăng ký thiết bị: " + name);
 }
-
 function deleteDevice(id) {
   showConfirm("Xóa thiết bị", "Bạn có chắc muốn xóa thiết bị này?", () => {
     State.devices = State.devices.filter((d) => d.id !== id);
@@ -1135,9 +963,7 @@ function deleteDevice(id) {
   });
 }
 
-// ══════════════════════════════════════════════
-// NAVIGATION
-// ══════════════════════════════════════════════
+// ── NAVIGATION ────────────────────────────────
 const PAGE_TITLES = {
   dashboard: "Dashboard",
   charts: "Biểu đồ lịch sử",
@@ -1150,7 +976,6 @@ const PAGE_TITLES = {
   notify: "Cài đặt thông báo",
   account: "Tài khoản",
 };
-
 function navigate(page) {
   document
     .querySelectorAll(".page")
@@ -1158,63 +983,43 @@ function navigate(page) {
   document
     .querySelectorAll(".nav-item")
     .forEach((n) => n.classList.remove("active"));
-
   const pageEl = document.getElementById("page-" + page);
   if (pageEl) pageEl.classList.add("active");
-
   const navEl = document.querySelector('[data-page="' + page + '"]');
   if (navEl) navEl.classList.add("active");
-
   document.getElementById("pageTitle").textContent = PAGE_TITLES[page] || page;
-
-  // Close sidebar on mobile
-  if (window.innerWidth <= 700) {
+  if (window.innerWidth <= 700)
     document.getElementById("sidebar").classList.remove("open");
-  }
-
-  // Init charts on first visit
   if (page === "charts") setTimeout(initCharts, 100);
-
-  // Refresh logs
   if (page === "logs") renderLogs();
 }
-
 function toggleSidebar() {
   document.getElementById("sidebar").classList.toggle("open");
 }
 
-// ══════════════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════════════
+// ── HELPERS ───────────────────────────────────
 function setText(id, val) {
   const el = document.getElementById(id);
   if (el) el.textContent = val;
 }
-
 function setStyle(id, prop, val) {
   const el = document.getElementById(id);
   if (el) el.style[prop] = val;
 }
-
 function toggleClass(id, cls, on) {
   const el = document.getElementById(id);
   if (el) el.classList.toggle(cls, on);
 }
-
 function setLedState(id, on) {
   const el = document.getElementById(id);
-  if (el) {
-    el.className = "dstat-led " + (on ? "on" : "off");
-  }
+  if (el) el.className = "dstat-led " + (on ? "on" : "off");
 }
-
 function setAlert(id, isAlert, warn, ok) {
   const el = document.getElementById(id);
   if (!el) return;
   el.className = "alert-chip " + (isAlert ? "warn" : "ok");
   el.textContent = isAlert ? warn : ok;
 }
-
 function fmtDate(d) {
   if (!d) return "";
   const dt = d instanceof Date ? d : new Date(d);
@@ -1229,24 +1034,16 @@ function fmtDate(d) {
   );
 }
 
-// function sendWS(msg) {
-//   if (State.ws && State.ws.readyState === WebSocket.OPEN) {
-//     State.ws.send(JSON.stringify(msg));
-//   }
-//   // In demo mode: just log
-//   console.log("[WS Send]", msg);
-// }
-
 function sendWS(msg) {
   if (State.ws && State.ws.readyState === WebSocket.OPEN) {
     State.ws.send(JSON.stringify(msg));
     console.log("[WS Send]", msg);
   } else {
-    console.warn("[WS] Not connected - cannot send:", msg);
+    console.warn("[WS] Not connected:", msg);
     showToast("⚠ Chưa kết nối ESP32", true);
   }
 }
-// Toast
+
 let toastTimer = null;
 function showToast(msg, isError = false) {
   const el = document.getElementById("toast");
@@ -1256,7 +1053,6 @@ function showToast(msg, isError = false) {
   toastTimer = setTimeout(() => (el.className = "toast"), 2800);
 }
 
-// Confirm Modal
 let confirmCallback = null;
 function showConfirm(title, msg, cb) {
   document.getElementById("confirmTitle").textContent = title;
@@ -1273,7 +1069,6 @@ document.getElementById("confirmOk").onclick = () => {
   if (confirmCallback) confirmCallback();
 };
 
-// Clock
 function startClock() {
   function tick() {
     const now = new Date();
@@ -1292,7 +1087,6 @@ function startClock() {
   setInterval(tick, 1000);
 }
 
-// LocalStorage
 function saveToStorage() {
   try {
     localStorage.setItem("gh_schedules", JSON.stringify(State.schedules));
@@ -1308,7 +1102,6 @@ function saveToStorage() {
     console.warn("Storage error", e);
   }
 }
-
 function loadFromStorage() {
   try {
     const s = localStorage.getItem("gh_schedules");
@@ -1333,14 +1126,10 @@ function loadFromStorage() {
   }
 }
 
-// Auto-save every 30s
 setInterval(saveToStorage, 30000);
-
-// Close sidebar on outside click (mobile)
 document.addEventListener("click", (e) => {
   const sb = document.getElementById("sidebar");
   const btn = document.querySelector(".menu-btn");
-  if (sb && !sb.contains(e.target) && btn && !btn.contains(e.target)) {
+  if (sb && !sb.contains(e.target) && btn && !btn.contains(e.target))
     sb.classList.remove("open");
-  }
 });
