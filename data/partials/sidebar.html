@@ -1,0 +1,85 @@
+<!-- ══════════════════════════════════════════════════════
+  partials/sidebar.html — Sidebar Navigation
+  Use case: Điều hướng chính của ứng dụng
+══════════════════════════════════════════════════════ -->
+<aside id="sidebar"
+  class="h-screen w-72 bg-surface-container-low/60 backdrop-blur-xl border-r border-white/20 flex flex-col py-6 px-4 shrink-0 overflow-y-auto z-50">
+
+  <!-- Brand -->
+  <div class="px-4 mb-8">
+    <div class="flex items-center gap-2 mb-1">
+      <span class="text-2xl">🌿</span>
+      <div>
+        <div class="font-serif font-black text-xl text-primary italic">Emerald Orbit</div>
+        <div class="text-[10px] tracking-[0.2em] uppercase font-bold text-on-surface-variant/50">Phòng thí nghiệm sống</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Nav -->
+  <nav class="flex-1 flex flex-col gap-0.5">
+    <div class="px-4 mb-2 text-[11px] font-bold text-on-surface-variant/50 uppercase tracking-wider">Giám sát</div>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="dashboard" onclick="navigate('dashboard')">
+      <span class="material-symbols-outlined text-xl">dashboard</span><span class="font-medium">Dashboard</span>
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="charts" onclick="navigate('charts')">
+      <span class="material-symbols-outlined text-xl">monitoring</span><span class="font-medium">Biểu đồ lịch sử</span>
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="logs" onclick="navigate('logs')">
+      <span class="material-symbols-outlined text-xl">analytics</span><span class="font-medium">Nhật ký hoạt động</span>
+    </a>
+
+    <div class="px-4 mt-4 mb-2 text-[11px] font-bold text-on-surface-variant/50 uppercase tracking-wider">Điều khiển</div>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="control" onclick="navigate('control')">
+      <span class="material-symbols-outlined text-xl">sensors</span><span class="font-medium">Điều khiển thiết bị</span>
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="threshold" onclick="navigate('threshold')">
+      <span class="material-symbols-outlined text-xl">tune</span><span class="font-medium">Ngưỡng tưới</span>
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="schedule" onclick="navigate('schedule')">
+      <span class="material-symbols-outlined text-xl">event_note</span><span class="font-medium">Lịch tưới</span>
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="smartlogic" onclick="navigate('smartlogic')">
+      <span class="material-symbols-outlined text-xl">psychology</span><span class="font-medium">Smart Logic</span>
+    </a>
+
+    <div class="px-4 mt-4 mb-2 text-[11px] font-bold text-on-surface-variant/50 uppercase tracking-wider">Hệ thống</div>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="devices" onclick="navigate('devices')">
+      <span class="material-symbols-outlined text-xl">settings_input_component</span><span class="font-medium">Quản lý thiết bị</span>
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="notify" onclick="navigate('notify')">
+      <span class="material-symbols-outlined text-xl">notifications_active</span><span class="font-medium">Thông báo</span>
+    </a>
+    <a class="nav-item flex items-center gap-3 px-4 py-2.5 rounded-r-full text-on-surface-variant hover:text-primary hover:bg-primary/5 hover:translate-x-1 transition-all duration-200 cursor-pointer"
+      data-page="account" onclick="navigate('account')">
+      <span class="material-symbols-outlined text-xl">account_circle</span><span class="font-medium">Tài khoản</span>
+    </a>
+  </nav>
+
+  <!-- User footer -->
+  <div class="mt-4 pt-4 border-t border-outline-variant/15">
+    <div class="flex items-center gap-3 px-4 py-2">
+      <div id="avatarName"
+        class="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">A</div>
+      <div class="flex-1 min-w-0">
+        <p id="accountName" class="text-sm font-bold text-on-surface truncate">vopham</p>
+        <div class="flex items-center gap-1.5">
+          <span class="ws-dot" id="wsDot"></span>
+          <span id="wsLabel" class="text-[10px] text-on-surface-variant/60">Kết nối...</span>
+        </div>
+      </div>
+      <button onclick="doLogout()" class="text-on-surface-variant hover:text-error transition-colors p-1.5">
+        <span class="material-symbols-outlined text-lg">logout</span>
+      </button>
+    </div>
+  </div>
+</aside>

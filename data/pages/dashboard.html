@@ -1,0 +1,541 @@
+<!-- pages/dashboard.html — Dashboard
+  Use case: Giám sát thời gian thực tất cả cảm biến & trạng thái thiết bị
+  UI: Stitch design pixel-perfect -->
+
+<!-- ═══════ DASHBOARD ═══════ -->
+<div id="page-dashboard" class="page p-8 space-y-6 max-w-7xl mx-auto">
+  <!-- ── Alert strips — Stitch: pill oval, full border, dot + label ── -->
+  <section class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div
+      id="al-temp"
+      class="flex items-center gap-3 px-5 py-3 rounded-full glass-card shadow-sm border border-outline-variant/30"
+    >
+      <span
+        class="w-2 h-2 bg-primary rounded-full animate-pulse flex-shrink-0"
+      ></span>
+      <span class="text-sm font-semibold text-on-surface-variant"
+        >Nhiệt độ OK</span
+      >
+    </div>
+    <div
+      id="al-humi"
+      class="flex items-center gap-3 px-5 py-3 rounded-full glass-card shadow-sm border border-outline-variant/30"
+    >
+      <span class="w-2 h-2 bg-primary rounded-full flex-shrink-0"></span>
+      <span class="text-sm font-semibold text-on-surface-variant"
+        >Bơm an toàn</span
+      >
+    </div>
+    <div
+      id="al-soil"
+      class="flex items-center gap-3 px-5 py-3 rounded-full glass-card shadow-sm border border-outline-variant/30"
+    >
+      <span class="w-2 h-2 bg-primary rounded-full flex-shrink-0"></span>
+      <span class="text-sm font-semibold text-on-surface-variant"
+        >WiFi Connected</span
+      >
+    </div>
+    <div
+      id="al-mode"
+      class="flex items-center gap-3 px-5 py-3 rounded-full glass-card shadow-sm border border-tertiary/40 bg-tertiary/5"
+    >
+      <span class="w-2 h-2 bg-tertiary rounded-full flex-shrink-0"></span>
+      <span class="text-sm font-semibold text-on-surface-variant"
+        >Mode:
+        <span id="dstate-mode" class="text-tertiary font-bold">AUTO</span></span
+      >
+    </div>
+    <!-- Hidden alert holders still in DOM for ui.js compatibility -->
+    <div id="al-light" class="hidden"></div>
+    <div id="al-dht" class="hidden"></div>
+    <div id="al-pump-wd" class="hidden"></div>
+  </section>
+
+  <!-- ── Sensor bento grid ── -->
+  <section class="grid grid-cols-1 md:grid-cols-12 gap-5">
+    <!-- Ambient Temp -->
+    <div
+      id="sc-temp"
+      class="md:col-span-4 bg-white p-6 rounded-2xl relative overflow-hidden group shadow-sm border border-slate-100"
+    >
+      <div
+        class="absolute -top-8 -right-8 w-36 h-36 bg-primary/5 rounded-full blur-3xl group-hover:bg-primary/10 transition-colors"
+      ></div>
+      <div class="relative z-10">
+        <div class="flex justify-between items-start mb-4">
+          <p
+            class="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest"
+          >
+            Ambient Temp
+          </p>
+          <span class="material-symbols-outlined text-primary/60 text-lg"
+            >thermostat</span
+          >
+        </div>
+        <h3 class="font-serif text-5xl text-primary font-medium">
+          <span id="val-temp">--</span
+          ><span class="text-2xl ml-1 font-normal">°C</span>
+        </h3>
+        <div class="mt-8 space-y-2">
+          <div
+            class="flex justify-between text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-wider"
+          >
+            <span>Optimal: 24–30°C</span>
+            <span id="stat-temp-status" class="text-primary">NORMAL</span>
+          </div>
+          <div
+            class="h-1.5 w-full bg-surface-variant/40 rounded-full overflow-hidden"
+          >
+            <div
+              id="bar-temp"
+              class="h-full bg-gradient-to-r from-primary to-primary-container rounded-full transition-all duration-500"
+              style="width: 50%"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Air Humidity -->
+    <div
+      id="sc-humi"
+      class="md:col-span-4 bg-white p-6 rounded-2xl relative overflow-hidden group shadow-sm border border-slate-100"
+    >
+      <div
+        class="absolute -top-8 -right-8 w-36 h-36 bg-secondary/5 rounded-full blur-3xl group-hover:bg-secondary/10 transition-colors"
+      ></div>
+      <div class="relative z-10">
+        <div class="flex justify-between items-start mb-4">
+          <p
+            class="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest"
+          >
+            Air Humidity
+          </p>
+          <span class="material-symbols-outlined text-secondary/60 text-lg"
+            >water_drop</span
+          >
+        </div>
+        <h3 class="font-serif text-5xl text-secondary font-medium">
+          <span id="val-humi">--</span
+          ><span class="text-2xl ml-1 font-normal">%</span>
+        </h3>
+        <div class="mt-8 space-y-2">
+          <div
+            class="flex justify-between text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-wider"
+          >
+            <span>Ideal: 60–70%</span>
+            <span id="stat-humi-status" class="text-secondary">STABLE</span>
+          </div>
+          <div
+            class="h-1.5 w-full bg-surface-variant/40 rounded-full overflow-hidden"
+          >
+            <div
+              id="bar-humi"
+              class="h-full bg-gradient-to-r from-secondary to-secondary-container rounded-full transition-all duration-500"
+              style="width: 65%"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Soil Moisture -->
+    <div
+      id="sc-soil"
+      class="md:col-span-4 bg-white p-6 rounded-2xl relative overflow-hidden group shadow-sm border border-slate-100"
+    >
+      <div
+        class="absolute -top-8 -right-8 w-36 h-36 bg-tertiary/5 rounded-full blur-3xl group-hover:bg-tertiary/10 transition-colors"
+      ></div>
+      <div class="relative z-10">
+        <div class="flex justify-between items-start mb-4">
+          <p
+            class="text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest"
+          >
+            Soil Moisture
+          </p>
+          <span class="material-symbols-outlined text-tertiary/60 text-lg"
+            >grass</span
+          >
+        </div>
+        <h3 class="font-serif text-5xl text-tertiary font-medium">
+          <span id="val-soil">--</span
+          ><span class="text-2xl ml-1 font-normal">%</span>
+        </h3>
+        <div class="mt-8 space-y-2">
+          <div
+            class="flex justify-between text-[10px] font-bold text-on-surface-variant/40 uppercase tracking-wider"
+          >
+            <span>Target: 45%</span>
+            <span id="stat-soil-status" class="text-tertiary">TARGET</span>
+          </div>
+          <div
+            class="h-1.5 w-full bg-surface-variant/40 rounded-full overflow-hidden"
+          >
+            <div
+              id="bar-soil"
+              class="h-full bg-gradient-to-r from-tertiary to-tertiary-container rounded-full transition-all duration-500"
+              style="width: 40%"
+            ></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Light Intensity -->
+    <div
+      id="sc-light"
+      class="md:col-span-8 rounded-2xl overflow-hidden flex flex-col md:flex-row shadow-sm border border-slate-100"
+      style="height: 280px; background: #f4fbf7"
+    >
+      <!-- LEFT: text content — nền trắng xanh nhạt -->
+      <div
+        class="w-full md:w-1/2 p-8 flex flex-col justify-between relative z-10"
+        style="
+          background: linear-gradient(to right, #f4fbf7 70%, transparent 100%);
+        "
+      >
+        <div>
+          <p
+            class="text-xs font-black text-primary/60 uppercase tracking-[0.2em] mb-4"
+          >
+            Light Intensity
+          </p>
+          <div class="flex items-baseline gap-2 mb-4">
+            <h3 id="val-light" class="text-7xl font-serif text-on-surface">
+              --
+            </h3>
+            <span class="text-2xl font-medium text-on-surface-variant/70"
+              >lux</span
+            >
+          </div>
+          <p
+            class="text-sm text-on-surface-variant/80 font-medium leading-relaxed max-w-xs"
+          >
+            Growth optimization active. Current levels hitting the peak
+            photosynthesis threshold.
+          </p>
+        </div>
+        <div class="flex gap-3 flex-wrap mt-6">
+          <span
+            id="light-badge-spectrum"
+            class="px-3 py-1 rounded-full bg-primary/10 text-primary text-[6px] font-black uppercase border border-primary/20 tracking-wider"
+            >Morning Spectrum</span
+          >
+          <span
+            id="light-badge-status"
+            class="px-3 py-1 rounded-full bg-white/80 text-on-surface-variant text-[6px] font-black uppercase border border-slate-200 tracking-wider"
+            >Optimal</span
+          >
+        </div>
+      </div>
+      <!-- RIGHT: ảnh bên phải, gradient che từ trái mờ dần sang phải rõ -->
+      <div class="w-full md:w-1/2 relative" style="min-height: 280px">
+        <img
+          src="https://lh3.googleusercontent.com/aida-public/AB6AXuDShc_rpBOkmad8o_NDOfb4_klq1cfxQZmKXUTI9Gq5AugscsIDxoURdmLH0I-fETJsFkUduHV7UsVvBQBI2kgzXkszSUCjKBsG1Y2fGzTTRhr684Z3hhfKEaMMC7YoH7jkKH765SP9fc3Pq6NYTDnb16N6JJPjzlt8EIkFwA7eY5jwx5bhrj04562uvYEXGs-p8u3xW8c0S3ftfe648A9xb_cPQZ2o3CQ3pvNX-vB7g-8xDqlNtk4-sYE4sPnc4EOdYUaWEHJAJn8"
+          alt="Greenhouse plants"
+          class="absolute inset-0 w-full h-full object-cover"
+          style="object-position: center center"
+        />
+        <!-- Gradient từ trái (trắng/mờ) sang phải (trong suốt) — ảnh rõ dần từ trái -->
+        <div
+          class="absolute inset-0"
+          style="
+            background: linear-gradient(
+              to right,
+              #f4fbf7 0%,
+              rgba(244, 251, 247, 0.5) 35%,
+              transparent 70%
+            );
+          "
+        ></div>
+        <div
+          class="absolute inset-0 bg-gradient-to-t from-white/30 to-transparent md:hidden"
+        ></div>
+      </div>
+      <!-- Hidden for ui.js -->
+      <circle id="light-ring" style="display: none"></circle>
+    </div>
+
+    <!-- Device Status List — Stitch: sub-text ID, STANDBY badge pill -->
+    <div class="md:col-span-4 flex flex-col gap-3">
+      <!-- Pump -->
+      <div
+        class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 hover:shadow-md transition-all border-l-4 border-l-transparent hover:border-l-primary"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-11 h-11 rounded-full bg-primary/10 flex items-center justify-center text-primary flex-shrink-0"
+          >
+            <span class="material-symbols-outlined text-xl">water_drop</span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-on-surface">Máy bơm</p>
+            <p class="text-[10px] text-on-surface-variant/50 font-medium">
+              ID: WP-992 · <span id="dstate-pump">Standby</span>
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div
+            id="dled-pump"
+            class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"
+          ></div>
+          <span
+            id="pump-badge-dash"
+            class="px-3 py-1 bg-surface-container-high text-on-surface-variant text-[10px] font-black rounded-full uppercase tracking-wider"
+            >STANDBY</span
+          >
+        </div>
+      </div>
+      <!-- Fan -->
+      <div
+        class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 hover:shadow-md transition-all border-l-4 border-l-transparent hover:border-l-secondary"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-11 h-11 rounded-full bg-secondary/10 flex items-center justify-center text-secondary flex-shrink-0"
+          >
+            <span class="material-symbols-outlined text-xl">air</span>
+          </div>
+          <div>
+            <p class="text-sm font-bold text-on-surface">Quạt làm mát</p>
+            <p class="text-[8px] text-on-surface-variant/50 font-medium">
+              ID: FN-812 · <span id="dstate-fan">Standby</span>
+            </p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div
+            id="dled-fan"
+            class="w-2 h-2 rounded-full bg-slate-300 flex-shrink-0"
+          ></div>
+          <span
+            id="fan-badge-dash"
+            class="px-3 py-1 bg-surface-container-high text-on-surface-variant text-[10px] font-black rounded-full uppercase tracking-wider"
+            >STANDBY</span
+          >
+        </div>
+      </div>
+      <!-- WiFi — Stitch: 4 horizontal equal bars -->
+      <div
+        class="bg-white p-4 rounded-xl flex items-center justify-between shadow-sm border border-slate-100 hover:shadow-md transition-all border-l-4 border-l-transparent hover:border-l-primary"
+      >
+        <div class="flex items-center gap-3">
+          <div
+            class="w-11 h-11 rounded-full bg-primary/5 flex items-center justify-center text-primary flex-shrink-0"
+          >
+            <span class="material-symbols-outlined text-xl"
+              >settings_input_antenna</span
+            >
+          </div>
+          <div>
+            <p class="text-sm font-bold text-on-surface">WiFi Signal</p>
+            <p
+              id="dstate-wifi"
+              class="text-[10px] text-on-surface-variant/50 font-medium"
+            >
+              --
+            </p>
+          </div>
+        </div>
+        <!-- Stitch-style: 4 equal width bars, varying height -->
+        <div id="dled-wifi-bars" class="flex items-end gap-0.5">
+          <div class="w-2 h-3 bg-primary rounded-sm"></div>
+          <div class="w-2 h-4 bg-primary rounded-sm"></div>
+          <div class="w-2 h-5 bg-primary rounded-sm"></div>
+          <div class="w-2 h-6 bg-surface-variant rounded-sm"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Footer stats ── -->
+  <section class="grid grid-cols-1 md:grid-cols-12 gap-5 pb-4 items-stretch">
+    <!-- Irrigation Cycles -->
+    <div
+      class="md:col-span-7 glass-card p-8 rounded-2xl relative overflow-hidden group border-none shadow-lg"
+    >
+      <!-- Ảnh giọt nước — z-10 âm, opacity thấp, hiện mờ dưới glass -->
+      <div
+        class="absolute inset-0 -z-10 opacity-10 group-hover:opacity-15 transition-opacity pointer-events-none"
+      >
+        <img
+          src="pages/water-drop.png"
+          alt=""
+          class="w-full h-full object-cover"
+          style="object-position: center 30%"
+        />
+      </div>
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h4 class="font-serif text-2xl font-bold text-on-surface">
+            Irrigation Cycles
+          </h4>
+          <p class="text-xs text-on-surface-variant/60 font-medium mt-0.5">
+            Automatic system distribution logs
+          </p>
+        </div>
+        <button
+          onclick="navigate('logs')"
+          class="px-6 py-2.5 bg-primary text-on-primary text-xs font-bold rounded-full shadow-md hover:shadow-lg transition-all active:scale-95 whitespace-nowrap"
+        >
+          Export Detailed Log
+        </button>
+      </div>
+      <div class="flex gap-4">
+        <div
+          class="flex-1 min-w-0 bg-white/40 p-5 rounded-2xl border border-white/50 backdrop-blur-sm text-center"
+        >
+          <p
+            class="text-[10px] font-black text-on-surface-variant/40 uppercase mb-3"
+          >
+            Today
+          </p>
+          <p id="stat-count" class="text-4xl font-serif text-primary">0</p>
+          <p class="text-[10px] font-bold text-on-surface-variant/60 mt-2">
+            Activations
+          </p>
+        </div>
+        <div
+          class="flex-1 min-w-0 bg-white/40 p-5 rounded-2xl border border-white/50 backdrop-blur-sm text-center"
+        >
+          <p
+            class="text-[10px] font-black text-on-surface-variant/40 uppercase mb-3"
+          >
+            Total
+          </p>
+          <p id="stat-time" class="text-4xl font-serif text-primary">0s</p>
+          <p class="text-[10px] font-bold text-on-surface-variant/60 mt-2">
+            Volume (L)
+          </p>
+        </div>
+        <div
+          class="flex-1 min-w-0 bg-white/40 p-5 rounded-2xl border border-white/50 backdrop-blur-sm text-center"
+        >
+          <p
+            class="text-[10px] font-black text-on-surface-variant/40 uppercase mb-3"
+          >
+            Uptime
+          </p>
+          <p id="stat-uptime" class="text-4xl font-serif text-primary">--</p>
+          <p class="text-[10px] font-bold text-on-surface-variant/60 mt-2">
+            Hours
+          </p>
+        </div>
+        <div
+          class="flex-1 min-w-0 bg-white/40 p-5 rounded-2xl border border-white/50 backdrop-blur-sm text-center"
+        >
+          <p
+            class="text-[10px] font-black text-on-surface-variant/40 uppercase mb-3"
+          >
+            Heap
+          </p>
+          <p id="stat-heap" class="text-4xl font-serif text-primary">--</p>
+          <p class="text-[10px] font-bold text-on-surface-variant/60 mt-2">
+            Available
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Secondary cards — LCD & LED -->
+    <div class="md:col-span-5 grid grid-cols-2 gap-4">
+      <!-- LCD -->
+      <div
+        class="bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300 cursor-pointer group flex flex-col p-5 min-h-[180px]"
+      >
+        <!-- Top: label + icon -->
+        <div class="flex justify-between items-center">
+          <p
+            class="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest"
+          >
+            LCD Display
+          </p>
+          <span
+            class="material-symbols-outlined text-sm text-on-surface-variant/25"
+            >tv</span
+          >
+        </div>
+        <!-- Middle: value, grows to fill -->
+        <div class="flex-1 flex flex-col justify-center py-2">
+          <p
+            id="dstate-lcd"
+            class="text-2xl font-bold text-on-surface leading-tight"
+          >
+            --
+          </p>
+          <p class="text-xs text-on-surface-variant/40 mt-1">
+            Cycle metrics view
+          </p>
+        </div>
+        <!-- Bottom: dots + arrow -->
+        <div class="flex items-center justify-between">
+          <div class="flex gap-1.5 items-center">
+            <span class="w-5 h-1.5 bg-primary rounded-full"></span>
+            <span class="w-1.5 h-1.5 bg-surface-variant rounded-full"></span>
+            <span class="w-1.5 h-1.5 bg-surface-variant rounded-full"></span>
+          </div>
+          <span
+            class="material-symbols-outlined text-sm text-primary opacity-0 group-hover:opacity-100 transition-opacity"
+            >navigate_next</span
+          >
+        </div>
+      </div>
+
+      <!-- LED NeoPixel -->
+      <div
+        class="bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all duration-300 cursor-pointer group flex flex-col p-5 min-h-[180px] overflow-hidden relative"
+      >
+        <!-- Top: label + icon -->
+        <div class="flex justify-between items-center relative z-10">
+          <p
+            class="text-[10px] font-black text-on-surface-variant/40 uppercase tracking-widest"
+          >
+            NeoPixel LED
+          </p>
+          <span
+            class="material-symbols-outlined text-sm text-on-surface-variant/25"
+            >palette</span
+          >
+        </div>
+        <!-- Middle: lightbulb circle + color text -->
+        <div class="flex-1 flex flex-col justify-center py-2 relative z-10">
+          <div class="flex items-center gap-3">
+            <div
+              id="dled-color"
+              class="w-12 h-12 rounded-full flex items-center justify-center shadow-md flex-shrink-0 transition-all"
+              style="background: #1a1a2e"
+            >
+              <span
+                class="material-symbols-outlined text-xl text-white"
+                style="font-variation-settings: &quot;FILL&quot; 1"
+                >lightbulb</span
+              >
+            </div>
+            <p
+              id="dstate-led"
+              class="text-sm font-bold text-on-surface tracking-wider"
+            >
+              #000000
+            </p>
+          </div>
+        </div>
+        <!-- Bottom: dot status + tap to toggle -->
+        <div class="flex items-center gap-1.5 relative z-10">
+          <div
+            id="dled-wifi"
+            class="w-1.5 h-1.5 rounded-full bg-primary flex-shrink-0"
+          ></div>
+          <span class="text-[10px] font-bold text-on-surface-variant/40"
+            >Tap to Toggle</span
+          >
+          <span
+            class="material-symbols-outlined text-xs group-hover:translate-x-0.5 transition-transform ml-auto text-on-surface-variant/30"
+            >chevron_right</span
+          >
+        </div>
+      </div>
+    </div>
+  </section>
+</div>

@@ -21,11 +21,11 @@
 // ============================================================================
 // CẤU HÌNH (đọc từ LittleFS /info.dat)
 // ============================================================================
-extern String WIFI_SSID;
-extern String WIFI_PASS;
-extern String CORE_IOT_TOKEN;
-extern String CORE_IOT_SERVER;
-extern String CORE_IOT_PORT;
+extern char WIFI_SSID      [33];
+extern char WIFI_PASS      [65];
+extern char CORE_IOT_TOKEN [64];
+extern char CORE_IOT_SERVER[128];
+extern char CORE_IOT_PORT  [6];
 
 // ============================================================================
 // TASK ENTRY POINT

@@ -1,0 +1,249 @@
+<!-- pages/notify.html — Cấu hình thông báo
+  Use case: Thiết lập cảnh báo qua Telegram Bot và Email SMTP -->
+<!-- ═══════ NOTIFY ═══════ -->
+          <div id="page-notify" class="page p-6 md:p-8 max-w-7xl mx-auto">
+            <div class="mb-10">
+              <span
+                class="text-tertiary font-bold tracking-widest text-xs uppercase mb-2 block"
+                >Cấu hình hệ thống</span
+              >
+              <h3
+                class="font-serif text-5xl font-black text-on-surface leading-tight"
+              >
+                Cấu hình<br />thông báo
+              </h3>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <div class="lg:col-span-7 space-y-6">
+                <!-- Telegram -->
+                <section
+                  class="glass-card rounded-3xl p-8 relative overflow-hidden shadow-xl shadow-primary/5"
+                >
+                  <div class="absolute top-0 right-0 p-8 opacity-5">
+                    <span class="material-symbols-outlined text-8xl">send</span>
+                  </div>
+                  <div class="relative z-10">
+                    <div class="flex items-center gap-3 mb-6">
+                      <div
+                        class="w-12 h-12 rounded-2xl bg-secondary/10 flex items-center justify-center text-secondary"
+                      >
+                        <span class="material-symbols-outlined">send</span>
+                      </div>
+                      <h4 class="font-serif text-2xl">Tích hợp Telegram</h4>
+                    </div>
+                    <div class="space-y-4">
+                      <div>
+                        <label
+                          class="text-sm font-bold text-on-surface-variant block mb-2"
+                          >Bot API Token</label
+                        >
+                        <input
+                          id="tgToken"
+                          type="password"
+                          placeholder="Nhập Bot Token"
+                          class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary/30 outline-none shadow-inner"
+                        />
+                      </div>
+                      <div>
+                        <label
+                          class="text-sm font-bold text-on-surface-variant block mb-2"
+                          >Chat ID</label
+                        >
+                        <input
+                          id="tgChatId"
+                          type="text"
+                          placeholder="-100XXXXXXXXX"
+                          class="w-full bg-surface-container-lowest border-none rounded-xl p-4 focus:ring-2 focus:ring-secondary/30 outline-none shadow-inner"
+                        />
+                      </div>
+                      <div class="flex gap-3 pt-2">
+                        <button
+                          onclick="testTelegram()"
+                          class="flex-1 bg-gradient-to-r from-primary to-primary-container text-white font-bold py-4 rounded-full shadow-lg hover:scale-[1.02] flex items-center justify-center gap-2"
+                        >
+                          <span class="material-symbols-outlined text-sm"
+                            >check_circle</span
+                          >Kiểm tra kết nối
+                        </button>
+                        <button
+                          onclick="saveNotify()"
+                          class="px-8 bg-surface-container-high text-on-surface-variant font-bold rounded-full hover:bg-surface-dim transition-all"
+                        >
+                          Lưu
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                <!-- Email -->
+                <section
+                  class="glass-card rounded-3xl p-8 border-l-4 border-tertiary/20 shadow-xl shadow-tertiary/5"
+                >
+                  <div class="flex items-center gap-3 mb-6">
+                    <div
+                      class="w-12 h-12 rounded-2xl bg-tertiary/10 flex items-center justify-center text-tertiary"
+                    >
+                      <span class="material-symbols-outlined">mail</span>
+                    </div>
+                    <h4 class="font-serif text-2xl">Cấu hình Email</h4>
+                  </div>
+                  <div class="grid grid-cols-2 gap-4">
+                    <div>
+                      <label
+                        class="text-sm font-bold text-on-surface-variant block mb-2"
+                        >SMTP Host</label
+                      >
+                      <input
+                        id="smtpHost"
+                        type="text"
+                        placeholder="smtp.gmail.com"
+                        class="w-full bg-surface-container-lowest border-none rounded-xl p-4 outline-none shadow-inner"
+                      />
+                    </div>
+                    <div>
+                      <label
+                        class="text-sm font-bold text-on-surface-variant block mb-2"
+                        >Port</label
+                      >
+                      <input
+                        type="text"
+                        value="587"
+                        class="w-full bg-surface-container-lowest border-none rounded-xl p-4 outline-none shadow-inner"
+                      />
+                    </div>
+                    <div class="col-span-2">
+                      <label
+                        class="text-sm font-bold text-on-surface-variant block mb-2"
+                        >Email nhận</label
+                      >
+                      <input
+                        id="emailTo"
+                        type="email"
+                        placeholder="you@example.com"
+                        class="w-full bg-surface-container-lowest border-none rounded-xl p-4 outline-none shadow-inner"
+                      />
+                    </div>
+                  </div>
+                  <div class="flex gap-3 mt-4">
+                    <button
+                      onclick="testEmail()"
+                      class="flex-1 bg-tertiary text-on-tertiary font-bold py-4 rounded-full hover:scale-[1.02] transition-all"
+                    >
+                      Gửi test
+                    </button>
+                    <button
+                      onclick="saveNotify()"
+                      class="px-8 bg-surface-container-high text-on-surface-variant font-bold rounded-full hover:bg-surface-dim transition-all"
+                    >
+                      Lưu
+                    </button>
+                  </div>
+                </section>
+              </div>
+              <!-- Triggers -->
+              <div class="lg:col-span-5">
+                <div
+                  class="bg-white rounded-3xl p-8 shadow-sm border border-slate-100 space-y-4"
+                >
+                  <h4 class="font-serif text-2xl mb-2">Kích hoạt cảnh báo</h4>
+                  <p class="text-sm text-on-surface-variant mb-4">
+                    Chọn các sự cố cần gửi thông báo.
+                  </p>
+                  <div
+                    class="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low hover:bg-surface-bright transition-all group"
+                  >
+                    <div class="flex items-center gap-4">
+                      <div
+                        class="w-10 h-10 rounded-full bg-error-container/20 flex items-center justify-center text-error"
+                      >
+                        <span class="material-symbols-outlined text-sm"
+                          >water_drop</span
+                        >
+                      </div>
+                      <div>
+                        <p class="font-bold">Đất khô</p>
+                        <p class="text-xs text-on-surface-variant">
+                          Độ ẩm &lt; 30%
+                        </p>
+                      </div>
+                    </div>
+                    <label class="toggle-switch"
+                      ><input type="checkbox" id="ne-dry" checked />
+                      <div class="toggle-track"></div>
+                      <div class="toggle-thumb"></div
+                    ></label>
+                  </div>
+                  <div
+                    class="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low hover:bg-surface-bright transition-all group"
+                  >
+                    <div class="flex items-center gap-4">
+                      <div
+                        class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"
+                      >
+                        <span class="material-symbols-outlined text-sm"
+                          >timer</span
+                        >
+                      </div>
+                      <div>
+                        <p class="font-bold">Bơm quá lâu</p>
+                        <p class="text-xs text-on-surface-variant">
+                          Watchdog kích hoạt
+                        </p>
+                      </div>
+                    </div>
+                    <label class="toggle-switch"
+                      ><input type="checkbox" id="ne-pump-long" checked />
+                      <div class="toggle-track"></div>
+                      <div class="toggle-thumb"></div
+                    ></label>
+                  </div>
+                  <div
+                    class="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low hover:bg-surface-bright transition-all group"
+                  >
+                    <div class="flex items-center gap-4">
+                      <div
+                        class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary"
+                      >
+                        <span class="material-symbols-outlined text-sm"
+                          >warning</span
+                        >
+                      </div>
+                      <div>
+                        <p class="font-bold">Lỗi cảm biến DHT</p>
+                        <p class="text-xs text-on-surface-variant">
+                          Mất kết nối
+                        </p>
+                      </div>
+                    </div>
+                    <label class="toggle-switch"
+                      ><input type="checkbox" id="ne-dht" checked />
+                      <div class="toggle-track"></div>
+                      <div class="toggle-thumb"></div
+                    ></label>
+                  </div>
+                  <div
+                    class="flex items-center justify-between p-4 rounded-2xl bg-surface-container-low hover:bg-surface-bright transition-all group"
+                  >
+                    <div class="flex items-center gap-4">
+                      <div
+                        class="w-10 h-10 rounded-full bg-tertiary/10 flex items-center justify-center text-tertiary"
+                      >
+                        <span class="material-symbols-outlined text-sm"
+                          >thermostat</span
+                        >
+                      </div>
+                      <div>
+                        <p class="font-bold">Nhiệt độ cao</p>
+                        <p class="text-xs text-on-surface-variant">T ≥ 37°C</p>
+                      </div>
+                    </div>
+                    <label class="toggle-switch"
+                      ><input type="checkbox" id="ne-temp" />
+                      <div class="toggle-track"></div>
+                      <div class="toggle-thumb"></div
+                    ></label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>

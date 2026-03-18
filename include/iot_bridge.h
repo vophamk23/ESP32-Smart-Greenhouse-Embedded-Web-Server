@@ -84,8 +84,21 @@ extern QueueHandle_t xTelemetryQueue;
 // Queue nhận lệnh RPC từ cloud (depth=8, scheduler poll định kỳ)
 extern QueueHandle_t xRpcCommandQueue;
 
-// Semaphore: WiFi đã kết nối → CoreIoT task bắt đầu chạy
-extern SemaphoreHandle_t xSemaphoreWiFiReady;
+// Binary semaphore: WiFi connected → release để IoT task bắt đầu kết nối MQTT
+extern EventGroupHandle_t xWiFiEventGroup;
+
+// Mutex bảo vệ truy cập sensor data (gọi từ Task_SendTelemetry và các task đọc cảm biến)
+extern SemaphoreHandle_t g_sensorMutex;
+
+#define WIFI_CONNECTED_BIT  BIT0
+
+
+// Thêm vào sau khai báo xWiFiEventGroup:
+
+
+// 2 macro tiện dụng để dùng ở mọi nơi:
+#define SENSOR_LOCK()    xSemaphoreTake(g_sensorMutex, portMAX_DELAY)
+#define SENSOR_UNLOCK()  xSemaphoreGive(g_sensorMutex)
 
 // ============================================================================
 // HÀM KHỞI TẠO

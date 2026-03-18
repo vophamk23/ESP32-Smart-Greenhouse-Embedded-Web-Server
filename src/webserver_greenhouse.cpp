@@ -100,20 +100,12 @@ static void startWebServer()
     s_ws.onEvent(onWsEvent);
     s_server.addHandler(&s_ws);
 
-    // Static files từ LittleFS
-    s_server.on("/", HTTP_GET, [](AsyncWebServerRequest *req) {
-        req->send(LittleFS, "/index.html", "text/html");
-    });
-    s_server.on("/script.js", HTTP_GET, [](AsyncWebServerRequest *req) {
-        req->send(LittleFS, "/script.js", "application/javascript");
-    });
-    s_server.on("/styles.css", HTTP_GET, [](AsyncWebServerRequest *req) {
-        req->send(LittleFS, "/styles.css", "text/css");
-    });
-
     // REST API: lấy trạng thái hiện tại (cho load lần đầu)
+    // ⚠️ Đặt TRƯỚC serveStatic để không bị override
     s_server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *req) {
         StaticJsonDocument<256> doc;
+
+        SENSOR_LOCK();
         doc["temperature"]  = g_temperature;
         doc["humidity"]     = g_humidity;
         doc["soilMoisture"] = g_soilMoisture;
@@ -121,10 +113,16 @@ static void startWebServer()
         doc["pump"]         = g_pumpState;
         doc["fan"]          = g_fanState;
         doc["autoMode"]     = g_autoMode;
+        SENSOR_UNLOCK();
+
         String json;
         serializeJson(doc, json);
         req->send(200, "application/json", json);
     });
+
+    // Serve toàn bộ file tĩnh từ LittleFS: index.html, styles.css, js/*.js ...
+    // setDefaultFile("index.html") tự xử lý route "/"
+    s_server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
     ElegantOTA.begin(&s_server);
     s_server.begin();
@@ -137,14 +135,14 @@ static void startWebServer()
 // ============================================================================
 void greenhouse_webserver_task(void *pvParameters)
 {
-    // Chờ WiFi sẵn sàng trước khi start server (tối đa 30s)
-    // LittleFS đã mount trong setup() trên Core 1 trước khi task này chạy
-    if (xSemaphoreWiFiReady)
-        xSemaphoreTake(xSemaphoreWiFiReady, pdMS_TO_TICKS(30000));
 
-    // Nhả semaphore lại cho CoreIoT task cũng đang chờ
-    if (xSemaphoreWiFiReady)
-        xSemaphoreGive(xSemaphoreWiFiReady);
+// Đợi WiFi kết nối trước khi bắt đầu (tối đa 30s, nếu không có WiFi thì vẫn chạy nhưng chỉ có AP)
+if (xWiFiEventGroup != nullptr)
+    xEventGroupWaitBits(xWiFiEventGroup,
+                        WIFI_CONNECTED_BIT,
+                        pdFALSE,            // KHÔNG clear bit
+                        pdTRUE,
+                        pdMS_TO_TICKS(30000));
 
     startWebServer();
 
@@ -165,9 +163,9 @@ void greenhouse_webserver_task(void *pvParameters)
             {
                 lastPushTime = now;
 
-                // Đọc telemetry từ queue (peek, không remove - để CoreIoT cũng đọc được)
-                // Thực ra ta đọc thẳng từ global vars vì WebSocket chỉ cần hiển thị
                 StaticJsonDocument<384> doc;
+
+                SENSOR_LOCK();
                 doc["temperature"]      = g_temperature;
                 doc["humidity"]         = g_humidity;
                 doc["soilMoisture"]     = g_soilMoisture;
@@ -182,15 +180,17 @@ void greenhouse_webserver_task(void *pvParameters)
                 doc["pumpCount"]        = (int)g_pumpCount;
                 doc["totalPumpTimeSec"] = (long)(g_totalPumpTime / 1000UL);
                 doc["dhtError"]         = g_dhtError;
-                doc["wifiRssi"]         = WiFi.RSSI();         
-                doc["freeHeap"]         = ESP.getFreeHeap();   
-                doc["lcdPage"]          = g_lcdPage;
+                uint8_t ledR = g_currentLEDColor.r;
+                uint8_t ledG = g_currentLEDColor.g;
+                uint8_t ledB = g_currentLEDColor.b;
+                SENSOR_UNLOCK();
+
+                doc["wifiRssi"] = WiFi.RSSI();
+                doc["freeHeap"] = ESP.getFreeHeap();
+                doc["lcdPage"]  = g_lcdPage;
 
                 char ledHex[8];
-                snprintf(ledHex, sizeof(ledHex), "#%02X%02X%02X",
-                         g_currentLEDColor.r,
-                         g_currentLEDColor.g,
-                         g_currentLEDColor.b);
+                snprintf(ledHex, sizeof(ledHex), "#%02X%02X%02X", ledR, ledG, ledB);
                 doc["ledColor"] = ledHex;
 
                 String json;
@@ -202,17 +202,3 @@ void greenhouse_webserver_task(void *pvParameters)
         vTaskDelay(pdMS_TO_TICKS(50)); // 50ms loop
     }
 }
-
-
-
-/*
-ESP32 khởi động
-    │
-    ├─ Phát WiFi "Greenhouse-AP" (192.168.4.1) → LUÔN có
-    │       └─ Điện thoại/laptop kết nối vào → mở 192.168.4.1
-    │
-    └─ Đồng thời kết nối WiFi nhà (nếu có info.dat)
-            └─ Có internet → gửi dữ liệu lên CoreIoT cloud
-     
-            
-*/

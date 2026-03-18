@@ -22,32 +22,32 @@ void Load_info_File()
         return;
     }
 
-    if (doc["WIFI_SSID"].is<const char*>())      WIFI_SSID       = doc["WIFI_SSID"].as<String>();
-    if (doc["WIFI_PASS"].is<const char*>())      WIFI_PASS       = doc["WIFI_PASS"].as<String>();
-    if (doc["CORE_IOT_TOKEN"].is<const char*>()) CORE_IOT_TOKEN  = doc["CORE_IOT_TOKEN"].as<String>();
-    if (doc["CORE_IOT_SERVER"].is<const char*>()) CORE_IOT_SERVER = doc["CORE_IOT_SERVER"].as<String>();
-    if (doc["CORE_IOT_PORT"].is<const char*>())  CORE_IOT_PORT   = doc["CORE_IOT_PORT"].as<String>();
+    if (doc["WIFI_SSID"].is<const char*>())       snprintf(WIFI_SSID,       sizeof(WIFI_SSID),       "%s", (const char*)(doc["WIFI_SSID"]       | ""));
+    if (doc["WIFI_PASS"].is<const char*>())       snprintf(WIFI_PASS,       sizeof(WIFI_PASS),       "%s", (const char*)(doc["WIFI_PASS"]       | ""));
+    if (doc["CORE_IOT_TOKEN"].is<const char*>())  snprintf(CORE_IOT_TOKEN,  sizeof(CORE_IOT_TOKEN),  "%s", (const char*)(doc["CORE_IOT_TOKEN"]  | ""));
+    if (doc["CORE_IOT_SERVER"].is<const char*>()) snprintf(CORE_IOT_SERVER, sizeof(CORE_IOT_SERVER), "%s", (const char*)(doc["CORE_IOT_SERVER"] | ""));
+    if (doc["CORE_IOT_PORT"].is<const char*>())   snprintf(CORE_IOT_PORT,   sizeof(CORE_IOT_PORT),   "%s", (const char*)(doc["CORE_IOT_PORT"]   | ""));
 
     Serial.printf("[CFG] Loaded: SSID=%s, Server=%s:%s\n",
-                  WIFI_SSID.c_str(),
-                  CORE_IOT_SERVER.c_str(),
-                  CORE_IOT_PORT.c_str());
+                  WIFI_SSID,
+                  CORE_IOT_SERVER,
+                  CORE_IOT_PORT);
 }
 
 // ============================================================================
 // SAVE
 // ============================================================================
-void Save_info_File(String wifi_ssid,
-                    String wifi_pass,
-                    String core_token,
-                    String core_server,
-                    String core_port)
+void Save_info_File(const char* wifi_ssid,
+                    const char* wifi_pass,
+                    const char* core_token,
+                    const char* core_server,
+                    const char* core_port)
 {
-    WIFI_SSID       = wifi_ssid;
-    WIFI_PASS       = wifi_pass;
-    CORE_IOT_TOKEN  = core_token;
-    CORE_IOT_SERVER = core_server;
-    CORE_IOT_PORT   = core_port;
+    snprintf(WIFI_SSID,       sizeof(WIFI_SSID),       "%s", wifi_ssid);
+    snprintf(WIFI_PASS,       sizeof(WIFI_PASS),       "%s", wifi_pass);
+    snprintf(CORE_IOT_TOKEN,  sizeof(CORE_IOT_TOKEN),  "%s", core_token);
+    snprintf(CORE_IOT_SERVER, sizeof(CORE_IOT_SERVER), "%s", core_server);
+    snprintf(CORE_IOT_PORT,   sizeof(CORE_IOT_PORT),   "%s", core_port);
 
     DynamicJsonDocument doc(1024);
     doc["WIFI_SSID"]       = wifi_ssid;
@@ -100,9 +100,8 @@ bool check_info_File(bool check)
         Load_info_File();
     }
 
-    if (WIFI_SSID.isEmpty())
+    if (WIFI_SSID[0] == '\0')
     {
-        // Không có config → initWiFi() trong main.cpp sẽ tự bật AP
         Serial.println("[CFG] No WiFi config found - AP mode will start");
         return false;
     }

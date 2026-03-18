@@ -1,0 +1,248 @@
+<!-- pages/threshold.html — Ngưỡng tưới & Logic
+  Use case: Cấu hình ngưỡng độ ẩm và nhiệt độ để điều khiển tự động -->
+<!-- ═══════ THRESHOLD ═══════ -->
+          <div id="page-threshold" class="page p-6 md:p-8 max-w-7xl mx-auto">
+            <div
+              class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-8"
+            >
+              <div>
+                <span
+                  class="text-primary font-bold tracking-widest text-xs uppercase mb-2 block"
+                  >Kiểm soát môi trường</span
+                >
+                <h3 class="font-serif text-5xl font-light text-on-surface">
+                  Ngưỡng tưới &amp; Logic
+                </h3>
+              </div>
+              <div class="flex gap-3">
+                <button
+                  onclick="resetThreshold()"
+                  class="px-8 py-3 rounded-full font-bold text-on-surface-variant hover:bg-surface-container transition-colors border border-outline-variant/30"
+                >
+                  Đặt lại
+                </button>
+                <button
+                  onclick="saveThreshold()"
+                  class="px-8 py-3 rounded-full font-bold bg-primary text-on-primary shadow-lg shadow-primary/20 hover:scale-105 transition-all"
+                >
+                  Lưu thay đổi
+                </button>
+              </div>
+            </div>
+
+            <div
+              id="threshPreview"
+              class="mb-6 p-4 bg-primary/5 border border-primary/20 rounded-2xl text-sm font-medium text-primary"
+            ></div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+              <section class="lg:col-span-7 flex flex-col gap-8">
+                <!-- Moisture -->
+                <div class="glass-card p-8 rounded-3xl shadow-sm">
+                  <div class="flex items-center gap-3 mb-8">
+                    <div
+                      class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary"
+                    >
+                      <span class="material-symbols-outlined">opacity</span>
+                    </div>
+                    <h4 class="font-serif text-2xl">Logic độ ẩm đất</h4>
+                  </div>
+                  <div class="space-y-8">
+                    <div>
+                      <div class="flex justify-between items-end mb-3">
+                        <div>
+                          <p class="text-sm font-bold">Ngưỡng khô (Bật bơm)</p>
+                          <p class="text-xs text-on-surface-variant">
+                            Đất khô hơn mức này → bật bơm
+                          </p>
+                        </div>
+                        <span class="font-serif text-3xl text-primary"
+                          ><span id="threshDryVal">30</span>%</span
+                        >
+                      </div>
+                      <input
+                        id="threshDry"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="30"
+                        oninput="updateThresholdDisplay()"
+                        class="w-full"
+                      />
+                    </div>
+                    <div>
+                      <div class="flex justify-between items-end mb-3">
+                        <div>
+                          <p class="text-sm font-bold">Ngưỡng ướt (Tắt bơm)</p>
+                          <p class="text-xs text-on-surface-variant">
+                            Đất ẩm hơn mức này → tắt bơm
+                          </p>
+                        </div>
+                        <span class="font-serif text-3xl text-primary"
+                          ><span id="threshWetVal">70</span>%</span
+                        >
+                      </div>
+                      <input
+                        id="threshWet"
+                        type="range"
+                        min="0"
+                        max="100"
+                        value="70"
+                        oninput="updateThresholdDisplay()"
+                        class="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <!-- Timing -->
+                <div class="glass-card p-8 rounded-3xl shadow-sm">
+                  <div class="flex items-center gap-3 mb-8">
+                    <div
+                      class="w-10 h-10 rounded-full bg-secondary/10 flex items-center justify-center text-secondary"
+                    >
+                      <span class="material-symbols-outlined">timer</span>
+                    </div>
+                    <h4 class="font-serif text-2xl">Thời gian &amp; An toàn</h4>
+                  </div>
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div>
+                      <div class="flex justify-between items-center mb-3">
+                        <p class="text-sm font-bold">Thời gian bơm tối đa</p>
+                        <span class="font-serif text-xl text-secondary"
+                          ><span id="pumpMaxVal">60</span>s</span
+                        >
+                      </div>
+                      <input
+                        id="pumpMax"
+                        type="range"
+                        min="10"
+                        max="300"
+                        value="60"
+                        oninput="updateThresholdDisplay()"
+                        class="w-full accent-secondary"
+                      />
+                    </div>
+                    <div>
+                      <div class="flex justify-between items-center mb-3">
+                        <p class="text-sm font-bold">
+                          Thời gian chờ giữa các lần
+                        </p>
+                        <span class="font-serif text-xl text-secondary"
+                          ><span id="pumpCoolVal">120</span>s</span
+                        >
+                      </div>
+                      <input
+                        id="pumpCool"
+                        type="range"
+                        min="10"
+                        max="600"
+                        value="120"
+                        oninput="updateThresholdDisplay()"
+                        class="w-full accent-secondary"
+                      />
+                    </div>
+                  </div>
+                  <div class="mt-8 pt-8 border-t border-outline-variant/15">
+                    <div class="flex justify-between items-end mb-3">
+                      <div>
+                        <p class="text-sm font-bold">Nhiệt độ bật quạt (°C)</p>
+                        <p class="text-xs text-on-surface-variant">
+                          Quạt bật tự động khi vượt ngưỡng này
+                        </p>
+                      </div>
+                      <span class="font-serif text-3xl text-error"
+                        ><span id="tempHighVal">32</span>°C</span
+                      >
+                    </div>
+                    <input
+                      id="tempHigh"
+                      type="range"
+                      min="20"
+                      max="45"
+                      value="32"
+                      oninput="updateThresholdDisplay()"
+                      class="w-full accent-error"
+                    />
+                  </div>
+                </div>
+              </section>
+              <!-- Visualizer -->
+              <section class="lg:col-span-5 flex flex-col gap-6">
+                <div
+                  class="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 relative overflow-hidden flex flex-col h-80"
+                >
+                  <h4 class="font-serif text-xl mb-4">Xem trước ngưỡng</h4>
+                  <div class="flex-1 relative">
+                    <div
+                      class="absolute inset-0 flex flex-col justify-between py-8 pointer-events-none"
+                    >
+                      <div
+                        class="border-t border-dashed border-primary/40 flex items-center"
+                      >
+                        <span
+                          class="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded ml-1"
+                          >WET (<span id="prev-wet">70</span>%)</span
+                        >
+                      </div>
+                      <div
+                        class="border-t border-dashed border-error/40 flex items-center"
+                      >
+                        <span
+                          class="bg-error/10 text-error text-[10px] font-bold px-2 py-0.5 rounded ml-1"
+                          >DRY (<span id="prev-dry">30</span>%)</span
+                        >
+                      </div>
+                    </div>
+                    <div class="w-full h-full flex items-end gap-1 px-2">
+                      <div
+                        class="flex-1 bg-surface-container-high rounded-t h-2/5"
+                      ></div>
+                      <div
+                        class="flex-1 bg-surface-container-high rounded-t h-1/2"
+                      ></div>
+                      <div
+                        class="flex-1 bg-primary/30 rounded-t h-3/4 border-t-2 border-primary"
+                      ></div>
+                      <div
+                        class="flex-1 bg-primary/20 rounded-t h-4/5 border-t-2 border-primary"
+                      ></div>
+                      <div
+                        class="flex-1 bg-surface-container-high rounded-t h-3/5"
+                      ></div>
+                      <div
+                        class="flex-1 bg-surface-container-high rounded-t h-2/5"
+                      ></div>
+                      <div
+                        class="flex-1 bg-error/30 rounded-t h-1/4 border-t-2 border-error"
+                      ></div>
+                      <div
+                        class="flex-1 bg-error/20 rounded-t h-1/5 border-t-2 border-error"
+                      ></div>
+                      <div
+                        class="flex-1 bg-surface-container-high rounded-t h-2/5"
+                      ></div>
+                      <div
+                        class="flex-1 bg-surface-container-high rounded-t h-1/2"
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="bg-tertiary/5 p-6 rounded-3xl border border-tertiary/10"
+                >
+                  <div class="flex items-center gap-3 mb-3">
+                    <span class="material-symbols-outlined text-tertiary"
+                      >psychology</span
+                    >
+                    <h4 class="font-serif text-lg text-tertiary">
+                      Trí tuệ thực vật
+                    </h4>
+                  </div>
+                  <p class="text-sm text-on-tertiary-container leading-relaxed">
+                    Các cài đặt ngưỡng sẽ được đồng bộ xuống ESP32 qua WebSocket
+                    khi nhấn Lưu.
+                  </p>
+                </div>
+              </section>
+            </div>
+          </div>

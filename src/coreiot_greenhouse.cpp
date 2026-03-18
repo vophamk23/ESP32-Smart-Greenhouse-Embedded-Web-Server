@@ -152,7 +152,7 @@ static bool mqttReconnect()
     String clientId = "GH-ESP32-" + String(random(0xffff), HEX);
 
     if (s_mqttClient.connect(clientId.c_str(),
-                             CORE_IOT_TOKEN.c_str(), nullptr))
+                         CORE_IOT_TOKEN, nullptr))
     {
         Serial.println(" OK");
         s_mqttClient.subscribe(TOPIC_RPC_REQUEST);
@@ -221,13 +221,17 @@ static void publishTelemetry(const TelemetryPacket_t &pkt)
 // ============================================================================
 void greenhouse_coreiot_task(void *pvParameters)
 {
-    // Chờ WiFi sẵn sàng (tối đa 60s, sau đó vẫn tiếp tục để reconnect sau)
-    if (xSemaphoreWiFiReady != nullptr)
-        xSemaphoreTake(xSemaphoreWiFiReady, pdMS_TO_TICKS(60000));
+    // Đợi WiFi kết nối trước khi bắt đầu MQTT (tối đa 60s, nếu không có WiFi thì vẫn chạy nhưng chỉ có AP)
+     if (xWiFiEventGroup != nullptr)
+        xEventGroupWaitBits(xWiFiEventGroup,
+                            WIFI_CONNECTED_BIT,
+                            pdFALSE,               // KHÔNG clear bit sau khi wait
+                            pdTRUE,
+                            pdMS_TO_TICKS(60000));
 
     Serial.println("[MQTT] Starting CoreIoT task...");
 
-    s_mqttClient.setServer(CORE_IOT_SERVER.c_str(), CORE_IOT_PORT.toInt());
+    s_mqttClient.setServer(CORE_IOT_SERVER, atoi(CORE_IOT_PORT));
     s_mqttClient.setCallback(onMqttMessage);
     s_mqttClient.setKeepAlive(30);
 
@@ -310,8 +314,8 @@ void greenhouse_coreiot_task(void *pvParameters)
 //         Serial.printf("[WiFi] STA connected! IP: %s\n",
 //                       WiFi.localIP().toString().c_str());
 
-//         if (xSemaphoreWiFiReady)
-//             xSemaphoreGive(xSemaphoreWiFiReady);
+//             if (xWiFiEventGroup)
+//                 xEventGroupSetBits(xWiFiEventGroup, WIFI_CONNECTED_BIT);
 //     }
 
 //     // Giám sát reconnect STA

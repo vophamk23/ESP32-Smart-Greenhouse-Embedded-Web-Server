@@ -10,8 +10,9 @@
 // KHỞI TẠO QUEUES & SEMAPHORES
 // ============================================================================
 QueueHandle_t    xTelemetryQueue    = nullptr;
-QueueHandle_t    xRpcCommandQueue   = nullptr;
-SemaphoreHandle_t xSemaphoreWiFiReady = nullptr;
+QueueHandle_t    xRpcCommandQueue   = nullptr;  // 
+EventGroupHandle_t xWiFiEventGroup  = nullptr;   // Semaphore bảo vệ truy cập sensor data (gọi từ Task_SendTelemetry và các task đọc cảm biến)
+SemaphoreHandle_t  g_sensorMutex    = nullptr;  // 
 
 void iotBridge_init()
 {
@@ -22,10 +23,13 @@ void iotBridge_init()
     // Queue RPC: depth=8 (buffer vài lệnh liên tiếp)
     xRpcCommandQueue = xQueueCreate(8, sizeof(RpcPacket_t));
 
-    // Binary semaphore: WiFi connected → release
-    xSemaphoreWiFiReady = xSemaphoreCreateBinary();
+    // Semaphore WiFi ready: ban đầu chưa kết nối, Task_IoT sẽ block chờ signal
+    xWiFiEventGroup = xEventGroupCreate();
 
-    if (!xTelemetryQueue || !xRpcCommandQueue || !xSemaphoreWiFiReady)
+    // Mutex bảo vệ truy cập sensor data (gọi từ Task_SendTelemetry và các task đọc cảm biến)
+    g_sensorMutex    = xSemaphoreCreateMutex();
+
+    if (!xTelemetryQueue || !xRpcCommandQueue || !xWiFiEventGroup || !g_sensorMutex)
     {
         Serial.println("[BRIDGE] ERROR: Queue/Semaphore creation failed!");
     }
@@ -43,6 +47,9 @@ void iotBridge_sendTelemetry()
     if (!xTelemetryQueue) return;
 
     TelemetryPacket_t pkt;
+
+    // Snapshot toàn bộ sensor data trong 1 lần lock
+    SENSOR_LOCK();
     pkt.temperature      = g_temperature;
     pkt.humidity         = g_humidity;
     pkt.soilMoisture     = g_soilMoisture;
@@ -60,6 +67,7 @@ void iotBridge_sendTelemetry()
     pkt.ledR             = g_currentLEDColor.r;
     pkt.ledG             = g_currentLEDColor.g;
     pkt.ledB             = g_currentLEDColor.b;
+    SENSOR_UNLOCK();
 
     // Overwrite nếu queue đầy (không block) - giữ dữ liệu mới nhất
     if (xQueueSend(xTelemetryQueue, &pkt, 0) == errQUEUE_FULL)

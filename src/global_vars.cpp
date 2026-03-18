@@ -11,6 +11,10 @@ float g_lightLux       = 1000.0f;   // Mặc định "sáng" để tránh bật 
 bool  g_dhtError       = true;      // true cho đến khi đọc thành công lần đầu
 bool  g_lightError     = false;
 
+// ==================== RTC DS3231 ====================
+RTC_DS3231 g_rtc;
+bool       g_rtcError = false;
+
 // ==================== TRẠNG THÁI THIẾT BỊ ====================
 bool g_pumpState       = false;
 bool g_fanState        = false;

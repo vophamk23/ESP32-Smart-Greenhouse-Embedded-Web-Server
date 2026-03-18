@@ -11,6 +11,8 @@
  *   - Cảm biến đất ADC: không cần thư viện
  */
 #include "DHT.h"    // dùng thư viện local lib/DHT
+#include <RTClib.h>
+
 
 // ==================== KHỞI TẠO ====================
 void initSensors();
@@ -20,6 +22,9 @@ void readDHT();             // Đọc nhiệt độ & độ ẩm -> g_temperatur
 void readLightSensor();     // Đọc LDR DO -> g_lightLux (0 hoặc 1000)
 void readSoilMoisture();    // Đọc độ ẩm đất (ADC) -> g_soilMoisture
 
+void initRTC();         // Khởi tạo DS3231
+
+DateTime getRTCTime();  // Trả về thời gian hiện tại từ DS3231
 // ==================== GETTER ====================
 DHT* getDHT();
 

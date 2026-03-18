@@ -1,885 +1,205 @@
 <!doctype html>
-<html lang="vi">
+<html lang="vi" class="light">
   <head>
-    <meta charset="UTF-8" />
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Greenhouse IoT — Dashboard</title>
-    <link rel="stylesheet" href="styles.css" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@300;400;500&family=Nunito:wght@300;400;500;600&display=swap"
-      rel="stylesheet"
-    />
+    <title>Greenhouse IoT — Emerald Orbit</title>
+
+    <!--
+      OFFLINE-FIRST: Không cần Tailwind CDN.
+      Toàn bộ styles nằm trong css/styles.css (lưu vào LittleFS).
+
+      Cấu trúc file:
+        index.html          ← Shell chính (file này)
+        partials/
+          login.html        ← Use case: Xác thực người dùng
+          sidebar.html      ← Use case: Điều hướng app
+          topbar.html       ← Use case: Tiêu đề & đồng hồ
+          modals.html       ← Use case: Dialog xác nhận & thêm thiết bị
+        pages/
+          dashboard.html    ← Use case: Giám sát real-time
+          charts.html       ← Use case: Biểu đồ lịch sử cảm biến
+          logs.html         ← Use case: Nhật ký lần bơm
+          control.html      ← Use case: Điều khiển thủ công
+          threshold.html    ← Use case: Cấu hình ngưỡng tưới
+          schedule.html     ← Use case: Lập lịch tưới
+          smartlogic.html   ← Use case: Tưới thông minh theo thời tiết
+          devices.html      ← Use case: Quản lý thiết bị IoT
+          notify.html       ← Use case: Cấu hình thông báo
+          account.html      ← Use case: Quản lý tài khoản
+        js/
+          state.js          ← Single source of truth
+          helpers.js        ← Utility: toast, modal, navigate, format
+          websocket.js      ← WebSocket ↔ ESP32
+          ui.js             ← Update DOM từ WS data
+          auth.js           ← Đăng nhập / đăng xuất
+          control.js        ← Gửi lệnh setPump/setFan/setMode
+          logs.js           ← CRUD nhật ký bơm
+          charts.js         ← Chart.js sensor history
+          threshold.js      ← Cấu hình ngưỡng tưới
+          schedule.js       ← Quản lý lịch tưới
+          smartlogic.js     ← OpenWeather API integration
+          devices.js        ← Factory Method quản lý thiết bị
+          notify.js         ← Telegram + Email config
+        css/
+          styles.css        ← Toàn bộ styling (offline)
+    -->
+
+    <!-- Chart.js — có thể thay bằng /js/chart.min.js nếu muốn offline hoàn toàn -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Fonts: Fraunces (serif headline) + Plus Jakarta Sans (body) + Material Symbols -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+
+    <!-- Offline CSS — không phụ thuộc CDN -->
+    <link rel="stylesheet" href="css/styles.css" />
   </head>
-  <body>
-    <!-- ═══ LOGIN OVERLAY (UC9) ═══ -->
-    <div id="loginOverlay" class="login-overlay">
-      <div class="login-card">
-        <div class="login-logo">🌿</div>
-        <h2 class="login-title">Greenhouse IoT</h2>
-        <p class="login-sub">Đăng nhập để tiếp tục</p>
-        <div class="form-group">
-          <label>Tài khoản</label>
-          <input type="text" id="loginUser" placeholder="admin" />
-        </div>
-        <div class="form-group">
-          <label>Mật khẩu</label>
-          <input type="password" id="loginPass" placeholder="••••••••" />
-        </div>
-        <div id="loginError" class="login-error"></div>
-        <button class="btn-login" onclick="doLogin()">Đăng nhập</button>
-        <p class="login-hint">Demo: admin / admin123</p>
+
+  <body class="text-on-surface min-h-screen antialiased bg-immersive">
+
+    <!-- ══════════════════════════════════════════════════════
+      LOGIN OVERLAY — partials/login.html
+      Use case: Xác thực người dùng trước khi vào app
+    ══════════════════════════════════════════════════════ -->
+    <div id="slot-login"></div>
+
+    <!-- ══════════════════════════════════════════════════════
+      APP SHELL
+    ══════════════════════════════════════════════════════ -->
+    <div id="app" style="display: none" class="min-h-screen flex">
+
+      <!-- SIDEBAR — partials/sidebar.html
+           Use case: Điều hướng chính giữa các trang -->
+      <div id="slot-sidebar"></div>
+
+      <!-- MAIN CONTENT -->
+      <div class="flex-1 flex flex-col min-w-0">
+
+        <!-- TOPBAR — partials/topbar.html
+             Use case: Tiêu đề trang + đồng hồ + avatar -->
+        <div id="slot-topbar"></div>
+
+        <!-- PAGES — mỗi file trong pages/ đảm nhận 1 use case -->
+        <main class="flex-1 overflow-y-auto">
+          <div id="slot-pages">
+            <!-- Các page được inject vào đây khi load -->
+          </div>
+        </main>
+
       </div>
     </div>
 
-    <!-- ═══ TOAST ═══ -->
-    <div id="toast" class="toast"></div>
+    <!-- GLOBAL MODALS & TOAST — partials/modals.html
+         Use case: Confirm dialog, Add Device modal, Toast notification -->
+    <div id="slot-modals"></div>
 
-    <!-- ═══ CONFIRM MODAL ═══ -->
-    <div id="confirmModal" class="modal-overlay" style="display: none">
-      <div class="modal-box">
-        <div class="modal-icon">⚠️</div>
-        <h3 id="confirmTitle">Xác nhận</h3>
-        <p id="confirmMsg"></p>
-        <div class="modal-actions">
-          <button class="btn-cancel" onclick="closeConfirm()">Hủy</button>
-          <button class="btn-confirm" id="confirmOk">Xác nhận</button>
-        </div>
-      </div>
-    </div>
 
-    <!-- ═══ APP SHELL ═══ -->
-    <div id="app" class="app" style="display: none">
-      <!-- SIDEBAR -->
-      <aside class="sidebar" id="sidebar">
-        <div class="sidebar-logo">
-          <span class="sidebar-icon">🌿</span>
-          <div>
-            <div class="sidebar-title">Greenhouse</div>
-            <div class="sidebar-sub">IoT v2.0</div>
-          </div>
-        </div>
+    <!-- ══════════════════════════════════════════════════════
+      PARTIAL LOADER
+      Fetch HTML partials và inject vào các slot tương ứng.
+      Sau khi tất cả load xong → khởi động app.
+    ══════════════════════════════════════════════════════ -->
+    <script>
+      "use strict";
 
-        <nav class="nav">
-          <div class="nav-group-label">Giám sát</div>
-          <a
-            class="nav-item active"
-            data-page="dashboard"
-            onclick="navigate('dashboard')"
-          >
-            <span class="nav-ico">◈</span> Dashboard
-          </a>
-          <a class="nav-item" data-page="charts" onclick="navigate('charts')">
-            <span class="nav-ico">◉</span> Biểu đồ lịch sử
-          </a>
-          <a class="nav-item" data-page="logs" onclick="navigate('logs')">
-            <span class="nav-ico">◎</span> Nhật ký hoạt động
-          </a>
+      /**
+       * Fetch một file HTML và inject vào element target.
+       * @param {string} url - Đường dẫn đến file HTML partial
+       * @param {string} targetId - id của element nhận innerHTML
+       */
+      async function loadPartial(url, targetId) {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
+        const html = await res.text();
+        document.getElementById(targetId).innerHTML = html;
+      }
 
-          <div class="nav-group-label">Điều khiển</div>
-          <a class="nav-item" data-page="control" onclick="navigate('control')">
-            <span class="nav-ico">◆</span> Điều khiển thiết bị
-          </a>
-          <a
-            class="nav-item"
-            data-page="threshold"
-            onclick="navigate('threshold')"
-          >
-            <span class="nav-ico">◇</span> Ngưỡng tưới
-          </a>
-          <a
-            class="nav-item"
-            data-page="schedule"
-            onclick="navigate('schedule')"
-          >
-            <span class="nav-ico">◐</span> Lịch tưới
-          </a>
-          <a
-            class="nav-item"
-            data-page="smartlogic"
-            onclick="navigate('smartlogic')"
-          >
-            <span class="nav-ico">◑</span> Smart Logic
-          </a>
+      /**
+       * Load tất cả pages vào slot-pages, mỗi page là 1 use case.
+       * Dùng Promise.all để tải song song.
+       */
+      async function loadAllPages() {
+        const pages = [
+          'dashboard',
+          'charts',
+          'logs',
+          'control',
+          'threshold',
+          'schedule',
+          'smartlogic',
+          'devices',
+          'notify',
+          'account',
+        ];
 
-          <div class="nav-group-label">Quản lý</div>
-          <a class="nav-item" data-page="devices" onclick="navigate('devices')">
-            <span class="nav-ico">▣</span> Thiết bị
-          </a>
-          <a class="nav-item" data-page="notify" onclick="navigate('notify')">
-            <span class="nav-ico">▲</span> Thông báo
-          </a>
-          <a class="nav-item" data-page="account" onclick="navigate('account')">
-            <span class="nav-ico">●</span> Tài khoản
-          </a>
-        </nav>
+        const container = document.getElementById('slot-pages');
 
-        <div class="sidebar-footer">
-          <div class="ws-status" id="wsStatus">
-            <span class="ws-dot" id="wsDot"></span>
-            <span id="wsLabel">Đang kết nối...</span>
-          </div>
-          <button class="btn-logout" onclick="doLogout()">Đăng xuất</button>
-        </div>
-      </aside>
+        // Tải song song
+        const results = await Promise.all(
+          pages.map(name =>
+            fetch(`pages/${name}.html`)
+              .then(r => r.ok ? r.text() : Promise.reject(`Failed: ${name}`))
+          )
+        );
 
-      <!-- MAIN -->
-      <main class="main">
-        <div class="topbar">
-          <button class="menu-btn" onclick="toggleSidebar()">☰</button>
-          <div class="topbar-title" id="pageTitle">Dashboard</div>
-          <div class="topbar-right">
-            <span class="topbar-time" id="topbarTime"></span>
-            <div class="avatar" id="avatarName">A</div>
-          </div>
-        </div>
+        container.innerHTML = results.join('\n');
+      }
 
-        <!-- ─── PAGE: DASHBOARD ─── -->
-        <div id="page-dashboard" class="page active">
-          <!-- UC1: Sensor cards -->
-          <div class="section-label">UC1 · Thông số thời gian thực</div>
-          <div class="sensor-grid">
-            <div class="scard scard-temp" id="sc-temp">
-              <div class="scard-icon">🌡</div>
-              <div class="scard-body">
-                <div class="scard-label">Nhiệt độ</div>
-                <div class="scard-val" id="val-temp">--</div>
-                <div class="scard-unit">°C</div>
-              </div>
-              <div class="scard-bar">
-                <div class="scard-fill" id="bar-temp"></div>
-              </div>
-            </div>
-            <div class="scard scard-humi" id="sc-humi">
-              <div class="scard-icon">💧</div>
-              <div class="scard-body">
-                <div class="scard-label">Độ ẩm KK</div>
-                <div class="scard-val" id="val-humi">--</div>
-                <div class="scard-unit">%</div>
-              </div>
-              <div class="scard-bar">
-                <div class="scard-fill" id="bar-humi"></div>
-              </div>
-            </div>
-            <div class="scard scard-soil" id="sc-soil">
-              <div class="scard-icon">🪴</div>
-              <div class="scard-body">
-                <div class="scard-label">Độ ẩm đất</div>
-                <div class="scard-val" id="val-soil">--</div>
-                <div class="scard-unit">%</div>
-              </div>
-              <div class="scard-bar">
-                <div class="scard-fill" id="bar-soil"></div>
-              </div>
-            </div>
-            <div class="scard scard-light" id="sc-light">
-              <div class="scard-icon">☀️</div>
-              <div class="scard-body">
-                <div class="scard-label">Ánh sáng</div>
-                <div class="scard-val" id="val-light">--</div>
-                <div class="scard-unit" id="unit-light">lux</div>
-              </div>
-            </div>
-          </div>
-
-          <!-- UC2: Device status -->
-          <div class="section-label">UC2 · Trạng thái thiết bị</div>
-          <div class="device-status-row">
-            <div class="dstat" id="dstat-pump">
-              <div class="dstat-icon">💦</div>
-              <div class="dstat-info">
-                <div class="dstat-name">Máy bơm</div>
-                <div class="dstat-state" id="dstate-pump">STANDBY</div>
-              </div>
-              <div class="dstat-led" id="dled-pump"></div>
-            </div>
-            <div class="dstat" id="dstat-fan">
-              <div class="dstat-icon">🌀</div>
-              <div class="dstat-info">
-                <div class="dstat-name">Quạt</div>
-                <div class="dstat-state" id="dstate-fan">STANDBY</div>
-              </div>
-              <div class="dstat-led" id="dled-fan"></div>
-            </div>
-            <div class="dstat">
-              <div class="dstat-icon">🖥</div>
-              <div class="dstat-info">
-                <div class="dstat-name">LCD Display</div>
-                <div class="dstat-state" id="dstate-lcd">Trang 1/4</div>
-              </div>
-              <div class="dstat-led dstat-led-green"></div>
-            </div>
-            <div class="dstat">
-              <div class="dstat-icon">📶</div>
-              <div class="dstat-info">
-                <div class="dstat-name">WiFi Signal</div>
-                <div class="dstat-state" id="dstate-wifi">--</div>
-              </div>
-              <div class="dstat-led" id="dled-wifi"></div>
-            </div>
-            <div class="dstat">
-              <div class="dstat-icon">🔆</div>
-              <div class="dstat-info">
-                <div class="dstat-name">LED NeoPixel</div>
-                <div class="dstat-state" id="dstate-led">OFF</div>
-              </div>
-              <div class="dstat-led-color" id="dled-color"></div>
-            </div>
-            <div class="dstat">
-              <div class="dstat-icon">⚙️</div>
-              <div class="dstat-info">
-                <div class="dstat-name">Chế độ</div>
-                <div class="dstat-state" id="dstate-mode">AUTO</div>
-              </div>
-              <div class="dstat-led dstat-led-green"></div>
-            </div>
-          </div>
-
-          <!-- UC14: Safety alerts -->
-          <div class="section-label">UC14 · Cảnh báo an toàn hệ thống</div>
-          <div class="alert-row" id="alertRow">
-            <div class="alert-chip ok" id="al-temp">🌡 Nhiệt độ OK</div>
-            <div class="alert-chip ok" id="al-humi">💧 Độ ẩm OK</div>
-            <div class="alert-chip ok" id="al-soil">🪴 Đất OK</div>
-            <div class="alert-chip ok" id="al-light">☀️ Ánh sáng OK</div>
-            <div class="alert-chip ok" id="al-dht">📡 DHT OK</div>
-            <div class="alert-chip ok" id="al-pump-wd">⏱ Bơm an toàn</div>
-          </div>
-
-          <!-- Stats -->
-          <div class="section-label">Thống kê bơm</div>
-          <div class="stats-row">
-            <div class="stat-box">
-              <div class="stat-num" id="stat-count">0</div>
-              <div class="stat-desc">Lần bơm hôm nay</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-num" id="stat-time">0s</div>
-              <div class="stat-desc">Tổng thời gian bơm</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-num" id="stat-uptime">--</div>
-              <div class="stat-desc">Cập nhật lúc</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-num" id="stat-heap">--</div>
-              <div class="stat-desc">Free Heap (bytes)</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── PAGE: CHARTS (UC3) ─── -->
-        <div id="page-charts" class="page">
-          <div class="section-label">UC3 · Lịch sử dữ liệu cảm biến</div>
-          <div class="chart-toolbar">
-            <div class="chart-tabs">
-              <button class="ctab active" onclick="setChartRange('day', this)">
-                Ngày
-              </button>
-              <button class="ctab" onclick="setChartRange('week', this)">
-                Tuần
-              </button>
-              <button class="ctab" onclick="setChartRange('month', this)">
-                Tháng
-              </button>
-            </div>
-            <div class="chart-legend">
-              <span class="cleg" style="--c: #4ade80">● Nhiệt độ (°C)</span>
-              <span class="cleg" style="--c: #38bdf8">● Độ ẩm KK (%)</span>
-              <span class="cleg" style="--c: #a78bfa">● Độ ẩm đất (%)</span>
-            </div>
-          </div>
-          <div class="chart-wrap">
-            <canvas id="historyChart"></canvas>
-          </div>
-          <div class="chart-wrap" style="margin-top: 20px">
-            <canvas id="pumpChart"></canvas>
-          </div>
-        </div>
-
-        <!-- ─── PAGE: LOGS (UC4) ─── -->
-        <div id="page-logs" class="page">
-          <div class="section-label">UC4 · Nhật ký hoạt động máy bơm</div>
-          <div class="log-toolbar">
-            <input
-              type="text"
-              class="log-search"
-              placeholder="🔍 Tìm kiếm nhật ký..."
-              oninput="filterLogs(this.value)"
-            />
-            <button class="btn-ghost" onclick="clearLogs()">Xóa nhật ký</button>
-            <button class="btn-ghost" onclick="exportLogs()">Xuất CSV</button>
-          </div>
-          <div class="log-table-wrap">
-            <table class="log-table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Thời gian bắt đầu</th>
-                  <th>Thời gian kết thúc</th>
-                  <th>Thời lượng</th>
-                  <th>Lý do</th>
-                  <th>Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody id="logTbody"></tbody>
-            </table>
-          </div>
-          <div class="log-pagination" id="logPagination"></div>
-        </div>
-
-        <!-- ─── PAGE: CONTROL (UC5) ─── -->
-        <div id="page-control" class="page">
-          <div class="section-label">UC5 · Điều khiển thiết bị thủ công</div>
-
-          <div class="mode-banner" id="modeBanner">
-            <span id="modeBannerText"
-              >⚙️ Chế độ: AUTO — Chuyển sang MANUAL để điều khiển thủ công</span
-            >
-            <div class="mode-toggle-group">
-              <button
-                class="mode-btn"
-                id="modeAutoBtn"
-                onclick="setMode('AUTO')"
-              >
-                AUTO
-              </button>
-              <button
-                class="mode-btn"
-                id="modeManBtn"
-                onclick="setMode('MANUAL')"
-              >
-                MANUAL
-              </button>
-            </div>
-          </div>
-
-          <div class="control-grid">
-            <div class="ctrl-card" id="ctrl-pump">
-              <div class="ctrl-header">
-                <span class="ctrl-ico">💦</span>
-                <span class="ctrl-name">Máy bơm nước</span>
-                <div class="ctrl-badge" id="badge-pump">OFF</div>
-              </div>
-              <div class="ctrl-body">
-                <p class="ctrl-desc">
-                  Điều khiển máy bơm trực tiếp. Chỉ hoạt động ở chế độ MANUAL.
-                </p>
-                <div class="ctrl-meta" id="meta-pump">Thời gian chạy: 0s</div>
-              </div>
-              <div class="ctrl-footer">
-                <button class="btn-on" onclick="ctrlDevice('pump', 'on')">
-                  BẬT BƠM
-                </button>
-                <button class="btn-off" onclick="ctrlDevice('pump', 'off')">
-                  TẮT BƠM
-                </button>
-              </div>
-            </div>
-
-            <div class="ctrl-card" id="ctrl-fan">
-              <div class="ctrl-header">
-                <span class="ctrl-ico">🌀</span>
-                <span class="ctrl-name">Quạt làm mát</span>
-                <div class="ctrl-badge" id="badge-fan">OFF</div>
-              </div>
-              <div class="ctrl-body">
-                <p class="ctrl-desc">
-                  Điều khiển quạt trực tiếp. Chỉ hoạt động ở chế độ MANUAL.
-                </p>
-                <div class="ctrl-meta" id="meta-fan">Trạng thái: Chờ</div>
-              </div>
-              <div class="ctrl-footer">
-                <button class="btn-on" onclick="ctrlDevice('fan', 'on')">
-                  BẬT QUẠT
-                </button>
-                <button class="btn-off" onclick="ctrlDevice('fan', 'off')">
-                  TẮT QUẠT
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── PAGE: THRESHOLD (UC6) ─── -->
-        <div id="page-threshold" class="page">
-          <div class="section-label">UC6 · Thiết lập ngưỡng tưới tự động</div>
-          <div class="settings-card">
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Ngưỡng khô (Bật bơm)</div>
-                <div class="settings-desc">
-                  Khi độ ẩm đất xuống dưới mức này → tự động bật bơm
-                </div>
-              </div>
-              <div class="settings-ctrl">
-                <input
-                  type="range"
-                  id="threshDry"
-                  min="0"
-                  max="100"
-                  value="30"
-                  oninput="updateThresholdDisplay()"
-                />
-                <span class="range-val" id="threshDryVal">30%</span>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Ngưỡng ướt (Tắt bơm)</div>
-                <div class="settings-desc">
-                  Khi độ ẩm đất đạt mức này → tự động tắt bơm
-                </div>
-              </div>
-              <div class="settings-ctrl">
-                <input
-                  type="range"
-                  id="threshWet"
-                  min="0"
-                  max="100"
-                  value="70"
-                  oninput="updateThresholdDisplay()"
-                />
-                <span class="range-val" id="threshWetVal">70%</span>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Thời gian bơm tối đa (UC14)</div>
-                <div class="settings-desc">
-                  Bảo vệ: tự động tắt bơm sau thời gian này dù chưa đủ ẩm
-                </div>
-              </div>
-              <div class="settings-ctrl">
-                <input
-                  type="range"
-                  id="pumpMax"
-                  min="10"
-                  max="300"
-                  value="60"
-                  oninput="updateThresholdDisplay()"
-                />
-                <span class="range-val" id="pumpMaxVal">60s</span>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Thời gian chờ giữa 2 lần bơm</div>
-                <div class="settings-desc">
-                  Cooldown bảo vệ máy bơm không chạy liên tục
-                </div>
-              </div>
-              <div class="settings-ctrl">
-                <input
-                  type="range"
-                  id="pumpCool"
-                  min="10"
-                  max="600"
-                  value="120"
-                  oninput="updateThresholdDisplay()"
-                />
-                <span class="range-val" id="pumpCoolVal">120s</span>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Ngưỡng nhiệt độ cao (Bật quạt)</div>
-                <div class="settings-desc">
-                  Nhiệt độ vượt ngưỡng này → tự động bật quạt
-                </div>
-              </div>
-              <div class="settings-ctrl">
-                <input
-                  type="range"
-                  id="tempHigh"
-                  min="20"
-                  max="50"
-                  value="35"
-                  oninput="updateThresholdDisplay()"
-                />
-                <span class="range-val" id="tempHighVal">35°C</span>
-              </div>
-            </div>
-            <div class="settings-actions">
-              <button class="btn-save" onclick="saveThreshold()">
-                💾 Lưu ngưỡng
-              </button>
-              <button class="btn-ghost" onclick="resetThreshold()">
-                Reset mặc định
-              </button>
-            </div>
-            <div class="threshold-preview" id="threshPreview"></div>
-          </div>
-        </div>
-
-        <!-- ─── PAGE: SCHEDULE (UC7) ─── -->
-        <div id="page-schedule" class="page">
-          <div class="section-label">UC7 · Lập lịch tưới cố định</div>
-          <div class="settings-card">
-            <div class="schedule-enable-row">
-              <span>Bật lịch tưới tự động</span>
-              <label class="toggle">
-                <input
-                  type="checkbox"
-                  id="schedEnable"
-                  onchange="toggleSchedule()"
-                />
-                <div class="toggle-track"></div>
-                <div class="toggle-thumb"></div>
-              </label>
-            </div>
-            <div id="scheduleForm">
-              <div class="schedule-list" id="scheduleList"></div>
-              <button class="btn-add" onclick="addSchedule()">
-                ＋ Thêm lịch tưới
-              </button>
-            </div>
-            <div class="settings-actions">
-              <button class="btn-save" onclick="saveSchedule()">
-                💾 Lưu lịch tưới
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── PAGE: SMART LOGIC (UC8) ─── -->
-        <div id="page-smartlogic" class="page">
-          <div class="section-label">UC8 · Smart Logic — Tưới thông minh</div>
-          <div class="settings-card">
-            <div class="smart-enable-row">
+      /**
+       * Bootstrap: load tất cả partials & pages → rồi mới chạy JS
+       */
+      async function bootstrap() {
+        try {
+          // Load song song: partials + tất cả pages
+          await Promise.all([
+            loadPartial('partials/login.html',   'slot-login'),
+            loadPartial('partials/sidebar.html', 'slot-sidebar'),
+            loadPartial('partials/topbar.html',  'slot-topbar'),
+            loadPartial('partials/modals.html',  'slot-modals'),
+            loadAllPages(),
+          ]);
+        } catch (e) {
+          console.error('[Bootstrap] Failed to load partials:', e);
+          // Fallback: hiện lỗi thân thiện
+          document.body.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;padding:2rem;text-align:center">
               <div>
-                <div class="settings-name">Bật Smart Logic</div>
-                <div class="settings-desc">
-                  Kết hợp độ ẩm đất + dự báo thời tiết để quyết định tưới
-                </div>
+                <p style="font-size:2rem">🌿</p>
+                <h2 style="margin:1rem 0">Không thể tải giao diện</h2>
+                <p style="color:#666">Hãy chạy app qua HTTP server (không phải file://).<br>Ví dụ: <code>python3 -m http.server 8080</code></p>
               </div>
-              <label class="toggle">
-                <input
-                  type="checkbox"
-                  id="smartEnable"
-                  onchange="toggleSmart()"
-                />
-                <div class="toggle-track"></div>
-                <div class="toggle-thumb"></div>
-              </label>
-            </div>
-            <div id="smartForm" class="smart-form">
-              <div class="settings-row">
-                <div class="settings-info">
-                  <div class="settings-name">API Key OpenWeather</div>
-                  <div class="settings-desc">
-                    Lấy tại openweathermap.org/api
-                  </div>
-                </div>
-                <input
-                  type="text"
-                  class="settings-input"
-                  id="weatherApiKey"
-                  placeholder="Enter API key..."
-                />
-              </div>
-              <div class="settings-row">
-                <div class="settings-info">
-                  <div class="settings-name">Thành phố</div>
-                  <div class="settings-desc">
-                    Tên thành phố để lấy dự báo thời tiết
-                  </div>
-                </div>
-                <input
-                  type="text"
-                  class="settings-input"
-                  id="weatherCity"
-                  placeholder="Ho Chi Minh City"
-                />
-              </div>
-              <div class="settings-row">
-                <div class="settings-info">
-                  <div class="settings-name">Xác suất mưa tối thiểu (%)</div>
-                  <div class="settings-desc">
-                    Nếu dự báo mưa ≥ ngưỡng này → KHÔNG tưới để tiết kiệm nước
-                  </div>
-                </div>
-                <div class="settings-ctrl">
-                  <input
-                    type="range"
-                    id="rainThresh"
-                    min="10"
-                    max="100"
-                    value="60"
-                    oninput="
-                      document.getElementById('rainThreshVal').textContent =
-                        this.value + '%'
-                    "
-                  />
-                  <span class="range-val" id="rainThreshVal">60%</span>
-                </div>
-              </div>
-              <div class="weather-preview" id="weatherPreview">
-                <button class="btn-fetch" onclick="fetchWeather()">
-                  🌤 Kiểm tra thời tiết ngay
-                </button>
-              </div>
-            </div>
-            <div class="smart-logic-diagram">
-              <div class="logic-title">Logic hoạt động</div>
-              <div class="logic-flow">
-                <div class="logic-node">
-                  Độ ẩm đất<br /><span>&lt; Ngưỡng khô</span>
-                </div>
-                <div class="logic-arrow">AND</div>
-                <div class="logic-node">
-                  Dự báo mưa<br /><span>&lt; 60%</span>
-                </div>
-                <div class="logic-arrow">→</div>
-                <div class="logic-node logic-result">Bật bơm ✓</div>
-              </div>
-            </div>
-            <div class="settings-actions">
-              <button class="btn-save" onclick="saveSmartLogic()">
-                💾 Lưu cài đặt
-              </button>
-            </div>
-          </div>
-        </div>
+            </div>`;
+          return;
+        }
 
-        <!-- ─── PAGE: DEVICES (UC11) ─── -->
-        <div id="page-devices" class="page">
-          <div class="section-label">
-            UC11 · Quản lý & Đăng ký thiết bị (Factory Method)
-          </div>
-          <div class="device-toolbar">
-            <button class="btn-save" onclick="openAddDevice()">
-              ＋ Đăng ký thiết bị mới
-            </button>
-          </div>
-          <div class="device-grid" id="deviceGrid"></div>
+        // Dispatch event để báo hiệu partials đã sẵn sàng
+        // (dùng cho các JS module nếu cần lắng nghe)
+        document.dispatchEvent(new Event('partials-loaded'));
+      }
 
-          <!-- Add device modal -->
-          <div id="addDeviceModal" class="modal-overlay" style="display: none">
-            <div class="modal-box modal-lg">
-              <h3>Đăng ký thiết bị mới</h3>
-              <p class="modal-sub">
-                Factory Method Pattern — Thêm thiết bị mà không sửa code lõi
-              </p>
-              <div class="form-group">
-                <label>Loại thiết bị</label>
-                <select id="deviceType" onchange="onDeviceTypeChange()">
-                  <option value="">-- Chọn loại --</option>
-                  <option value="sensor_temp">Cảm biến nhiệt độ</option>
-                  <option value="sensor_humi">Cảm biến độ ẩm</option>
-                  <option value="sensor_soil">Cảm biến đất</option>
-                  <option value="sensor_light">Cảm biến ánh sáng</option>
-                  <option value="actuator_pump">Thiết bị bơm</option>
-                  <option value="actuator_fan">Quạt</option>
-                  <option value="actuator_led">LED Strip</option>
-                  <option value="display_lcd">Màn hình LCD</option>
-                </select>
-              </div>
-              <div id="deviceFormFields"></div>
-              <div class="modal-actions">
-                <button class="btn-cancel" onclick="closeAddDevice()">
-                  Hủy
-                </button>
-                <button class="btn-confirm" onclick="registerDevice()">
-                  Đăng ký
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+      // Khởi động ngay khi DOM ready
+      document.addEventListener('DOMContentLoaded', bootstrap);
+    </script>
 
-        <!-- ─── PAGE: NOTIFY (UC10) ─── -->
-        <div id="page-notify" class="page">
-          <div class="section-label">UC10 · Cấu hình thông báo sự cố</div>
-          <div class="settings-card">
-            <div class="notify-tabs">
-              <button
-                class="ntab active"
-                onclick="switchNotifyTab('telegram', this)"
-              >
-                📱 Telegram
-              </button>
-              <button class="ntab" onclick="switchNotifyTab('email', this)">
-                📧 Email
-              </button>
-            </div>
+    <!-- ══════════════════════════════════════════════════════
+      JS FILES — thứ tự quan trọng (dependency order)
+    ══════════════════════════════════════════════════════ -->
+    <script src="js/state.js"></script>
+    <script src="js/helpers.js"></script>
+    <script src="js/websocket.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/control.js"></script>
+    <script src="js/logs.js"></script>
+    <script src="js/charts.js"></script>
+    <script src="js/threshold.js"></script>
+    <script src="js/schedule.js"></script>
+    <script src="js/smartlogic.js"></script>
+    <script src="js/devices.js"></script>
+    <script src="js/notify.js"></script>
 
-            <div id="ntab-telegram" class="ntab-content active">
-              <div class="settings-row">
-                <div class="settings-info">
-                  <div class="settings-name">Bot Token</div>
-                  <div class="settings-desc">
-                    Token từ @BotFather trên Telegram
-                  </div>
-                </div>
-                <input
-                  type="text"
-                  class="settings-input"
-                  id="tgToken"
-                  placeholder="1234567890:AABBCC..."
-                />
-              </div>
-              <div class="settings-row">
-                <div class="settings-info">
-                  <div class="settings-name">Chat ID</div>
-                  <div class="settings-desc">ID chat nhận thông báo</div>
-                </div>
-                <input
-                  type="text"
-                  class="settings-input"
-                  id="tgChatId"
-                  placeholder="-100123456789"
-                />
-              </div>
-              <button class="btn-test" onclick="testTelegram()">
-                🧪 Gửi tin nhắn test
-              </button>
-            </div>
-
-            <div id="ntab-email" class="ntab-content">
-              <div class="settings-row">
-                <div class="settings-info">
-                  <div class="settings-name">SMTP Server</div>
-                </div>
-                <input
-                  type="text"
-                  class="settings-input"
-                  id="smtpHost"
-                  placeholder="smtp.gmail.com"
-                />
-              </div>
-              <div class="settings-row">
-                <div class="settings-info">
-                  <div class="settings-name">Email nhận thông báo</div>
-                </div>
-                <input
-                  type="email"
-                  class="settings-input"
-                  id="emailTo"
-                  placeholder="user@example.com"
-                />
-              </div>
-              <button class="btn-test" onclick="testEmail()">
-                🧪 Gửi email test
-              </button>
-            </div>
-
-            <div class="settings-row" style="margin-top: 24px">
-              <div class="settings-info">
-                <div class="settings-name">Thông báo khi nào?</div>
-              </div>
-              <div class="notify-events">
-                <label class="chk-row"
-                  ><input type="checkbox" id="ne-dry" checked /> Đất quá khô mà
-                  bơm không chạy</label
-                >
-                <label class="chk-row"
-                  ><input type="checkbox" id="ne-pump-long" checked /> Bơm chạy
-                  quá lâu (UC14)</label
-                >
-                <label class="chk-row"
-                  ><input type="checkbox" id="ne-dht" checked /> Cảm biến DHT bị
-                  lỗi</label
-                >
-                <label class="chk-row"
-                  ><input type="checkbox" id="ne-temp" /> Nhiệt độ vượt
-                  ngưỡng</label
-                >
-                <label class="chk-row"
-                  ><input type="checkbox" id="ne-offline" checked /> Thiết bị
-                  mất kết nối</label
-                >
-              </div>
-            </div>
-            <div class="settings-actions">
-              <button class="btn-save" onclick="saveNotify()">
-                💾 Lưu cài đặt
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- ─── PAGE: ACCOUNT (UC9) ─── -->
-        <div id="page-account" class="page">
-          <div class="section-label">UC9 · Quản lý tài khoản</div>
-          <div class="settings-card">
-            <div class="account-avatar-row">
-              <div class="account-avatar" id="accountAvatar">A</div>
-              <div>
-                <div class="account-name" id="accountName">Admin</div>
-                <div class="account-role">Quản trị viên hệ thống</div>
-              </div>
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Họ và tên</div>
-              </div>
-              <input
-                type="text"
-                class="settings-input"
-                id="accName"
-                value="Greenhouse Admin"
-              />
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Email</div>
-              </div>
-              <input
-                type="email"
-                class="settings-input"
-                id="accEmail"
-                value="admin@greenhouse.iot"
-              />
-            </div>
-            <hr class="divider" />
-            <div class="settings-name" style="margin-bottom: 12px">
-              Đổi mật khẩu
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Mật khẩu hiện tại</div>
-              </div>
-              <input
-                type="password"
-                class="settings-input"
-                id="accPassOld"
-                placeholder="••••••••"
-              />
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Mật khẩu mới</div>
-              </div>
-              <input
-                type="password"
-                class="settings-input"
-                id="accPassNew"
-                placeholder="••••••••"
-              />
-            </div>
-            <div class="settings-row">
-              <div class="settings-info">
-                <div class="settings-name">Xác nhận mật khẩu</div>
-              </div>
-              <input
-                type="password"
-                class="settings-input"
-                id="accPassCfm"
-                placeholder="••••••••"
-              />
-            </div>
-            <div class="settings-actions">
-              <button class="btn-save" onclick="saveAccount()">
-                💾 Lưu thay đổi
-              </button>
-            </div>
-          </div>
-        </div>
-      </main>
-    </div>
-
-    <script src="script.js"></script>
   </body>
 </html>

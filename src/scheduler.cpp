@@ -138,17 +138,19 @@ void SCH_Update(void)
 }
 
 // Dispatch các task có RunMe > 0, chạy task, xóa nếu không lặp lại hoặc reset Delay nếu có Period
+// Chạy ngoài critical section để tránh block ISR, nhưng vẫn đảm bảo an toàn khi thao tác task list
 void SCH_Dispatch_Tasks(void)
 {
-//  Đảm bảo tính nhất quán của task list khi onTimer() có thể đang cập nhật cùng lúc 
-    // để tránh race condition với ISR onTimer() đang cập nhật cùng lúc
-    portENTER_CRITICAL(&timerMux);
-    bool     hasTask     = (task_count > 0 && SCH_tasks_G[0].RunMe > 0);
+    portENTER_CRITICAL(&timerMux);                          
+    if (task_count == 0 || SCH_tasks_G[0].RunMe == 0)
+    {
+        portEXIT_CRITICAL(&timerMux);
+        return;
+    }
     uint32_t snapshotElapsed = elapsed_time;
-    portEXIT_CRITICAL(&timerMux);
+    elapsed_time = 0;  // Reset đếm thời gian đã trôi qua kể từ lần cập nhật cuối cùng                                     
 
-    if (!hasTask) return;
-
+    // Cập nhật Delay của tất cả task dựa trên thời gian đã trôi qua
     for (uint32_t m = 0; m < task_count; m++)
     {
         if (MARKING[m] == 0)
@@ -164,32 +166,31 @@ void SCH_Dispatch_Tasks(void)
             SCH_tasks_G[m].RunMe = 1;
         }
     }
+    portEXIT_CRITICAL(&timerMux);                           // ← nhả lock trước khi gọi task
 
+    // Dispatch: gọi task function NGOÀI critical section
+    // (task function có thể chạy lâu, không được block ISR)
     while (task_count > 0 && SCH_tasks_G[0].RunMe > 0)
     {
         if (SCH_tasks_G[0].pTask != 0x0000)
             (*SCH_tasks_G[0].pTask)();
 
+        portENTER_CRITICAL(&timerMux);                      // ← lock lại khi thao tác task list
         SCH_tasks_G[0].RunMe--;
-
         if (SCH_tasks_G[0].Period == 0)
         {
+            portEXIT_CRITICAL(&timerMux);
             SCH_Delete_Task(0);
         }
         else
         {
             void (*tmp)(void) = SCH_tasks_G[0].pTask;
             uint32_t period   = SCH_tasks_G[0].Period;
+            portEXIT_CRITICAL(&timerMux);
             SCH_Delete_Task(0);
             SCH_Add_Task(tmp, period, period);
         }
     }
-
-    // [FIX] Reset elapsed_time trong critical section
-    portENTER_CRITICAL(&timerMux);
-    elapsed_time = 0;
-    portEXIT_CRITICAL(&timerMux);
 }
-
 // Trả về số lượng task hiện tại trong scheduler
 uint32_t SCH_Get_Current_Size(void) { return task_count; }

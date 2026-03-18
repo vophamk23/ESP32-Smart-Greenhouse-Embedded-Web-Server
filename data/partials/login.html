@@ -1,0 +1,80 @@
+<!-- ══════════════════════════════════════════════════════
+  partials/login.html — Login Overlay
+  Use case: Xác thực người dùng trước khi vào app
+══════════════════════════════════════════════════════ -->
+<div
+  id="loginOverlay"
+  class="min-h-screen flex items-center justify-center relative overflow-hidden"
+>
+  <div class="absolute inset-0 bg-greenhouse z-0"></div>
+  <div class="absolute inset-0 bg-gradient-to-tr from-emerald-950/50 via-transparent to-black/20 z-10"></div>
+
+  <div class="relative z-20 w-full max-w-[1100px] mx-4 grid lg:grid-cols-2 shadow-2xl rounded-3xl overflow-hidden bg-white/10 backdrop-blur-sm">
+    <!-- Left branding -->
+    <div class="hidden lg:flex flex-col justify-between p-12 text-white bg-emerald-950/40 border-r border-white/10">
+      <div>
+        <div class="flex items-center gap-3 mb-8">
+          <span class="text-3xl">🌿</span>
+          <span class="font-serif text-2xl font-bold tracking-tight">Greenhouse IoT</span>
+        </div>
+        <h1 class="font-serif text-5xl font-medium leading-tight mb-6">
+          Nuôi dưỡng tương lai<br />bằng công nghệ.
+        </h1>
+        <p class="text-emerald-50/80 text-lg leading-relaxed max-w-md">
+          Hệ thống giám sát nông nghiệp thông minh giúp bạn quản lý vườn ươm
+          mọi lúc, mọi nơi với dữ liệu chính xác nhất.
+        </p>
+      </div>
+      <div class="flex items-center gap-4 text-sm font-medium text-emerald-100/60">
+        <span>© 2026 Emerald Orbit</span>
+        <span class="w-1 h-1 bg-emerald-500 rounded-full"></span>
+        <span>v1.0.0</span>
+      </div>
+    </div>
+    <!-- Right form -->
+    <div class="bg-white/95 p-8 sm:p-12 lg:p-16 flex flex-col justify-center">
+      <div class="mb-10 lg:hidden flex items-center gap-2">
+        <span class="text-2xl">🌿</span>
+        <span class="font-serif text-xl font-bold text-emerald-800">Greenhouse IoT</span>
+      </div>
+      <div class="mb-8">
+        <h2 class="font-serif text-4xl font-semibold text-on-surface mb-2">Chào mừng trở lại</h2>
+        <p class="text-on-surface-variant">Đăng nhập để tiếp tục quản lý hệ thống</p>
+      </div>
+      <form class="space-y-6" onsubmit="event.preventDefault(); doLogin()">
+        <div class="space-y-2">
+          <label class="text-sm font-semibold text-on-surface-variant ml-1" for="loginUser">Tài khoản</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-xl">person</span>
+            <input id="loginUser" type="text" placeholder="vopham"
+              class="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-outline-variant focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none bg-surface-container-low/50" />
+          </div>
+        </div>
+        <div class="space-y-2">
+          <label class="text-sm font-semibold text-on-surface-variant ml-1" for="loginPass">Mật khẩu</label>
+          <div class="relative">
+            <span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant/50 text-xl">lock</span>
+            <input id="loginPass" type="password" placeholder="••••••••"
+              class="w-full pl-12 pr-4 py-3.5 rounded-2xl border border-outline-variant focus:border-primary focus:ring-4 focus:ring-primary/10 transition-all outline-none bg-surface-container-low/50" />
+          </div>
+        </div>
+        <div id="loginError" class="text-sm text-error hidden bg-error-container p-3 rounded-xl">
+          Sai tài khoản hoặc mật khẩu.
+        </div>
+        <button type="submit"
+          class="w-full bg-primary hover:bg-[#005236] text-on-primary font-bold py-4 rounded-2xl shadow-lg shadow-primary/20 active:scale-[0.98] transition-all flex items-center justify-center gap-2 group">
+          <span>Đăng nhập</span>
+          <span class="material-symbols-outlined text-xl group-hover:translate-x-1 transition-transform">arrow_forward</span>
+        </button>
+      </form>
+      <div class="mt-8 pt-8 border-t border-outline-variant/20">
+        <p class="text-center text-on-surface-variant/60 text-sm">
+          Tài khoản:
+          <span class="font-mono bg-surface-container px-1.5 py-0.5 rounded">vopham</span>
+          /
+          <span class="font-mono bg-surface-container px-1.5 py-0.5 rounded">vopham123</span>
+        </p>
+      </div>
+    </div>
+  </div>
+</div>

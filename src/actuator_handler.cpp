@@ -155,7 +155,10 @@ void ledColorGood()      { setAllLEDs(0,   255, 0);   }   // Xanh lá
 void ledColorWarning()   { setAllLEDs(255, 200, 0);   }   // Vàng cam
 void ledColorDanger()    { setAllLEDs(255, 0,   0);   }   // Đỏ
 void ledColorWatering()  { setAllLEDs(0,   100, 255); }   // Xanh dương (tưới nước)
+void ledColorFanOn()     { setAllLEDs(200, 0, 100); }   // Hồng 
 void ledColorGrowLight() { setAllLEDs(255, 255, 255); }   // Trắng (grow light)
+
+void ledColorPumpFan()   { setAllLEDs(0, 230, 255); }   // Cyan (pump + fan)
 void ledColorNight()     { turnOffAllLEDs(); }
 
 // ============================================================================
@@ -223,25 +226,45 @@ void autoControlFan()
 
 // ============================================================================
 // TỰ ĐỘNG ĐIỀU KHIỂN LED
-// Ưu tiên: Nguy hiểm > Tưới nước > Thiếu sáng > Cảnh báo > Tốt
+// Ưu tiên: 1. Cảnh báo nhiệt độ > 35°C (đỏ) - ưu tiên cao nhất
+//           2. Pump + Fan cùng bật → cyan
+//           3. Chỉ pump → xanh dương
+//           4. Chỉ fan bật thủ công → tím
+//           5. Thiếu sáng → grow light trắng
+//           6. Cảnh báo nhẹ (nhiệt độ cao, ẩm thấp, đất khô) → vàng cam
+//           7. Bình thường → xanh lá
 // ============================================================================
 void autoControlLED()
 {
-    // 1. Nhiệt độ cực cao (CRITICAL) - ưu tiên tuyệt đối
+    // 1. CRITICAL - ưu tiên tuyệt đối dù AUTO hay MANUAL
     if (!g_dhtError && g_temperature >= TEMP_CRITICAL)
     {
         ledColorDanger();
         return;
     }
 
-    // 2. Đang tưới cây
+    // 2. Pump + Fan cùng bật → cyan
+    if (g_pumpState && g_fanState)
+    {
+        ledColorPumpFan();
+        return;
+    }
+
+    // 3. Chỉ pump → xanh dương
     if (g_pumpState)
     {
         ledColorWatering();
         return;
     }
 
-    // 3. Thiếu sáng -> bật grow light
+    // 4. Chỉ fan bật thủ công → tím
+    if (g_fanState && !g_autoMode)
+    {
+        ledColorFanOn();
+        return;
+    }
+
+    // 5. Thiếu sáng → grow light
     if (g_lightLux < LIGHT_LOW_THRESHOLD)
     {
         g_ledGrowState = true;
@@ -249,19 +272,16 @@ void autoControlLED()
         return;
     }
 
-    // 4. Đủ sáng -> tắt grow light flag
-    if (g_lightLux >= LIGHT_HIGH_THRESHOLD)
-        g_ledGrowState = false;
-    else g_ledGrowState = false;
+    // 6. Đủ sáng → tắt grow light flag
+    g_ledGrowState = false;
 
-    // 5. Có cảnh báo nhẹ
+    // 7. Cảnh báo nhẹ
     if (g_alertTemp || g_alertHumidity || g_alertSoil)
     {
         ledColorWarning();
         return;
     }
 
-    // 6. Tất cả bình thường
-    g_ledGrowState = false;
+    // 8. Bình thường
     ledColorGood();
 }

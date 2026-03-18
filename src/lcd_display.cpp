@@ -6,6 +6,7 @@
 #include "config.h"
 #include "global_vars.h"
 #include <Arduino.h>
+#include "sensor_handler.h"
 
 // ==================== ĐỐI TƯỢNG LCD ====================
 static LiquidCrystal_I2C s_lcd(LCD_ADDRESS, LCD_COLS, LCD_ROWS);
@@ -89,7 +90,7 @@ void displayPage_TempHumidity()
     }
     else
     {
-        snprintf(buf, sizeof(buf), "T:%.1fC H:%.0f%%",
+        snprintf(buf, sizeof(buf), "T: %.1fC  H: %.0f%%",
                  g_temperature, g_humidity);
         lcdPrint16(0, 0, buf);
     }
@@ -103,9 +104,10 @@ void displayPage_TempHumidity()
     }
     else
     {
-        snprintf(buf, sizeof(buf), "Fan:%-3s Pump:%-3s",
-                 g_fanState  ? "ON" : "OFF",
-                 g_pumpState ? "ON" : "OFF");
+        DateTime now = getRTCTime();
+        snprintf(buf, sizeof(buf), "%02d/%02d/%02d  %02d:%02d",
+                 now.day(), now.month(), now.year() % 100,
+                 now.hour(), now.minute());
         lcdPrint16(0, 1, buf);
     }
 }
@@ -167,10 +169,12 @@ void displayPage_DeviceStatus()
     else if (r == 255 && g == 200 && b == 0)   ledName = "Yell"; // Warning
     else if (r == 0   && g == 100 && b == 255) ledName = "Blue"; // Watering
     else if (r == 255 && g == 255 && b == 255) ledName = "White"; // GrowLight
+    else if (r == 0   && g == 230 && b == 255) ledName = "Cyan"; // Pump+Fan
+    else if (r == 200 && g == 0   && b == 100) ledName = "Pink"; // Fan 
 
     snprintf(buf, sizeof(buf), "LED:%-3s %-4s",
              ledName,
-             g_autoMode ? "[AUTO]" : "[MAN]"); 
+             g_autoMode ? "[AUTO]" : " [MAN]"); 
     lcdPrint16(0, 1, buf);
 }
 

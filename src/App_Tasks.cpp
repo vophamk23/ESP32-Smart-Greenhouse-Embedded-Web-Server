@@ -1,10 +1,5 @@
 /*
  * app_tasks.cpp - Triển khai các task cho Cooperative Scheduler
- *
- * IMPROVEMENTS:
- *   1. Task_PumpWatchdog xử lý cooldown timeout
- *   2. Task_Heartbeat ngắn gọn hơn, đủ thông tin
- *   3. Guard rõ ràng trong mỗi task
  */
 
 #include "app_tasks.h"
@@ -141,3 +136,9 @@ void Task_ProcessRpc(void)
 {
     iotBridge_processRpcCommands();
 }
+
+
+
+
+
+

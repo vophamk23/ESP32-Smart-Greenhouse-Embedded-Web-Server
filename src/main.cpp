@@ -26,11 +26,11 @@
 // ============================================================================
 // BIẾN CONFIG TOÀN CỤC (định nghĩa ở đây, extern ở các file khác)
 // ============================================================================
-String WIFI_SSID       = "";
-String WIFI_PASS       = "";
-String CORE_IOT_TOKEN  = "";
-String CORE_IOT_SERVER = "";
-String CORE_IOT_PORT   = "1883";
+char WIFI_SSID      [33]  = "";   // max SSID 32 chars + null
+char WIFI_PASS      [65]  = "";   // max WPA2 64 chars + null
+char CORE_IOT_TOKEN [64]  = "";
+char CORE_IOT_SERVER[128] = "";
+char CORE_IOT_PORT  [6]   = "1883";
 
 // ============================================================================
 // SETUP
@@ -50,10 +50,15 @@ void setup()
 
     // ===== 2. HARDWARE =====
     initLCD();
+    initRTC();
     initActuators();
     initSensors();
     initButtons();
 
+    // ===== IOT BRIDGE TRƯỚC — tạo mutex trước khi đọc sensor =====
+    iotBridge_init();
+
+    // Đọc sensor lần đầu để có dữ liệu hiển thị ngay khi khởi động
     readDHT();
     readLightSensor();
     readSoilMoisture();
@@ -61,10 +66,8 @@ void setup()
     // ===== 3. WIFI =====
     initWiFi();
 
-    // ===== 4. IOT BRIDGE (queues + semaphores) =====
-    iotBridge_init();
 
-    // ===== 5. FREERTOS TASKS trên Core 0 =====
+    // ===== 4. FREERTOS TASKS trên Core 0 =====
     xTaskCreatePinnedToCore(
         greenhouse_wifi_task, "wifi",
         4096, nullptr, 3, nullptr, 0);
@@ -77,10 +80,11 @@ void setup()
         greenhouse_webserver_task, "webserver",
         8192, nullptr, 1, nullptr, 0);
 
-    // ===== 6. COOPERATIVE SCHEDULER (Core 1) =====
+    // ===== 5. COOPERATIVE SCHEDULER (Core 1) =====
     SCH_Init();
     SCH_Init_Timer();
 
+    // Thêm các task vào scheduler với khoảng thời gian định kỳ
     SCH_Add_Task(Task_ReadAirSensors,    0, TASK_SENSOR_READ_TICKS);
     SCH_Add_Task(Task_ReadSoilSensor,    0, TASK_SOIL_READ_TICKS);
     SCH_Add_Task(Task_CheckAlerts,       0, TASK_ALERT_CHECK_TICKS);
@@ -133,7 +137,7 @@ void loop()
                     WiFi.status() == WL_CONNECTED ? "OK" : "DISCONNECTED",
                     WiFi.localIP().toString().c_str());
                 Serial.printf("[IOT] Server: %s:%s\n",
-                    CORE_IOT_SERVER.c_str(), CORE_IOT_PORT.c_str());
+                    CORE_IOT_SERVER, CORE_IOT_PORT);
                 Serial.printf("[IOT] Free heap: %u\n", ESP.getFreeHeap());
                 break;
             case '?':

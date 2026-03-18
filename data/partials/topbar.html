@@ -1,0 +1,20 @@
+<!-- ══════════════════════════════════════════════════════
+  partials/topbar.html — Top Header Bar
+  Use case: Tiêu đề trang + đồng hồ + thông tin tài khoản
+══════════════════════════════════════════════════════ -->
+<header class="h-20 bg-surface/40 backdrop-blur-md border-b border-white/20 flex items-center justify-between px-8 sticky top-0 z-40">
+  <div class="flex items-center gap-4">
+    <button onclick="document.getElementById('sidebar').classList.toggle('open')"
+      class="md:hidden p-2 text-on-surface-variant rounded-lg hover:bg-surface-container">
+      <span class="material-symbols-outlined">menu</span>
+    </button>
+    <h2 id="pageTitle" class="font-serif text-xl italic text-primary">Dashboard</h2>
+  </div>
+  <div class="flex items-center gap-4">
+    <span id="topbarTime" class="text-xs text-on-surface-variant font-medium hidden sm:block"></span>
+    <div class="flex items-center gap-2 px-3 py-1.5 bg-primary/[0.08] text-primary rounded-full text-xs font-bold">
+      <span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
+      <span id="accountAvatar">A</span>
+    </div>
+  </div>
+</header>

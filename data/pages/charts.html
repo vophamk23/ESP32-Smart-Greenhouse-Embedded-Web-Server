@@ -1,0 +1,232 @@
+<!-- pages/charts.html — Biểu đồ lịch sử
+  Use case: Phân tích xu hướng cảm biến theo thời gian -->
+
+<!-- ═══════ CHARTS ═══════ -->
+<div id="page-charts" class="page p-8 space-y-8 max-w-7xl mx-auto">
+  <!-- ── Hero: Chart + Pump Activity ── -->
+  <section class="grid grid-cols-12 gap-6">
+    <!-- Main chart — col 9 -->
+    <div
+      class="col-span-12 lg:col-span-9 bg-white rounded-2xl p-8 shadow-sm border border-slate-100"
+    >
+      <div class="flex justify-between items-end mb-8">
+        <div>
+          <h3 class="font-serif text-3xl text-primary">Xu hướng môi trường</h3>
+          <p class="text-on-surface-variant text-sm font-medium mt-1">
+            Phân tích đa chỉ số · Thời gian thực
+          </p>
+        </div>
+        <div class="flex bg-surface-container-low rounded-full p-1 gap-1">
+          <button
+            class="chart-tab-btn px-5 py-2 text-sm font-bold rounded-full bg-primary text-white"
+            data-range="30m"
+            onclick="setChartRange('30m', this)"
+          >
+            30p
+          </button>
+          <button
+            class="chart-tab-btn px-5 py-2 text-sm font-bold rounded-full text-on-surface-variant hover:text-primary"
+            data-range="day"
+            onclick="setChartRange('day', this)"
+          >
+            Ngày
+          </button>
+          <button
+            class="chart-tab-btn px-5 py-2 text-sm font-bold rounded-full text-on-surface-variant hover:text-primary"
+            data-range="week"
+            onclick="setChartRange('week', this)"
+          >
+            Tuần
+          </button>
+          <button
+            class="chart-tab-btn px-5 py-2 text-sm font-bold rounded-full text-on-surface-variant hover:text-primary"
+            data-range="month"
+            onclick="setChartRange('month', this)"
+          >
+            Tháng
+          </button>
+        </div>
+      </div>
+      <div style="height: 280px">
+        <canvas id="historyChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Pump Activity — col 3 -->
+    <div
+      class="col-span-12 lg:col-span-3 bg-primary text-white rounded-2xl p-8 relative overflow-hidden shadow-xl flex flex-col justify-between"
+    >
+      <!-- Background leaf texture -->
+      <div class="absolute inset-0 opacity-10 pointer-events-none">
+        <img
+          src="https://images.unsplash.com/photo-1518531933037-91b2f5f229cc?w=400&q=60"
+          alt=""
+          class="w-full h-full object-cover mix-blend-overlay scale-150 rotate-12"
+        />
+      </div>
+      <div class="relative z-10">
+        <h4 class="font-serif text-xl">Hoạt động máy bơm</h4>
+        <p
+          class="text-primary-fixed-dim text-xs font-bold uppercase tracking-widest mt-1"
+        >
+          24 giờ qua
+        </p>
+      </div>
+      <div class="relative z-10 my-4">
+        <div class="font-serif text-5xl italic">
+          <span id="pump-total-vol">--</span
+          ><span class="text-xl ml-1 not-italic">s</span>
+        </div>
+        <p class="text-sm opacity-80 mt-1">Tổng thời gian bơm</p>
+      </div>
+      <!-- Pump chart sparkline -->
+      <div class="relative z-10" style="height: 80px">
+        <canvas id="pumpChart"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Event Log Table ── -->
+  <section
+    class="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100"
+  >
+    <!-- Header -->
+    <div
+      class="px-8 py-6 flex justify-between items-center bg-surface-container-low/50"
+    >
+      <h3 class="font-serif text-2xl text-primary">Nhật ký sự kiện</h3>
+      <div class="flex items-center gap-2">
+        <span
+          class="text-xs font-bold text-on-surface-variant uppercase tracking-widest"
+          >Tự động cập nhật</span
+        >
+        <span class="w-2 h-2 rounded-full bg-primary animate-pulse"></span>
+      </div>
+    </div>
+    <!-- Table -->
+    <div class="overflow-x-auto">
+      <table class="w-full text-left">
+        <thead>
+          <tr
+            class="text-xs font-bold text-on-surface-variant/60 uppercase tracking-widest bg-surface-container-low/30"
+          >
+            <th class="px-8 py-4">Thời gian</th>
+            <th class="px-6 py-4">Mã cảm biến</th>
+            <th class="px-6 py-4">Khu vực</th>
+            <th class="px-6 py-4">Chỉ số</th>
+            <th class="px-6 py-4">Chỉ số đo</th>
+            <th class="px-8 py-4">Trạng thái</th>
+          </tr>
+        </thead>
+        <tbody
+          id="chart-log-tbody"
+          class="divide-y-2 divide-surface-variant/20"
+        >
+          <tr class="hover:bg-primary/5 transition-colors group">
+            <td class="px-8 py-8 text-sm font-medium text-on-surface">
+              Đang chờ...
+            </td>
+            <td class="px-6 py-8 font-mono text-xs text-on-surface-variant">
+              --
+            </td>
+            <td class="px-6 py-8 text-sm text-on-surface-variant">--</td>
+            <td class="px-6 py-8 text-sm font-semibold">--</td>
+            <td class="px-6 py-8 text-sm font-bold text-on-surface-variant">
+              --
+            </td>
+            <td class="px-8 py-8">
+              <span
+                class="px-3 py-1 bg-surface-container text-on-surface-variant text-[10px] font-black uppercase rounded-full"
+                >Chờ dữ liệu</span
+              >
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <!-- Footer với pagination -->
+    <div
+      class="px-8 py-4 bg-surface-container-low/30 flex items-center justify-between"
+    >
+      <p
+        id="chart-log-count"
+        class="text-xs font-medium text-on-surface-variant/60 tracking-wide"
+      >
+        Hiển thị 0 sự kiện
+      </p>
+      <div class="flex items-center gap-2">
+        <span
+          id="chart-log-page"
+          class="text-xs font-bold text-on-surface-variant/50"
+          >1 / 1</span
+        >
+        <button
+          id="chart-log-prev"
+          onclick="chartLogPrev()"
+          class="p-2 hover:bg-surface-variant rounded-full transition-colors disabled:opacity-30 disabled:cursor-default"
+        >
+          <span class="material-symbols-outlined text-sm">chevron_left</span>
+        </button>
+        <button
+          id="chart-log-next"
+          onclick="chartLogNext()"
+          class="p-2 hover:bg-surface-variant rounded-full transition-colors disabled:opacity-30 disabled:cursor-default"
+        >
+          <span class="material-symbols-outlined text-sm">chevron_right</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Insight Cards ── -->
+  <section class="grid grid-cols-1 md:grid-cols-3 gap-6 pb-8">
+    <div
+      class="bg-surface-container-low rounded-2xl p-6 flex items-start gap-4 border border-slate-100"
+    >
+      <div
+        class="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0"
+      >
+        <span class="material-symbols-outlined text-primary">eco</span>
+      </div>
+      <div>
+        <h4 class="font-bold text-on-surface text-sm">Dự đoán tăng trưởng</h4>
+        <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">
+          Điều kiện ổn định cho thấy sản lượng có thể tăng trong chu kỳ thu
+          hoạch tới.
+        </p>
+      </div>
+    </div>
+    <div
+      class="bg-surface-container-low rounded-2xl p-6 flex items-start gap-4 border border-slate-100"
+    >
+      <div
+        class="w-12 h-12 bg-secondary/10 rounded-full flex items-center justify-center flex-shrink-0"
+      >
+        <span class="material-symbols-outlined text-secondary">water_drop</span>
+      </div>
+      <div>
+        <h4 class="font-bold text-on-surface text-sm">Hiệu quả tưới tiêu</h4>
+        <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">
+          Tối ưu hóa hệ thống giúp giảm lượng nước lãng phí kể từ kỳ báo cáo
+          trước.
+        </p>
+      </div>
+    </div>
+    <div
+      class="bg-surface-container-low rounded-2xl p-6 flex items-start gap-4 border border-slate-100 border-l-4 border-l-tertiary"
+    >
+      <div
+        class="w-12 h-12 bg-tertiary/10 rounded-full flex items-center justify-center flex-shrink-0"
+      >
+        <span class="material-symbols-outlined text-tertiary">psychology</span>
+      </div>
+      <div>
+        <h4 class="font-bold text-on-surface text-sm">Smart Logic</h4>
+        <p class="text-xs text-on-surface-variant mt-1 leading-relaxed">
+          Hệ thống thông gió tự động được lên lịch để giảm thiểu sự gia tăng độ
+          ẩm.
+        </p>
+      </div>
+    </div>
+  </section>
+</div>

@@ -282,10 +282,7 @@
     "C:/Users/ASUS/.platformio/packages/framework-arduinoespressif32/libraries/WiFiProv/src",
     ""
   ],
-  "C_Cpp_Runner.includeSearch": [
-    "*",
-    "**/*"
-  ],
+  "C_Cpp_Runner.includeSearch": ["*", "**/*"],
   "C_Cpp_Runner.excludeSearch": [
     "**/build",
     "**/build/**",
@@ -300,5 +297,6 @@
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
-  "liveServer.settings.multiRootWorkspaceName": "Smart Time Clock LCD"
+  "liveServer.settings.multiRootWorkspaceName": "Smart Time Clock LCD",
+  "cmake.sourceDirectory": "C:/Users/ASUS/Desktop/Project Greenhouse IOT/lib/AsyncTCP"
 }
