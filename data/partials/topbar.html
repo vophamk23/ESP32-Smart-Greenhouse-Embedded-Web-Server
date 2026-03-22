@@ -1,20 +1,264 @@
 <!-- ══════════════════════════════════════════════════════
   partials/topbar.html — Top Header Bar
-  Use case: Tiêu đề trang + đồng hồ + thông tin tài khoản
+  Use case: Tiêu đề trang + đồng hồ HH:MM:SS + actions + avatar
 ══════════════════════════════════════════════════════ -->
-<header class="h-20 bg-surface/40 backdrop-blur-md border-b border-white/20 flex items-center justify-between px-8 sticky top-0 z-40">
-  <div class="flex items-center gap-4">
-    <button onclick="document.getElementById('sidebar').classList.toggle('open')"
-      class="md:hidden p-2 text-on-surface-variant rounded-lg hover:bg-surface-container">
-      <span class="material-symbols-outlined">menu</span>
-    </button>
-    <h2 id="pageTitle" class="font-serif text-xl italic text-primary">Dashboard</h2>
+<style>
+  .tb-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    cursor: pointer;
+    color: #5f7a6a;
+    transition:
+      background 0.15s,
+      color 0.15s,
+      transform 0.12s;
+  }
+  .tb-btn:hover {
+    background: rgba(0, 108, 73, 0.08);
+    color: #006c49;
+    transform: scale(1.1);
+  }
+  .tb-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: linear-gradient(135deg, #006c49 0%, #10b981 100%);
+    color: #fff;
+    font-weight: 700;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 3.5px rgba(0, 108, 73, 0.25);
+    transition:
+      box-shadow 0.18s,
+      transform 0.12s;
+  }
+  .tb-avatar:hover {
+    box-shadow:
+      0 0 0 2px #fff,
+      0 0 0 4px rgba(0, 108, 73, 0.5);
+    transform: scale(1.06);
+  }
+  .tb-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.07);
+    flex-shrink: 0;
+  }
+  .tb-notif-dot {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #ef4444;
+    border: 1.5px solid #fff;
+  }
+  .tb-page-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1.5px 7px;
+    border-radius: 999px;
+    background: rgba(0, 108, 73, 0.07);
+    color: #006c49;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+  }
+  .tb-clock-wrap {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: rgba(0, 108, 73, 0.05);
+    border: 1px solid rgba(0, 108, 73, 0.1);
+  }
+  .tb-clock-hm {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a2e24;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+  .tb-clock-sep {
+    font-size: 13px;
+    font-weight: 700;
+    color: #006c49;
+    opacity: 0.5;
+  }
+  .tb-clock-ss {
+    font-size: 11px;
+    font-weight: 600;
+    color: #006c49;
+    opacity: 0.45;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.04em;
+  }
+</style>
+
+<header
+  style="
+    height: 64px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.055);
+    box-shadow: 0 2px 16px rgba(0, 108, 73, 0.04);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+    position: sticky;
+    top: 0;
+    z-index: 40;
+  "
+>
+  <!-- ── Left: Title + pill ── -->
+  <div style="display: flex; flex-direction: column; gap: 3px">
+    <h2
+      id="pageTitle"
+      style="
+        margin: 0;
+        font-family: &quot;Fraunces&quot;, serif;
+        font-style: italic;
+        font-size: 18px;
+        font-weight: 700;
+        color: #006c49;
+        line-height: 1;
+      "
+    >
+      Dashboard
+    </h2>
+    <span class="tb-page-pill" id="topbar-pill">
+      <span
+        class="material-symbols-outlined"
+        id="topbar-pill-icon"
+        style="font-size: 10px"
+        >radio_button_checked</span
+      >
+      <span id="topbar-pill-text">Monitoring Station 01-A</span>
+    </span>
   </div>
-  <div class="flex items-center gap-4">
-    <span id="topbarTime" class="text-xs text-on-surface-variant font-medium hidden sm:block"></span>
-    <div class="flex items-center gap-2 px-3 py-1.5 bg-primary/[0.08] text-primary rounded-full text-xs font-bold">
-      <span class="w-1.5 h-1.5 bg-primary rounded-full animate-pulse"></span>
-      <span id="accountAvatar">A</span>
+
+  <!-- ── Right ── -->
+  <div style="display: flex; align-items: center; gap: 6px">
+    <!-- Clock HH:MM : SS -->
+    <div class="tb-clock-wrap">
+      <span
+        class="material-symbols-outlined"
+        style="font-size: 14px; color: #006c49; opacity: 0.55"
+        >schedule</span
+      >
+      <span class="tb-clock-hm" id="topbarTime">00:00</span>
+      <span class="tb-clock-sep">:</span>
+      <span class="tb-clock-ss" id="topbarSec">00</span>
     </div>
+
+    <div class="tb-divider"></div>
+
+    <!-- Search -->
+    <button class="tb-btn" title="Tìm kiếm">
+      <span class="material-symbols-outlined" style="font-size: 20px"
+        >search</span
+      >
+    </button>
+
+    <!-- Notification -->
+    <button
+      class="tb-btn"
+      style="position: relative"
+      title="Thông báo"
+      onclick="navigate('notify')"
+    >
+      <span class="material-symbols-outlined" style="font-size: 20px"
+        >notifications</span
+      >
+      <span class="tb-notif-dot"></span>
+    </button>
+
+    <div class="tb-divider"></div>
+
+    <!-- Avatar -->
+    <button
+      class="tb-avatar"
+      id="accountAvatar"
+      onclick="navigate('account')"
+      title="Tài khoản"
+    >
+      A
+    </button>
   </div>
 </header>
+
+<script>
+  (function () {
+    // ── Đồng hồ HH:MM và :SS riêng ──
+    function tick() {
+      const n = new Date();
+      const hm = n.toLocaleTimeString("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const ss = String(n.getSeconds()).padStart(2, "0");
+      const eHm = document.getElementById("topbarTime");
+      const eSs = document.getElementById("topbarSec");
+      if (eHm) eHm.textContent = hm;
+      if (eSs) eSs.textContent = ss;
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // ── Pill subtitle theo trang ──
+    const META = {
+      dashboard: {
+        text: "Monitoring Station 01-A",
+        icon: "radio_button_checked",
+      },
+      charts: { text: "Sensor history & analytics", icon: "monitoring" },
+      logs: { text: "Pump activity records", icon: "analytics" },
+      control: { text: "Manual device control", icon: "sensors" },
+      threshold: { text: "Irrigation thresholds", icon: "tune" },
+      schedule: { text: "Watering schedule", icon: "event_note" },
+      smartlogic: { text: "Weather-based automation", icon: "psychology" },
+      devices: {
+        text: "IoT device registry",
+        icon: "settings_input_component",
+      },
+      notify: { text: "Alert configuration", icon: "notifications_active" },
+      account: { text: "User settings", icon: "account_circle" },
+    };
+
+    function syncPill(page) {
+      const m = META[page] || { text: "", icon: "circle" };
+      const t = document.getElementById("topbar-pill-text");
+      const i = document.getElementById("topbar-pill-icon");
+      if (t) t.textContent = m.text;
+      if (i) i.textContent = m.icon;
+    }
+
+    document.addEventListener("partials-loaded", function () {
+      const orig = window.navigate;
+      if (typeof orig === "function") {
+        window.navigate = function (page) {
+          orig(page);
+          syncPill(page);
+        };
+      }
+    });
+  })();
+</script>

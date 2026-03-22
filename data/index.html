@@ -15,7 +15,6 @@
           login.html        ← Use case: Xác thực người dùng
           sidebar.html      ← Use case: Điều hướng app
           topbar.html       ← Use case: Tiêu đề & đồng hồ
-          modals.html       ← Use case: Dialog xác nhận & thêm thiết bị
         pages/
           dashboard.html    ← Use case: Giám sát real-time
           charts.html       ← Use case: Biểu đồ lịch sử cảm biến
@@ -51,15 +50,20 @@
     <!-- Fonts: Fraunces (serif headline) + Plus Jakarta Sans (body) + Material Symbols -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..700;1,9..144,300..700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
 
     <!-- Offline CSS — không phụ thuộc CDN -->
     <link rel="stylesheet" href="css/styles.css" />
   </head>
 
   <body class="text-on-surface min-h-screen antialiased bg-immersive">
-
     <!-- ══════════════════════════════════════════════════════
       LOGIN OVERLAY — partials/login.html
       Use case: Xác thực người dùng trước khi vào app
@@ -70,14 +74,12 @@
       APP SHELL
     ══════════════════════════════════════════════════════ -->
     <div id="app" style="display: none" class="min-h-screen flex">
-
       <!-- SIDEBAR — partials/sidebar.html
            Use case: Điều hướng chính giữa các trang -->
       <div id="slot-sidebar"></div>
 
       <!-- MAIN CONTENT -->
       <div class="flex-1 flex flex-col min-w-0">
-
         <!-- TOPBAR — partials/topbar.html
              Use case: Tiêu đề trang + đồng hồ + avatar -->
         <div id="slot-topbar"></div>
@@ -88,14 +90,12 @@
             <!-- Các page được inject vào đây khi load -->
           </div>
         </main>
-
       </div>
     </div>
 
     <!-- GLOBAL MODALS & TOAST — partials/modals.html
          Use case: Confirm dialog, Add Device modal, Toast notification -->
     <div id="slot-modals"></div>
-
 
     <!-- ══════════════════════════════════════════════════════
       PARTIAL LOADER
@@ -110,9 +110,13 @@
        * @param {string} url - Đường dẫn đến file HTML partial
        * @param {string} targetId - id của element nhận innerHTML
        */
-      async function loadPartial(url, targetId) {
+      async function loadPartial(url, targetId, required = true) {
         const res = await fetch(url);
-        if (!res.ok) throw new Error(`Failed to load ${url}: ${res.status}`);
+        if (!res.ok) {
+          if (required) throw new Error(`Failed to load ${url}: ${res.status}`);
+          console.warn(`[Bootstrap] Optional partial not found: ${url}`);
+          return; // bỏ qua, không crash
+        }
         const html = await res.text();
         document.getElementById(targetId).innerHTML = html;
       }
@@ -123,29 +127,30 @@
        */
       async function loadAllPages() {
         const pages = [
-          'dashboard',
-          'charts',
-          'logs',
-          'control',
-          'threshold',
-          'schedule',
-          'smartlogic',
-          'devices',
-          'notify',
-          'account',
+          "dashboard",
+          "charts",
+          "logs",
+          "control",
+          "threshold",
+          "schedule",
+          "smartlogic",
+          "devices",
+          "notify",
+          "account",
         ];
 
-        const container = document.getElementById('slot-pages');
+        const container = document.getElementById("slot-pages");
 
         // Tải song song
         const results = await Promise.all(
-          pages.map(name =>
-            fetch(`pages/${name}.html`)
-              .then(r => r.ok ? r.text() : Promise.reject(`Failed: ${name}`))
-          )
+          pages.map((name) =>
+            fetch(`pages/${name}.html`).then((r) =>
+              r.ok ? r.text() : Promise.reject(`Failed: ${name}`),
+            ),
+          ),
         );
 
-        container.innerHTML = results.join('\n');
+        container.innerHTML = results.join("\n");
       }
 
       /**
@@ -155,14 +160,13 @@
         try {
           // Load song song: partials + tất cả pages
           await Promise.all([
-            loadPartial('partials/login.html',   'slot-login'),
-            loadPartial('partials/sidebar.html', 'slot-sidebar'),
-            loadPartial('partials/topbar.html',  'slot-topbar'),
-            loadPartial('partials/modals.html',  'slot-modals'),
+            loadPartial("partials/login.html", "slot-login"),
+            loadPartial("partials/sidebar.html", "slot-sidebar"),
+            loadPartial("partials/topbar.html", "slot-topbar"),
             loadAllPages(),
           ]);
         } catch (e) {
-          console.error('[Bootstrap] Failed to load partials:', e);
+          console.error("[Bootstrap] Failed to load partials:", e);
           // Fallback: hiện lỗi thân thiện
           document.body.innerHTML = `
             <div style="display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:sans-serif;padding:2rem;text-align:center">
@@ -177,11 +181,11 @@
 
         // Dispatch event để báo hiệu partials đã sẵn sàng
         // (dùng cho các JS module nếu cần lắng nghe)
-        document.dispatchEvent(new Event('partials-loaded'));
+        document.dispatchEvent(new Event("partials-loaded"));
       }
 
       // Khởi động ngay khi DOM ready
-      document.addEventListener('DOMContentLoaded', bootstrap);
+      document.addEventListener("DOMContentLoaded", bootstrap);
     </script>
 
     <!-- ══════════════════════════════════════════════════════
@@ -200,6 +204,5 @@
     <script src="js/smartlogic.js"></script>
     <script src="js/devices.js"></script>
     <script src="js/notify.js"></script>
-
   </body>
 </html>

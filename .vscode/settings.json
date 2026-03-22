@@ -297,6 +297,6 @@
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
-  "liveServer.settings.multiRootWorkspaceName": "Smart Time Clock LCD",
+  "liveServer.settings.multiRootWorkspaceName": "Project Greenhouse IOT",
   "cmake.sourceDirectory": "C:/Users/ASUS/Desktop/Project Greenhouse IOT/lib/AsyncTCP"
 }

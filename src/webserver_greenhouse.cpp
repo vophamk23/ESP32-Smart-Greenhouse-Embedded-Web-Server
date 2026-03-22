@@ -35,8 +35,8 @@
 // ============================================================================
 // WEB SERVER & WEBSOCKET
 // ============================================================================
-static AsyncWebServer s_server(80);
-static AsyncWebSocket s_ws("/ws");
+static AsyncWebServer s_server(80);   // HTTP server cổng 80
+static AsyncWebSocket s_ws("/ws");    // WebSocket endpoint: ws://<ip>/ws
 static bool           s_serverRunning = false;
 
 // ============================================================================
@@ -52,6 +52,7 @@ static void handleBrowserMessage(const String &json)
 
     RpcPacket_t pkt = { RPC_NONE };
 
+    // Ánh xạ lệnh text → enum RPC để Core 1 xử lý
     if (strcmp(cmd, "setPump") == 0)
         pkt.command = doc["value"].as<bool>() ? RPC_PUMP_ON : RPC_PUMP_OFF;
     else if (strcmp(cmd, "setFan") == 0)
@@ -69,6 +70,13 @@ static void handleBrowserMessage(const String &json)
 // ============================================================================
 // WEBSOCKET EVENT HANDLER
 // ============================================================================
+/*
+   onWsEvent()
+   Callback của AsyncWebSocket — xử lý 3 loại sự kiện:
+     CONNECT    → log client mới
+     DISCONNECT → log client ngắt
+     DATA       → chỉ xử lý text frame, bỏ qua binary
+ */
 static void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
                       AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
@@ -95,13 +103,22 @@ static void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 // ============================================================================
 // KHỞI ĐỘNG WEB SERVER
 // ============================================================================
+/* 
+   Đăng ký tất cả route rồi khởi động server.
+   Thứ tự đăng ký quan trọng:
+     1. WebSocket handler
+     2. REST /api/status   ← phải trước serveStatic
+     3. Static files (LittleFS)
+     4. ElegantOTA
+ */
 static void startWebServer()
 {
+    // 1. Gắn WebSocket vào server
     s_ws.onEvent(onWsEvent);
     s_server.addHandler(&s_ws);
 
-    // REST API: lấy trạng thái hiện tại (cho load lần đầu)
-    // ⚠️ Đặt TRƯỚC serveStatic để không bị override
+    // 2. REST endpoint: snapshot trạng thái hiện tại
+    // Browser gọi ngay khi mở trang, không cần chờ WebSocket push lần đầu
     s_server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *req) {
         StaticJsonDocument<256> doc;
 
@@ -120,11 +137,13 @@ static void startWebServer()
         req->send(200, "application/json", json);
     });
 
-    // Serve toàn bộ file tĩnh từ LittleFS: index.html, styles.css, js/*.js ...
+    // 3. Serve toàn bộ file tĩnh từ LittleFS: index.html, styles.css, js/*.js ...
     // setDefaultFile("index.html") tự xử lý route "/"
     s_server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
+    // 4. ElegantOTA: truy cập /update để flash firmware mới qua browser
     ElegantOTA.begin(&s_server);
+    
     s_server.begin();
     s_serverRunning = true;
     Serial.println("[WS] Web server started on port 80");
