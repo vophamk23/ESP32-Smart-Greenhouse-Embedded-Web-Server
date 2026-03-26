@@ -21,6 +21,13 @@ bool g_fanState        = false;
 bool g_ledGrowState    = false;
 bool g_pumpManual      = false;
 
+// ==================== LỊCH TƯỚI ====================
+ScheduleEntry_t g_schedules[MAX_SCHEDULES] = {};
+uint8_t         g_scheduleCount   = 0;
+bool            g_scheduleEnabled = false;
+unsigned long   g_scheduleOffTime = 0;  // 0 = không có lịch đang chạy
+bool g_scheduleTriggered = false;
+
 // ==================== THỜI GIAN BƠM ====================
 unsigned long g_pumpStartTime   = 0;
 unsigned long g_pumpLastOffTime = 0;

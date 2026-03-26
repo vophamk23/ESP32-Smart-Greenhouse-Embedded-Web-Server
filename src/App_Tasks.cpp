@@ -91,30 +91,45 @@ void Task_Heartbeat(void)
 // ============================================================================
 void Task_PumpWatchdog(void)
 {
-    // Bơm chạy quá lâu -> force OFF
     if (g_pumpState)
     {
         unsigned long elapsed = millis() - g_pumpStartTime;
+
+        // Ưu tiên 1: tắt theo lịch (duration)
+        if (g_scheduleOffTime > 0 && millis() >= g_scheduleOffTime)
+        {
+            Serial.println("[WATCHDOG] Schedule duration ended -> pump OFF");
+            g_scheduleOffTime = 0;
+            pumpOff();
+            return;
+        }
+
+        // Ưu tiên 2: tắt theo PUMP_MAX_ON_TIME_MS (bảo vệ phần cứng)
         if (elapsed >= PUMP_MAX_ON_TIME_MS)
         {
             Serial.printf("[WATCHDOG] Pump ran %lus >= max %lus -> force OFF\n",
                           elapsed / 1000,
                           (unsigned long)(PUMP_MAX_ON_TIME_MS / 1000));
+            g_scheduleOffTime = 0;
             pumpOff();
         }
     }
+    else
+    {
+        // Bơm đã tắt → reset scheduleOffTime nếu còn thừa
+        if (g_scheduleOffTime > 0) g_scheduleOffTime = 0;
+    }
 
-    // Cooldown timeout -> clear flag (cũng được xử lý trong pumpOn() nhưng double-check)
+    // Cooldown timeout
     if (g_pumpCooldown)
     {
         if (millis() - g_pumpLastOffTime >= PUMP_COOLDOWN_MS)
         {
             g_pumpCooldown = false;
-            Serial.println("[WATCHDOG] Pump cooldown ended - ready to pump again");
+            Serial.println("[WATCHDOG] Pump cooldown ended");
         }
     }
 }
-
 // ============================================================================
 // TASK 10 : GỬI TELEMETRY LÊN CLOUD (mỗi 5 giây)
 // Đóng gói snapshot dữ liệu hiện tại vào queue cho CoreIoT task đọc
@@ -138,7 +153,72 @@ void Task_ProcessRpc(void)
 }
 
 
+// ============================================================
+// TASK 12: KIỂM TRA LỊCH TƯỚI (10 giây)
+// So sánh giờ RTC với lịch đã lưu, bật bơm nếu khớp
+// ============================================================
+// void Task_CheckSchedule(void)
+// {
+//     if (!g_scheduleEnabled)  return;
+//     if (g_scheduleCount == 0) return;
+//     if (g_pumpState)          return;  // Bơm đang chạy, bỏ qua
+//     if (g_rtcError)           return;  // RTC lỗi, không bật bơm
+
+//     DateTime now       = getRTCTime();
+//     uint8_t  todayBit  = (1 << now.dayOfTheWeek());
+//     // RTClib: dayOfTheWeek() trả 0=CN, 1=T2 ... 6=T7
+
+//     for (uint8_t i = 0; i < g_scheduleCount; i++)
+//     {
+//         ScheduleEntry_t &s = g_schedules[i];
+//         if (!s.enabled)             continue;
+//         if (!(s.days & todayBit))   continue;
+//         if (s.hour   != now.hour()) continue;
+//         if (s.minute != now.minute()) continue;
+
+//         // Khớp lịch → bật bơm + set thời điểm tắt
+//         Serial.printf("[SCHED] Match entry %d: %02d:%02d, %d min\n",
+//                       i, s.hour, s.minute, s.duration);
+
+//         pumpOn();
+//         // Tắt sau đúng duration (phút) — watchdog sẽ check
+//         g_scheduleOffTime = millis() + ((unsigned long)s.duration * 60000UL);
+//         break;  // Chỉ kích hoạt 1 lịch mỗi lần check
+//     }
+// }
 
 
 
+void Task_CheckSchedule(void)
+{
+    if (!g_scheduleEnabled)  { Serial.println("[SCHED] disabled");    return; }
+    if (g_scheduleCount == 0){ Serial.println("[SCHED] no schedules"); return; }
+    if (g_pumpState)         { Serial.println("[SCHED] pump on");      return; }
+    if (g_rtcError)          { Serial.println("[SCHED] rtc error");    return; }
 
+    DateTime now = getRTCTime();
+    Serial.printf("[SCHED] now=%02d:%02d dow=%d count=%d\n",
+                  now.hour(), now.minute(), now.dayOfTheWeek(), g_scheduleCount);
+
+    for (uint8_t i = 0; i < g_scheduleCount; i++)
+    {
+        ScheduleEntry_t &s = g_schedules[i];
+        Serial.printf("[SCHED] entry%d en=%d days=0x%02X h=%d m=%d\n",
+                      i, s.enabled, s.days, s.hour, s.minute);
+
+        if (!s.enabled)               continue;
+        if (!(s.days & (1 << now.dayOfTheWeek()))) continue;
+        if (s.hour   != now.hour())   continue;
+        if (s.minute != now.minute()) continue;
+
+        Serial.printf("[SCHED] Match entry %d: %02d:%02d, %d min\n",
+                      i, s.hour, s.minute, s.duration);
+
+        // Khớp lịch → bật bơm
+        g_scheduleTriggered = true;  // Báo cho pumpOn() bỏ qua cooldown
+        pumpOn();
+        
+        g_scheduleOffTime = millis() + ((unsigned long)s.duration * 60000UL);
+        break;
+    }
+}

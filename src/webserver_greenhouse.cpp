@@ -18,14 +18,16 @@
  *   }
  *
  * WebSocket JSON nhận từ browser:
- *   { "cmd": "setPump",  "value": true }
- *   { "cmd": "setFan",   "value": false }
- *   { "cmd": "setMode",  "value": "AUTO" }
+ *   { "cmd": "setPump",    "value": true }
+ *   { "cmd": "setFan",     "value": false }
+ *   { "cmd": "setMode",    "value": "AUTO" }
+ *   { "cmd": "setScheduleEnabled", "value": true }
+ *   { "cmd": "setSchedules", "value": [...] }
  */
 
 #include "webserver_greenhouse.h"
 #include "iot_bridge.h"
-#include "global_vars.h"          // g_temperature, g_humidity, g_pumpState...
+#include "global_vars.h"
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
 #include <LittleFS.h>
@@ -35,16 +37,94 @@
 // ============================================================================
 // WEB SERVER & WEBSOCKET
 // ============================================================================
-static AsyncWebServer s_server(80);   // HTTP server cổng 80
-static AsyncWebSocket s_ws("/ws");    // WebSocket endpoint: ws://<ip>/ws
+static AsyncWebServer s_server(80);
+static AsyncWebSocket s_ws("/ws");
 static bool           s_serverRunning = false;
+
+// ============================================================================
+// LƯU LỊCH XUỐNG LITTLEFS
+// ============================================================================
+static void saveSchedulesToFS()
+{
+    File f = LittleFS.open("/schedules.dat", "w");
+    if (!f)
+    {
+        Serial.println("[SCHED] Cannot write /schedules.dat");
+        return;
+    }
+
+    DynamicJsonDocument doc(1024);
+    doc["enabled"] = g_scheduleEnabled;
+    JsonArray arr  = doc.createNestedArray("schedules");
+
+    for (uint8_t i = 0; i < g_scheduleCount; i++)
+    {
+        JsonObject o = arr.createNestedObject();
+        char timeBuf[6];
+        snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d",
+                 g_schedules[i].hour, g_schedules[i].minute);
+        o["time"]     = timeBuf;
+        o["duration"] = g_schedules[i].duration;
+        o["days"]     = g_schedules[i].days;
+        o["enabled"]  = g_schedules[i].enabled;
+    }
+
+    serializeJson(doc, f);
+    f.close();
+    Serial.println("[SCHED] Saved to /schedules.dat");
+}
+
+// ============================================================================
+// LOAD LỊCH TỪ LITTLEFS
+// ============================================================================
+void loadSchedulesFromFS()
+{
+    File f = LittleFS.open("/schedules.dat", "r");
+    if (!f)
+    {
+        Serial.println("[SCHED] /schedules.dat not found");
+        return;
+    }
+
+    DynamicJsonDocument doc(1024);
+    if (deserializeJson(doc, f))
+    {
+        f.close();
+        return;
+    }
+    f.close();
+
+    g_scheduleEnabled = doc["enabled"].as<bool>();
+    g_scheduleCount   = 0;
+
+    JsonArray arr = doc["schedules"].as<JsonArray>();
+    for (JsonObject o : arr)
+    {
+        if (g_scheduleCount >= MAX_SCHEDULES) break;
+
+        uint8_t h = 0, m = 0;
+        const char *t = o["time"] | "00:00";
+        sscanf(t, "%hhu:%hhu", &h, &m);
+
+        g_schedules[g_scheduleCount++] = {
+            h,
+            m,
+            (uint8_t)(o["duration"] | 15),
+            (uint8_t)(o["days"]     | 0),
+            o["enabled"].as<bool>()
+        };
+    }
+
+    Serial.printf("[SCHED] Loaded %d schedules, enabled=%s\n",
+                  g_scheduleCount, g_scheduleEnabled ? "YES" : "NO");
+}
 
 // ============================================================================
 // XỬ LÝ TIN NHẮN TỪ BROWSER → QUEUE LỆNH
 // ============================================================================
 static void handleBrowserMessage(const String &json)
 {
-    StaticJsonDocument<128> doc;
+    DynamicJsonDocument doc(1024);
     if (deserializeJson(doc, json)) return;
 
     const char *cmd = doc["cmd"];
@@ -52,17 +132,65 @@ static void handleBrowserMessage(const String &json)
 
     RpcPacket_t pkt = { RPC_NONE };
 
-    // Ánh xạ lệnh text → enum RPC để Core 1 xử lý
+    // ---- setPump ----
     if (strcmp(cmd, "setPump") == 0)
+    {
         pkt.command = doc["value"].as<bool>() ? RPC_PUMP_ON : RPC_PUMP_OFF;
+    }
+    // ---- setFan ----
     else if (strcmp(cmd, "setFan") == 0)
+    {
         pkt.command = doc["value"].as<bool>() ? RPC_FAN_ON : RPC_FAN_OFF;
+    }
+    // ---- setMode ----
     else if (strcmp(cmd, "setMode") == 0)
     {
         const char *val = doc["value"].as<const char*>();
-        if (val) pkt.command = (strcmp(val, "AUTO") == 0) ? RPC_MODE_AUTO : RPC_MODE_MANUAL;
+        if (val)
+            pkt.command = (strcmp(val, "AUTO") == 0) ? RPC_MODE_AUTO : RPC_MODE_MANUAL;
+    }
+    // ---- setScheduleEnabled ----
+    else if (strcmp(cmd, "setScheduleEnabled") == 0)
+    {
+        g_scheduleEnabled = doc["value"].as<bool>();
+        saveSchedulesToFS();
+        Serial.printf("[SCHED] Enabled: %s\n", g_scheduleEnabled ? "ON" : "OFF");
+    }
+    // ---- setSchedules ----
+    else if (strcmp(cmd, "setSchedules") == 0)
+    {
+        JsonArray arr   = doc["value"].as<JsonArray>();
+        g_scheduleCount = 0;
+
+        for (JsonObject s : arr)
+        {
+            if (g_scheduleCount >= MAX_SCHEDULES) break;
+
+            const char *timeStr = s["time"] | "00:00";
+            uint8_t h = 0, m = 0;
+            sscanf(timeStr, "%hhu:%hhu", &h, &m);
+
+            // Parse days array [0,1,3] → bitmask
+            uint8_t dayMask  = 0;
+            JsonArray daysArr = s["days"].as<JsonArray>();
+            for (int d : daysArr)
+                if (d >= 0 && d <= 6)
+                    dayMask |= (1 << d);
+
+            g_schedules[g_scheduleCount++] = {
+                h,
+                m,
+                (uint8_t)(constrain((int)(s["duration"] | 15), 1, 120)),
+                dayMask,
+                s["enabled"].as<bool>()
+            };
+        }
+
+        saveSchedulesToFS();
+        Serial.printf("[SCHED] Saved %d schedules\n", g_scheduleCount);
     }
 
+    // Gửi lệnh vào queue nếu có
     if (pkt.command != RPC_NONE && xRpcCommandQueue)
         xQueueSend(xRpcCommandQueue, &pkt, 0);
 }
@@ -70,13 +198,6 @@ static void handleBrowserMessage(const String &json)
 // ============================================================================
 // WEBSOCKET EVENT HANDLER
 // ============================================================================
-/*
-   onWsEvent()
-   Callback của AsyncWebSocket — xử lý 3 loại sự kiện:
-     CONNECT    → log client mới
-     DISCONNECT → log client ngắt
-     DATA       → chỉ xử lý text frame, bỏ qua binary
- */
 static void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
                       AwsEventType type, void *arg, uint8_t *data, size_t len)
 {
@@ -103,14 +224,6 @@ static void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 // ============================================================================
 // KHỞI ĐỘNG WEB SERVER
 // ============================================================================
-/* 
-   Đăng ký tất cả route rồi khởi động server.
-   Thứ tự đăng ký quan trọng:
-     1. WebSocket handler
-     2. REST /api/status   ← phải trước serveStatic
-     3. Static files (LittleFS)
-     4. ElegantOTA
- */
 static void startWebServer()
 {
     // 1. Gắn WebSocket vào server
@@ -118,7 +231,6 @@ static void startWebServer()
     s_server.addHandler(&s_ws);
 
     // 2. REST endpoint: snapshot trạng thái hiện tại
-    // Browser gọi ngay khi mở trang, không cần chờ WebSocket push lần đầu
     s_server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *req) {
         StaticJsonDocument<256> doc;
 
@@ -137,13 +249,35 @@ static void startWebServer()
         req->send(200, "application/json", json);
     });
 
-    // 3. Serve toàn bộ file tĩnh từ LittleFS: index.html, styles.css, js/*.js ...
-    // setDefaultFile("index.html") tự xử lý route "/"
+    // 3. REST endpoint: lấy danh sách lịch tưới
+    s_server.on("/api/schedules", HTTP_GET, [](AsyncWebServerRequest *req) {
+        DynamicJsonDocument doc(1024);
+        doc["enabled"] = g_scheduleEnabled;
+        JsonArray arr  = doc.createNestedArray("schedules");
+
+        for (uint8_t i = 0; i < g_scheduleCount; i++)
+        {
+            JsonObject o = arr.createNestedObject();
+            char timeBuf[6];
+            snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d",
+                     g_schedules[i].hour, g_schedules[i].minute);
+            o["time"]     = timeBuf;
+            o["duration"] = g_schedules[i].duration;
+            o["days"]     = g_schedules[i].days;
+            o["enabled"]  = g_schedules[i].enabled;
+        }
+
+        String json;
+        serializeJson(doc, json);
+        req->send(200, "application/json", json);
+    });
+
+    // 4. Serve toàn bộ file tĩnh từ LittleFS
     s_server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
-    // 4. ElegantOTA: truy cập /update để flash firmware mới qua browser
+    // 5. ElegantOTA
     ElegantOTA.begin(&s_server);
-    
+
     s_server.begin();
     s_serverRunning = true;
     Serial.println("[WS] Web server started on port 80");
@@ -154,14 +288,16 @@ static void startWebServer()
 // ============================================================================
 void greenhouse_webserver_task(void *pvParameters)
 {
+    // Đợi WiFi kết nối trước khi bắt đầu (tối đa 30s)
+    if (xWiFiEventGroup != nullptr)
+        xEventGroupWaitBits(xWiFiEventGroup,
+                            WIFI_CONNECTED_BIT,
+                            pdFALSE,
+                            pdTRUE,
+                            pdMS_TO_TICKS(30000));
 
-// Đợi WiFi kết nối trước khi bắt đầu (tối đa 30s, nếu không có WiFi thì vẫn chạy nhưng chỉ có AP)
-if (xWiFiEventGroup != nullptr)
-    xEventGroupWaitBits(xWiFiEventGroup,
-                        WIFI_CONNECTED_BIT,
-                        pdFALSE,            // KHÔNG clear bit
-                        pdTRUE,
-                        pdMS_TO_TICKS(30000));
+    // Load lịch tưới đã lưu từ LittleFS
+    loadSchedulesFromFS();
 
     startWebServer();
 
@@ -182,7 +318,7 @@ if (xWiFiEventGroup != nullptr)
             {
                 lastPushTime = now;
 
-                StaticJsonDocument<384> doc;
+                StaticJsonDocument<512> doc;
 
                 SENSOR_LOCK();
                 doc["temperature"]      = g_temperature;
@@ -204,9 +340,10 @@ if (xWiFiEventGroup != nullptr)
                 uint8_t ledB = g_currentLEDColor.b;
                 SENSOR_UNLOCK();
 
-                doc["wifiRssi"] = WiFi.RSSI();
-                doc["freeHeap"] = ESP.getFreeHeap();
-                doc["lcdPage"]  = g_lcdPage;
+                doc["wifiRssi"]         = WiFi.RSSI();
+                doc["freeHeap"]         = ESP.getFreeHeap();
+                doc["lcdPage"]          = g_lcdPage;
+                doc["scheduleEnabled"]  = g_scheduleEnabled;
 
                 char ledHex[8];
                 snprintf(ledHex, sizeof(ledHex), "#%02X%02X%02X", ledR, ledG, ledB);
@@ -218,6 +355,6 @@ if (xWiFiEventGroup != nullptr)
             }
         }
 
-        vTaskDelay(pdMS_TO_TICKS(50)); // 50ms loop
+        vTaskDelay(pdMS_TO_TICKS(50));
     }
 }

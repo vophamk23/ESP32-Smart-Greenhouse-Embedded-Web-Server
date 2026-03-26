@@ -39,8 +39,8 @@ void pumpOn()
 {
     if (g_pumpState) return;
 
-    // Chỉ kiểm tra cooldown khi AUTO, bỏ qua khi MANUAL
-    if (!g_pumpManual && g_pumpCooldown)
+    // Cooldown: bỏ qua nếu MANUAL hoặc do LỊCH TƯỚI kích hoạt
+    if (!g_pumpManual && !g_scheduleTriggered && g_pumpCooldown)
     {
         unsigned long elapsed = millis() - g_pumpLastOffTime;
         if (elapsed < PUMP_COOLDOWN_MS)

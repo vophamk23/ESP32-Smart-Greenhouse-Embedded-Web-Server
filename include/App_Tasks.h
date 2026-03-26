@@ -21,9 +21,12 @@
 #define TASK_HEARTBEAT_DELAY_MS         5000    // Heartbeat Serial mỗi 5 giây
 #define TASK_PUMP_WATCHDOG_DELAY_MS     1000    // Giám sát bơm mỗi 1 giây
 #define BTN_DEBOUNCE_MS                 50     // Debounce mỗi 50ms 
+
+
 // ==================== TIMING MỚI (MS) ====================
 #define TASK_TELEMETRY_DELAY_MS     5000    // Gửi telemetry lên cloud mỗi 5s
 #define TASK_RPC_POLL_DELAY_MS       200    // Poll lệnh RPC từ cloud mỗi 200ms
+#define TASK_SCHEDULE_CHECK_DELAY_MS  10000  // Kiểm tra lịch tưới mỗi 10s 
 
 // ==================== TIMING IN TICKS ====================
 #define TASK_SENSOR_READ_TICKS      (TASK_SENSOR_READ_DELAY_MS      / TIMER_TICK_MS)
@@ -38,7 +41,7 @@
 #define BTN_DEBOUNCE_TICKS         (BTN_DEBOUNCE_MS / TIMER_TICK_MS)
 #define TASK_TELEMETRY_TICKS    (TASK_TELEMETRY_DELAY_MS  / TIMER_TICK_MS)  // 500
 #define TASK_RPC_POLL_TICKS     (TASK_RPC_POLL_DELAY_MS   / TIMER_TICK_MS)  // 20
-
+#define TASK_SCHEDULE_CHECK_TICKS  (TASK_SCHEDULE_CHECK_DELAY_MS / TIMER_TICK_MS) // 10
 
 // ==================== TASK PROTOTYPES ====================
 void Task_ReadAirSensors(void);     // Đọc nhiệt độ, độ ẩm không khí
@@ -53,7 +56,7 @@ void Task_PumpWatchdog(void);       // Bảo vệ bơm không chạy quá lâu
 
 void Task_SendTelemetry(void);   // Đóng gói và gửi data vào IoT queue
 void Task_ProcessRpc(void);      // Thực thi lệnh điều khiển từ cloud
-
+void Task_CheckSchedule(void);    // Kiểm tra lịch tưới và bật/tắt bơm theo lịch
 
 #endif // APP_TASKS_H
 

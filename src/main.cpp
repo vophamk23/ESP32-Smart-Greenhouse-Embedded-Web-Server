@@ -58,6 +58,9 @@ void setup()
     // ===== IOT BRIDGE TRƯỚC — tạo mutex trước khi đọc sensor =====
     iotBridge_init();
 
+    // Load lịch tưới từ FS (nếu có) sau khi đã có mutex
+    loadSchedulesFromFS();
+
     // Đọc sensor lần đầu để có dữ liệu hiển thị ngay khi khởi động
     readDHT();
     readLightSensor();
@@ -85,18 +88,19 @@ void setup()
     SCH_Init_Timer();
 
     // Thêm các task vào scheduler với khoảng thời gian định kỳ
-    SCH_Add_Task(Task_ReadAirSensors,    0, TASK_SENSOR_READ_TICKS);
-    SCH_Add_Task(Task_ReadSoilSensor,    0, TASK_SOIL_READ_TICKS);
-    SCH_Add_Task(Task_CheckAlerts,       0, TASK_ALERT_CHECK_TICKS);
-    SCH_Add_Task(Task_AutoControl,       0, TASK_AUTO_CONTROL_TICKS);
-    SCH_Add_Task(Task_PumpWatchdog,      0, TASK_PUMP_WATCHDOG_TICKS);
-    SCH_Add_Task(Task_UpdateLEDStatus,   0, TASK_LED_UPDATE_TICKS);
-    SCH_Add_Task(Task_UpdateLCD,         0, TASK_LCD_UPDATE_TICKS);
-    SCH_Add_Task(Task_AutoSwitchLCDPage, 0, TASK_LCD_PAGE_SWITCH_TICKS);
-    SCH_Add_Task(Task_Heartbeat,         0, TASK_HEARTBEAT_TICKS);
-    SCH_Add_Task(Task_ScanButtons,       0, BTN_DEBOUNCE_TICKS);
-    SCH_Add_Task(Task_SendTelemetry,     0, TASK_TELEMETRY_TICKS);
-    SCH_Add_Task(Task_ProcessRpc,        0, TASK_RPC_POLL_TICKS);
+    SCH_Add_Task(Task_ReadAirSensors,    0, TASK_SENSOR_READ_TICKS); // Đọc cảm biến không khí mỗi 2 giây vì thay đổi nhanh hơn
+    SCH_Add_Task(Task_ReadSoilSensor,    0, TASK_SOIL_READ_TICKS); // Đọc đất mỗi 5 giây vì thay đổi chậm hơn
+    SCH_Add_Task(Task_CheckAlerts,       0, TASK_ALERT_CHECK_TICKS);    // Kiểm tra cảnh báo mỗi 1 giây để phản hồi nhanh với thay đổi trạng thái
+    SCH_Add_Task(Task_AutoControl,       0, TASK_AUTO_CONTROL_TICKS);   // Task điều khiển tự động (bơm + quạt) mỗi 1 giây
+    SCH_Add_Task(Task_PumpWatchdog,      0, TASK_PUMP_WATCHDOG_TICKS); // Giám sát bơm mỗi 1 giây
+    SCH_Add_Task(Task_UpdateLEDStatus,   0, TASK_LED_UPDATE_TICKS); // Cập nhật LED mỗi 500ms để phản hồi nhanh với thay đổi trạng thái
+    SCH_Add_Task(Task_UpdateLCD,         0, TASK_LCD_UPDATE_TICKS);// Task cập nhật LCD mỗi 500ms
+    SCH_Add_Task(Task_AutoSwitchLCDPage, 0, TASK_LCD_PAGE_SWITCH_TICKS); // Task tự động chuyển trang LCD mỗi 5s
+    SCH_Add_Task(Task_Heartbeat,         0, TASK_HEARTBEAT_TICKS);    // Task nhẹ, in trạng thái hệ thống mỗi 5s  
+    SCH_Add_Task(Task_ScanButtons,       0, BTN_DEBOUNCE_TICKS);    // Task quét nút bấm với debounce
+    SCH_Add_Task(Task_SendTelemetry,     0, TASK_TELEMETRY_TICKS);  // Task mới: gửi telemetry lên cloud mỗi 5s
+    SCH_Add_Task(Task_ProcessRpc,        0, TASK_RPC_POLL_TICKS);           // Task mới: poll lệnh RPC từ cloud mỗi 200ms
+    SCH_Add_Task(Task_CheckSchedule, 0, TASK_SCHEDULE_CHECK_TICKS);         // Task mới: kiểm tra lịch tưới mỗi 10s
 }
 
 // ============================================================================

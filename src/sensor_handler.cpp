@@ -46,18 +46,22 @@ void initSensors()
 // ==================== KHỞI TẠO RTC DS3231 ====================
 void initRTC()
 {
-    if (!g_rtc.begin()) {
-        g_rtcError = true;
-        Serial.println("[RTC] DS3231 not found on I2C bus!");
-        return;
+    if (!g_rtc.begin())
+    {
+        Serial.println("Không tìm thấy RTC");
+        while (1);
     }
+    Serial.println("RTC found");
 
-    // Nếu mất điện pin CR2032, tự động sync theo thời gian compile
-    if (g_rtc.lostPower()) {
-        Serial.println("[RTC] Lost power - syncing to compile time...");
+    // Chỉ set giờ khi RTC bị mất nguồn (pin hết / lắp mới)
+    // Bình thường KHÔNG chạy vào đây → giờ giữ nguyên dù reboot
+    if (g_rtc.lostPower())
+    {
+        Serial.println("[RTC] Lost power - syncing to compile time");
         g_rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     }
 
+    g_rtc.adjust(DateTime(2026, 3, 26, 22, 20, 0)); // ← sửa đúng giờ thực
     g_rtcError = false;
     DateTime now = g_rtc.now();
     Serial.printf("[RTC] DS3231 OK - %02d/%02d/%02d %02d:%02d:%02d\n",

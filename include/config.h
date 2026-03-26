@@ -66,9 +66,9 @@
 // ============================================================================
 
 // Nhiệt độ (°C)
-#define TEMP_CRITICAL       37.0f   // Nguy hiểm cực cao -> LED đỏ
+#define TEMP_CRITICAL       35.0f   // Nguy hiểm cực cao -> LED đỏ
 #define TEMP_HIGH_THRESHOLD 32.0f   // Bật quạt
-#define TEMP_LOW_THRESHOLD  30.0f   // Tắt quạt (hysteresis)
+#define TEMP_LOW_THRESHOLD  31.0f   // Tắt quạt (hysteresis)
 
 // Độ ẩm không khí (%)
 #define HUMIDITY_HIGH_THRESHOLD  85.0f
@@ -76,7 +76,7 @@
 
 // Độ ẩm đất (%)
 #define SOIL_DRY_THRESHOLD   30.0f  // Dưới -> bơm ON
-#define SOIL_WET_THRESHOLD   70.0f  // Trên  -> bơm OFF
+#define SOIL_WET_THRESHOLD   65.0f  // Trên  -> bơm OFF
 
 // Ánh sáng (lux giả lập)
 #define LIGHT_LOW_THRESHOLD  500.0f // Dưới -> bật đèn grow

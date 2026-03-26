@@ -10,7 +10,7 @@
 #include "App_Tasks.h"
 
 // ==================== ĐỐI TƯỢNG NÚT NHẤN ====================
-struct Button_t
+struct Button_t 
 {
     uint8_t       pin;
     bool          lastStableState;   // Trạng thái đã được debounce xác nhận

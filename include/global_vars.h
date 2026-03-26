@@ -8,6 +8,26 @@
 
 #include <Arduino.h>
 #include <RTClib.h> 
+#include <iot_bridge.h>
+
+// ============================================================================
+// LỊCH TƯỚI
+// ============================================================================
+#define MAX_SCHEDULES 10
+
+struct ScheduleEntry_t {
+    uint8_t  hour;        // Giờ bật bơm (0-23)
+    uint8_t  minute;      // Phút bật bơm (0-59)
+    uint8_t  duration;    // Thời lượng tưới (phút, 1-120)
+    uint8_t  days;        // Bitmask: bit0=CN bit1=T2 ... bit6=T7
+    bool     enabled;     // Bật/tắt lịch này
+};
+
+extern ScheduleEntry_t g_schedules[MAX_SCHEDULES];
+extern uint8_t         g_scheduleCount;
+extern bool            g_scheduleEnabled;
+extern unsigned long   g_scheduleOffTime;  // millis() thời điểm cần tắt bơm theo lịch
+extern bool g_scheduleTriggered; // true nếu bơm đang chạy do lịch tưới, dùng để bypass cooldown
 
 // ============================================================================
 // KIỂU DỮ LIỆU
