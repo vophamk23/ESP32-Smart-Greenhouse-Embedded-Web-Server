@@ -1,18 +1,10 @@
-<div align="center">
 
-<img src="data/image/ecogreenhouse.jpg" alt="EcoGreen Banner" width="100%" style="border-radius: 12px;" />
-
-<br/>
-<br/>
-
-```
 ███████╗ ██████╗ ██████╗  ██████╗ ██████╗ ███████╗███████╗███╗   ██╗
 ██╔════╝██╔════╝██╔═══██╗██╔════╝ ██╔══██╗██╔════╝██╔════╝████╗  ██║
 █████╗  ██║     ██║   ██║██║  ███╗██████╔╝█████╗  █████╗  ██╔██╗ ██║
 ██╔══╝  ██║     ██║   ██║██║   ██║██╔══██╗██╔══╝  ██╔══╝  ██║╚██╗██║
 ███████╗╚██████╗╚██████╔╝╚██████╔╝██║  ██║███████╗███████╗██║ ╚████║
 ╚══════╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═══╝
-```
 
 ### 🌿 Smart Greenhouse IoT System
 
@@ -53,8 +45,8 @@ EcoGreen là hệ thống IoT nhà kính 3 tầng hoạt động độc lập v�
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        EcoGreen Architecture                        │
 ├──────────────────┬──────────────────────┬───────────────────────────┤
-│   🔌 FIRMWARE    │     ☁️  BACKEND       │      🖥️  FRONTEND          │
-│   ESP32 C++      │   NestJS + PostgreSQL │    Next.js + Tailwind     │
+│   🔌 FIRMWARE    │     ☁️  BACKEND     │      🖥️  FRONTEND         │
+│   ESP32 C++      │   NestJS + PostgreSQL│    Next.js + Tailwind     │
 │                  │                      │                           │
 │  • Đọc sensor    │  • Xử lý dữ liệu     │  • Dashboard real-time    │
 │  • Điều khiển    │  • Auth & JWT        │  • Biểu đồ lịch sử        │
@@ -431,24 +423,20 @@ NEXT_PUBLIC_WS_URL=http://localhost:3001
 ┌──────────────────────────────────┬───────────────────────────────────┐
 │         CORE 0 — FreeRTOS        │        CORE 1 — Scheduler         │
 │                                  │                                   │
-│  greenhouse_wifi_task            │  Task_ReadAirSensors   (2s)        │
-│  greenhouse_coreiot_task  ◄──┐   │  Task_ReadSoilSensor   (5s)        │
-│  greenhouse_webserver_task ─►│   │  Task_SendTelemetry    (5s)        │
-│                              │   │  Task_AutoControl      (1s)        │
-│  ┌──────────────────────┐   │   │  Task_ProcessRpc       (event)     │
-│  │  xTelemetryQueue     │◄──┘   │  Task_PumpWatchdog     (1s)        │
-│  │  xRpcCommandQueue    │──────►│  Task_UpdateLCD        (1s)        │
-│  └──────────────────────┘       │  Task_ScanButtons      (50ms)      │
+│  greenhouse_wifi_task            │  Task_ReadAirSensors   (2s)       │
+│  greenhouse_coreiot_task  ◄──┐   │  Task_ReadSoilSensor   (5s)       │
+│  greenhouse_webserver_task ─►│   │  Task_SendTelemetry    (5s)       │
+│                              │   │  Task_AutoControl      (1s)       │
+│  ┌──────────────────────┐   │    │  Task_ProcessRpc       (event)    │
+│  │  xTelemetryQueue     │◄──┘    │  Task_PumpWatchdog     (1s)       │
+│  │  xRpcCommandQueue    │──────► │  Task_UpdateLCD        (1s)       │
+│  └──────────────────────┘        │  Task_ScanButtons      (50ms)     │
 │                                  │                                   │
 └──────────────────────────────────┴───────────────────────────────────┘
            ▲  MQTT / WebSocket                    ▼  GPIO / I2C / SPI
            │                                      │
     ☁️  Backend Server                  🔌 Sensors & Actuators
-```
 
----
-
-<div align="center">
 
 **Được xây dựng với ❤️ bởi nhóm EcoGreen**
 
