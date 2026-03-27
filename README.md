@@ -1,8 +1,5 @@
 
-<div align="center">
-<img src="data/image/ecogreenhouse.jpg" alt="EcoGreen Banner" width="100%" style="border-radius: 12px;" />
-<br/>
-<br/>
+
 ```
 ███████╗ ██████╗ ██████╗  ██████╗ ██████╗ ███████╗███████╗███╗   ██╗
 ██╔════╝██╔════╝██╔═══██╗██╔════╝ ██╔══██╗██╔════╝██╔════╝████╗  ██║
