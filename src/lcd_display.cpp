@@ -13,19 +13,19 @@ static LiquidCrystal_I2C s_lcd(LCD_ADDRESS, LCD_COLS, LCD_ROWS);
 
 // ==================== CUSTOM CHARACTERS ====================
 // QUAN TRỌNG: createChar chỉ có 8 slot (0-7), tối đa 8 ký tự custom
-static byte iconDrop[8] = { 0b00100, 0b00100, 0b01110, 0b11111,
-                             0b11111, 0b11111, 0b01110, 0b00000 };
-static byte iconSun[8]  = { 0b00100, 0b10101, 0b01110, 0b11111,
-                             0b01110, 0b10101, 0b00100, 0b00000 };
-static byte iconLeaf[8] = { 0b00000, 0b00110, 0b01111, 0b11111,
-                             0b11110, 0b11100, 0b01000, 0b00000 };
-static byte iconWarn[8] = { 0b00100, 0b01110, 0b01110, 0b11111,
-                             0b11111, 0b00000, 0b00100, 0b00000 };
+static byte iconDrop[8] = {0b00100, 0b00100, 0b01110, 0b11111,
+                           0b11111, 0b11111, 0b01110, 0b00000};
+static byte iconSun[8] = {0b00100, 0b10101, 0b01110, 0b11111,
+                          0b01110, 0b10101, 0b00100, 0b00000};
+static byte iconLeaf[8] = {0b00000, 0b00110, 0b01111, 0b11111,
+                           0b11110, 0b11100, 0b01000, 0b00000};
+static byte iconWarn[8] = {0b00100, 0b01110, 0b01110, 0b11111,
+                           0b11111, 0b00000, 0b00100, 0b00000};
 
-#define ICON_DROP  0
-#define ICON_SUN   1
-#define ICON_LEAF  2
-#define ICON_WARN  3
+#define ICON_DROP 0
+#define ICON_SUN 1
+#define ICON_LEAF 2
+#define ICON_WARN 3
 
 // ============================================================================
 // KHỞI TẠO LCD
@@ -35,7 +35,7 @@ void initLCD()
     s_lcd.begin();
     s_lcd.backlight();
     s_lcd.createChar(ICON_DROP, iconDrop);
-    s_lcd.createChar(ICON_SUN,  iconSun);
+    s_lcd.createChar(ICON_SUN, iconSun);
     s_lcd.createChar(ICON_LEAF, iconLeaf);
     s_lcd.createChar(ICON_WARN, iconWarn);
 
@@ -43,7 +43,7 @@ void initLCD()
     Serial.printf("[LCD] 16x2 I2C initialized (addr=0x%02X)\n", LCD_ADDRESS);
 }
 
-LiquidCrystal_I2C* getLCD() { return &s_lcd; }
+LiquidCrystal_I2C *getLCD() { return &s_lcd; }
 
 // ============================================================================
 // MÀN HÌNH KHỞI ĐỘNG
@@ -64,7 +64,7 @@ void showBootScreen()
 // HELPER: In chuỗi có padding đến đủ 16 ký tự
 // Tránh ghost characters khi text ngắn hơn text cũ
 // ============================================================================
-static void lcdPrint16(int col, int row, const char* str)
+static void lcdPrint16(int col, int row, const char *str)
 {
     s_lcd.setCursor(col, row);
     int len = strlen(str);
@@ -135,7 +135,7 @@ void displayPage_SoilLight()
     else
     {
         // Hiển thị "BRIGHT" hoặc "DARK" tùy ngưỡng ánh sáng
-        const char* lightStr = (g_lightLux >= LIGHT_LOW_THRESHOLD) ? "BRIGHT" : "DARK  ";
+        const char *lightStr = (g_lightLux >= LIGHT_LOW_THRESHOLD) ? "BRIGHT" : "DARK  ";
         snprintf(buf, sizeof(buf), "Light :%s", lightStr);
         lcdPrint16(0, 1, buf);
         s_lcd.setCursor(15, 1);
@@ -154,27 +154,34 @@ void displayPage_DeviceStatus()
 
     // Row 0
     snprintf(buf, sizeof(buf), "Fan:%-3s Pump:%-3s",
-             g_fanState  ? "ON"  : "OFF",
-             g_pumpState ? "ON"  : "OFF");
+             g_fanState ? "ON" : "OFF",
+             g_pumpState ? "ON" : "OFF");
     lcdPrint16(0, 0, buf);
 
     // Xác định tên màu LED
-    const char* ledName = "OFF";
+    const char *ledName = "OFF";
     uint8_t r = g_currentLEDColor.r;
     uint8_t g = g_currentLEDColor.g;
     uint8_t b = g_currentLEDColor.b;
 
-    if      (r == 0   && g == 255 && b == 0)   ledName = "Green"; // Good
-    else if (r == 255 && g == 0   && b == 0)   ledName = "Red"; // Danger
-    else if (r == 255 && g == 200 && b == 0)   ledName = "Yell"; // Warning
-    else if (r == 0   && g == 100 && b == 255) ledName = "Blue"; // Watering
-    else if (r == 255 && g == 255 && b == 255) ledName = "White"; // GrowLight
-    else if (r == 0   && g == 230 && b == 255) ledName = "Cyan"; // Pump+Fan
-    else if (r == 200 && g == 0   && b == 100) ledName = "Pink"; // Fan 
+    if (r == 0 && g == 255 && b == 0)
+        ledName = "Green"; // Good
+    else if (r == 255 && g == 0 && b == 0)
+        ledName = "Red"; // Danger
+    else if (r == 255 && g == 200 && b == 0)
+        ledName = "Yell"; // Warning
+    else if (r == 0 && g == 100 && b == 255)
+        ledName = "Blue"; // Watering
+    else if (r == 255 && g == 255 && b == 255)
+        ledName = "White"; // GrowLight
+    else if (r == 0 && g == 230 && b == 255)
+        ledName = "Cyan"; // Pump+Fan
+    else if (r == 200 && g == 0 && b == 100)
+        ledName = "Pink"; // Fan
 
     snprintf(buf, sizeof(buf), "LED:%-3s %-4s",
              ledName,
-             g_autoMode ? "[AUTO]" : " [MAN]"); 
+             g_autoMode ? "[AUTO]" : " [MAN]");
     lcdPrint16(0, 1, buf);
 }
 
@@ -208,31 +215,38 @@ void displayPage_AlertStats()
     s_lcd.setCursor(0, 1);
     if (!g_dhtError && g_temperature >= TEMP_CRITICAL)
     {
-        s_lcd.write(ICON_WARN); lcdPrint16(1, 1, " TEMP CRITICAL!");
+        s_lcd.write(ICON_WARN);
+        lcdPrint16(1, 1, " TEMP CRITICAL!");
     }
     else if (g_alertTemp)
     {
-        s_lcd.write(ICON_WARN); lcdPrint16(1, 1, " TEMP HIGH!     ");
+        s_lcd.write(ICON_WARN);
+        lcdPrint16(1, 1, " TEMP HIGH!     ");
     }
     else if (g_alertSoil)
     {
-        s_lcd.write(ICON_WARN); lcdPrint16(1, 1, " SOIL DRY!      ");
+        s_lcd.write(ICON_WARN);
+        lcdPrint16(1, 1, " SOIL DRY!      ");
     }
     else if (g_alertHumidity)
     {
-        s_lcd.write(ICON_WARN); lcdPrint16(1, 1, " HUMI ABNORMAL! ");
+        s_lcd.write(ICON_WARN);
+        lcdPrint16(1, 1, " HUMI ABNORMAL! ");
     }
     else if (g_alertLight)
     {
-        s_lcd.write(ICON_WARN); lcdPrint16(1, 1, " LIGHT LOW!     ");
+        s_lcd.write(ICON_WARN);
+        lcdPrint16(1, 1, " LIGHT LOW!     ");
     }
     else if (g_dhtError)
     {
-        s_lcd.write(ICON_WARN); lcdPrint16(1, 1, " DHT SENSOR ERR");
+        s_lcd.write(ICON_WARN);
+        lcdPrint16(1, 1, " DHT SENSOR ERR");
     }
     else
     {
-        s_lcd.write(ICON_LEAF); lcdPrint16(1, 1, " All systems OK");
+        s_lcd.write(ICON_LEAF);
+        lcdPrint16(1, 1, " All systems OK");
     }
 }
 
@@ -244,11 +258,21 @@ void updateLCDPage()
 {
     switch (g_lcdPage)
     {
-        case 0: displayPage_TempHumidity(); break;
-        case 1: displayPage_SoilLight();    break;
-        case 2: displayPage_DeviceStatus(); break;
-        case 3: displayPage_AlertStats();   break;
-        default: g_lcdPage = 0;             break;
+    case 0:
+        displayPage_TempHumidity();
+        break;
+    case 1:
+        displayPage_SoilLight();
+        break;
+    case 2:
+        displayPage_DeviceStatus();
+        break;
+    case 3:
+        displayPage_AlertStats();
+        break;
+    default:
+        g_lcdPage = 0;
+        break;
     }
 }
 
@@ -259,12 +283,13 @@ void nextLCDPage()
 {
     g_lcdPage = (g_lcdPage + 1) % LCD_PAGE_COUNT;
     g_lcdPageTimer = millis();
-    s_lcd.clear();  // Clear 1 lần khi chuyển trang là OK
+    s_lcd.clear(); // Clear 1 lần khi chuyển trang là OK
 }
 
 void setLCDPage(int page)
 {
-    if (page < 0 || page >= LCD_PAGE_COUNT) return;
+    if (page < 0 || page >= LCD_PAGE_COUNT)
+        return;
     g_lcdPage = page;
     g_lcdPageTimer = millis();
     s_lcd.clear();

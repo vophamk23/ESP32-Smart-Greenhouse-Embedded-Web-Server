@@ -1,11 +1,11 @@
 /*
  * sensor_handler.cpp - Đọc cảm biến DHT11/22, LDR DO, Soil ADC
  */
-
 #include "sensor_handler.h"
 #include "config.h"
 #include "global_vars.h"
-#include "iot_bridge.h" 
+#include "iot_bridge.h"
+#include "ntp_sync.h"
 
 // ==================== ĐỐI TƯỢNG CẢM BIẾN ====================
 static DHT dht(DHT_PIN, DHT_TYPE);
@@ -13,7 +13,7 @@ static DHT dht(DHT_PIN, DHT_TYPE);
 // EMA (Exponential Moving Average) filter cho soil ADC
 // alpha = 0.2: giữ 80% giá trị cũ, 20% giá trị mới -> lọc nhiễu tốt
 static const float SOIL_EMA_ALPHA = 0.2f;
-static float s_soilEMA = -1.0f;    // -1 = chưa khởi tạo
+static float s_soilEMA = -1.0f; // -1 = chưa khởi tạo
 
 // ==================== KHỞI TẠO ====================
 void initSensors()
@@ -28,10 +28,9 @@ void initSensors()
     analogReadResolution(12);       // 12-bit: 0-4095
     analogSetAttenuation(ADC_11db); // Đọc full range 0-3.3V
     Serial.printf("[SENSOR] Light ADC initialized (Pin GPIO%d, 12-bit)\n",
-                LIGHT_SENSOR_PIN);
+                  LIGHT_SENSOR_PIN);
     Serial.printf("[SENSOR] Light calibration: DARK=%d, BRIGHT=%d\n",
-                LIGHT_ADC_DARK, LIGHT_ADC_BRIGHT);
-
+                  LIGHT_ADC_DARK, LIGHT_ADC_BRIGHT);
 
     // ---- Cảm biến đất (ADC) ----
     // ADC config: 12-bit, 11dB attenuation (đọc 0~3.3V full range)
@@ -48,24 +47,32 @@ void initRTC()
 {
     if (!g_rtc.begin())
     {
-        Serial.println("Không tìm thấy RTC");
-        while (1);
+        Serial.println("[RTC] ✗ DS3231 not found - halting");
+        while (1)
+            delay(1000);
     }
-    Serial.println("RTC found");
 
-    // Chỉ set giờ khi RTC bị mất nguồn (pin hết / lắp mới)
-    // Bình thường KHÔNG chạy vào đây → giờ giữ nguyên dù reboot
+    // Fallback bằng compile time nếu pin chết / lắp mới
     if (g_rtc.lostPower())
     {
-        Serial.println("[RTC] Lost power - syncing to compile time");
+        Serial.println("[RTC] Lost power - using compile time as fallback");
         g_rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
     }
 
-    g_rtc.adjust(DateTime(2026, 3, 26, 22, 20, 0)); // ← sửa đúng giờ thực
+    // Sync chính xác từ NTP (ghi đè fallback nếu thành công)
+    NTPSyncResult result = syncRTCfromNTP(/*maxRetries=*/3, /*timeoutMs=*/5000);
+
+    if (result != NTPSyncResult::SUCCESS)
+    {
+        Serial.printf("[RTC] NTP sync failed (%s) - using RTC stored time\n",
+                      ntpResultStr(result));
+    }
+
     g_rtcError = false;
+
     DateTime now = g_rtc.now();
-    Serial.printf("[RTC] DS3231 OK - %02d/%02d/%02d %02d:%02d:%02d\n",
-                  now.day(), now.month(), now.year() % 100,
+    Serial.printf("[RTC] DS3231 ready - %02d/%02d/%04d %02d:%02d:%02d\n",
+                  now.day(), now.month(), now.year(),
                   now.hour(), now.minute(), now.second());
 }
 
@@ -73,10 +80,10 @@ void initRTC()
 // Trả về DateTime hợp lệ, hoặc DateTime(0) nếu RTC lỗi
 DateTime getRTCTime()
 {
-    if (g_rtcError) return DateTime((uint32_t)0);
+    if (g_rtcError)
+        return DateTime((uint32_t)0);
     return g_rtc.now();
 }
-
 
 // ==================== ĐỌC DHT11/22 ====================
 // Giữ nguyên giá trị cũ nếu lỗi thay vì trả 0 (safer for control logic)
@@ -104,8 +111,8 @@ void readDHT()
     // Tính toán xong, lock ngắn để ghi
     SENSOR_LOCK();
     g_temperature = temp;
-    g_humidity    = humi;
-    g_dhtError    = false;
+    g_humidity = humi;
+    g_dhtError = false;
     SENSOR_UNLOCK();
 }
 
@@ -133,15 +140,16 @@ void readLightSensor()
 
     // Clamp ADC trong vùng calibration để tránh giá trị ngoại lai làm lệch kết quả ánh sáng
     int clamped = constrain(avgADC, LIGHT_ADC_DARK, LIGHT_ADC_BRIGHT);
-    
+
     // Map ADC sang lux: tuyến tính giữa DARK và BRIGHT, ngoài ra clamp lại để tránh giá trị âm hoặc vượt quá max
     float lux = ((float)(clamped - LIGHT_ADC_DARK) /
-                 (float)(LIGHT_ADC_BRIGHT - LIGHT_ADC_DARK)) * LIGHT_LUX_BRIGHT;
+                 (float)(LIGHT_ADC_BRIGHT - LIGHT_ADC_DARK)) *
+                LIGHT_LUX_BRIGHT;
     lux = constrain(lux, LIGHT_LUX_DARK, LIGHT_LUX_BRIGHT);
 
     // Ghi vào biến global có lock
     SENSOR_LOCK();
-    g_lightLux   = lux;
+    g_lightLux = lux;
     g_lightError = false;
     SENSOR_UNLOCK();
 
@@ -149,8 +157,6 @@ void readLightSensor()
                   avgADC, clamped, lux,
                   lux >= LIGHT_LOW_THRESHOLD ? "BRIGHT" : "DARK");
 }
-
-
 
 // ==================== MAP ADC -> % ĐỘ ẨM ĐẤT ====================
 // Capacitive sensor: ADC cao = khô, ADC thấp = ướt (NGƯỢC với resistive)
@@ -160,7 +166,8 @@ static float mapSoilADC(int adcValue)
     int clamped = constrain(adcValue, SOIL_ADC_WET, SOIL_ADC_DRY);
     // Map ngược: DRY=0%, WET=100%
     float moisture = ((float)(SOIL_ADC_DRY - clamped) /
-                      (float)(SOIL_ADC_DRY - SOIL_ADC_WET)) * 100.0f;
+                      (float)(SOIL_ADC_DRY - SOIL_ADC_WET)) *
+                     100.0f;
     return constrain(moisture, 0.0f, 100.0f);
 }
 
@@ -194,7 +201,7 @@ void readSoilMoisture()
 }
 
 // ==================== GETTER ====================
-DHT* getDHT() { return &dht; }
+DHT *getDHT() { return &dht; }
 
 // ==================== IN DỮ LIỆU SERIAL ====================
 void printSensorData()

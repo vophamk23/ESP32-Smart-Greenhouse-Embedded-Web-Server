@@ -39,7 +39,7 @@
 // ============================================================================
 static AsyncWebServer s_server(80);
 static AsyncWebSocket s_ws("/ws");
-static bool           s_serverRunning = false;
+static bool s_serverRunning = false;
 
 // ============================================================================
 // LƯU LỊCH XUỐNG LITTLEFS
@@ -55,7 +55,7 @@ static void saveSchedulesToFS()
 
     DynamicJsonDocument doc(1024);
     doc["enabled"] = g_scheduleEnabled;
-    JsonArray arr  = doc.createNestedArray("schedules");
+    JsonArray arr = doc.createNestedArray("schedules");
 
     for (uint8_t i = 0; i < g_scheduleCount; i++)
     {
@@ -63,10 +63,10 @@ static void saveSchedulesToFS()
         char timeBuf[6];
         snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d",
                  g_schedules[i].hour, g_schedules[i].minute);
-        o["time"]     = timeBuf;
+        o["time"] = timeBuf;
         o["duration"] = g_schedules[i].duration;
-        o["days"]     = g_schedules[i].days;
-        o["enabled"]  = g_schedules[i].enabled;
+        o["days"] = g_schedules[i].days;
+        o["enabled"] = g_schedules[i].enabled;
     }
 
     serializeJson(doc, f);
@@ -95,12 +95,13 @@ void loadSchedulesFromFS()
     f.close();
 
     g_scheduleEnabled = doc["enabled"].as<bool>();
-    g_scheduleCount   = 0;
+    g_scheduleCount = 0;
 
     JsonArray arr = doc["schedules"].as<JsonArray>();
     for (JsonObject o : arr)
     {
-        if (g_scheduleCount >= MAX_SCHEDULES) break;
+        if (g_scheduleCount >= MAX_SCHEDULES)
+            break;
 
         uint8_t h = 0, m = 0;
         const char *t = o["time"] | "00:00";
@@ -110,9 +111,8 @@ void loadSchedulesFromFS()
             h,
             m,
             (uint8_t)(o["duration"] | 15),
-            (uint8_t)(o["days"]     | 0),
-            o["enabled"].as<bool>()
-        };
+            (uint8_t)(o["days"] | 0),
+            o["enabled"].as<bool>()};
     }
 
     Serial.printf("[SCHED] Loaded %d schedules, enabled=%s\n",
@@ -125,12 +125,14 @@ void loadSchedulesFromFS()
 static void handleBrowserMessage(const String &json)
 {
     DynamicJsonDocument doc(1024);
-    if (deserializeJson(doc, json)) return;
+    if (deserializeJson(doc, json))
+        return;
 
     const char *cmd = doc["cmd"];
-    if (!cmd) return;
+    if (!cmd)
+        return;
 
-    RpcPacket_t pkt = { RPC_NONE };
+    RpcPacket_t pkt = {RPC_NONE};
 
     // ---- setPump ----
     if (strcmp(cmd, "setPump") == 0)
@@ -145,7 +147,7 @@ static void handleBrowserMessage(const String &json)
     // ---- setMode ----
     else if (strcmp(cmd, "setMode") == 0)
     {
-        const char *val = doc["value"].as<const char*>();
+        const char *val = doc["value"].as<const char *>();
         if (val)
             pkt.command = (strcmp(val, "AUTO") == 0) ? RPC_MODE_AUTO : RPC_MODE_MANUAL;
     }
@@ -159,19 +161,20 @@ static void handleBrowserMessage(const String &json)
     // ---- setSchedules ----
     else if (strcmp(cmd, "setSchedules") == 0)
     {
-        JsonArray arr   = doc["value"].as<JsonArray>();
+        JsonArray arr = doc["value"].as<JsonArray>();
         g_scheduleCount = 0;
 
         for (JsonObject s : arr)
         {
-            if (g_scheduleCount >= MAX_SCHEDULES) break;
+            if (g_scheduleCount >= MAX_SCHEDULES)
+                break;
 
             const char *timeStr = s["time"] | "00:00";
             uint8_t h = 0, m = 0;
             sscanf(timeStr, "%hhu:%hhu", &h, &m);
 
             // Parse days array [0,1,3] → bitmask
-            uint8_t dayMask  = 0;
+            uint8_t dayMask = 0;
             JsonArray daysArr = s["days"].as<JsonArray>();
             for (int d : daysArr)
                 if (d >= 0 && d <= 6)
@@ -182,8 +185,7 @@ static void handleBrowserMessage(const String &json)
                 m,
                 (uint8_t)(constrain((int)(s["duration"] | 15), 1, 120)),
                 dayMask,
-                s["enabled"].as<bool>()
-            };
+                s["enabled"].as<bool>()};
         }
 
         saveSchedulesToFS();
@@ -231,7 +233,8 @@ static void startWebServer()
     s_server.addHandler(&s_ws);
 
     // 2. REST endpoint: snapshot trạng thái hiện tại
-    s_server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *req) {
+    s_server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *req)
+                {
         StaticJsonDocument<256> doc;
 
         SENSOR_LOCK();
@@ -246,11 +249,11 @@ static void startWebServer()
 
         String json;
         serializeJson(doc, json);
-        req->send(200, "application/json", json);
-    });
+        req->send(200, "application/json", json); });
 
     // 3. REST endpoint: lấy danh sách lịch tưới
-    s_server.on("/api/schedules", HTTP_GET, [](AsyncWebServerRequest *req) {
+    s_server.on("/api/schedules", HTTP_GET, [](AsyncWebServerRequest *req)
+                {
         DynamicJsonDocument doc(1024);
         doc["enabled"] = g_scheduleEnabled;
         JsonArray arr  = doc.createNestedArray("schedules");
@@ -269,8 +272,7 @@ static void startWebServer()
 
         String json;
         serializeJson(doc, json);
-        req->send(200, "application/json", json);
-    });
+        req->send(200, "application/json", json); });
 
     // 4. Serve toàn bộ file tĩnh từ LittleFS
     s_server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
@@ -295,10 +297,6 @@ void greenhouse_webserver_task(void *pvParameters)
                             pdFALSE,
                             pdTRUE,
                             pdMS_TO_TICKS(30000));
-
-    // Load lịch tưới đã lưu từ LittleFS
-    loadSchedulesFromFS();
-
     startWebServer();
 
     unsigned long lastPushTime = 0;
@@ -321,29 +319,29 @@ void greenhouse_webserver_task(void *pvParameters)
                 StaticJsonDocument<512> doc;
 
                 SENSOR_LOCK();
-                doc["temperature"]      = g_temperature;
-                doc["humidity"]         = g_humidity;
-                doc["soilMoisture"]     = g_soilMoisture;
-                doc["lightLux"]         = g_lightLux;
-                doc["pump"]             = g_pumpState;
-                doc["fan"]              = g_fanState;
-                doc["autoMode"]         = g_autoMode;
-                doc["alertTemp"]        = g_alertTemp;
-                doc["alertHumidity"]    = g_alertHumidity;
-                doc["alertSoil"]        = g_alertSoil;
-                doc["alertLight"]       = g_alertLight;
-                doc["pumpCount"]        = (int)g_pumpCount;
+                doc["temperature"] = g_temperature;
+                doc["humidity"] = g_humidity;
+                doc["soilMoisture"] = g_soilMoisture;
+                doc["lightLux"] = g_lightLux;
+                doc["pump"] = g_pumpState;
+                doc["fan"] = g_fanState;
+                doc["autoMode"] = g_autoMode;
+                doc["alertTemp"] = g_alertTemp;
+                doc["alertHumidity"] = g_alertHumidity;
+                doc["alertSoil"] = g_alertSoil;
+                doc["alertLight"] = g_alertLight;
+                doc["pumpCount"] = (int)g_pumpCount;
                 doc["totalPumpTimeSec"] = (long)(g_totalPumpTime / 1000UL);
-                doc["dhtError"]         = g_dhtError;
+                doc["dhtError"] = g_dhtError;
                 uint8_t ledR = g_currentLEDColor.r;
                 uint8_t ledG = g_currentLEDColor.g;
                 uint8_t ledB = g_currentLEDColor.b;
                 SENSOR_UNLOCK();
 
-                doc["wifiRssi"]         = WiFi.RSSI();
-                doc["freeHeap"]         = ESP.getFreeHeap();
-                doc["lcdPage"]          = g_lcdPage;
-                doc["scheduleEnabled"]  = g_scheduleEnabled;
+                doc["wifiRssi"] = WiFi.RSSI();
+                doc["freeHeap"] = ESP.getFreeHeap();
+                doc["lcdPage"] = g_lcdPage;
+                doc["scheduleEnabled"] = g_scheduleEnabled;
 
                 char ledHex[8];
                 snprintf(ledHex, sizeof(ledHex), "#%02X%02X%02X", ledR, ledG, ledB);

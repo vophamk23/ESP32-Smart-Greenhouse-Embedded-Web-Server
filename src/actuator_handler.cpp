@@ -17,9 +17,9 @@ void initActuators()
     // ---- Relay bơm ----
     pinMode(RELAY_PUMP_PIN, OUTPUT);
     digitalWrite(RELAY_PUMP_PIN, RELAY_OFF);
- // ---- Fan Yolo: chỉ S1 ----
+    // ---- Fan Yolo: chỉ S1 ----
     pinMode(FAN_S1_PIN, OUTPUT);
-    digitalWrite(FAN_S1_PIN, LOW);  // Dừng khi khởi động
+    digitalWrite(FAN_S1_PIN, LOW); // Dừng khi khởi động
     Serial.printf("[ACT] Fan Yolo init: S1=GPIO%d only\n", FAN_S1_PIN);
 
     // ---- NeoPixel ----
@@ -37,7 +37,8 @@ void initActuators()
 // Bật bơm nếu chưa bật, kiểm tra cooldown và cập nhật trạng thái
 void pumpOn()
 {
-    if (g_pumpState) return;
+    if (g_pumpState)
+        return;
 
     // Cooldown: bỏ qua nếu MANUAL hoặc do LỊCH TƯỚI kích hoạt
     if (!g_pumpManual && !g_scheduleTriggered && g_pumpCooldown)
@@ -53,8 +54,8 @@ void pumpOn()
         g_pumpCooldown = false;
     }
 
-    digitalWrite(RELAY_PUMP_PIN, RELAY_ON); 
-    g_pumpState     = true;
+    digitalWrite(RELAY_PUMP_PIN, RELAY_ON);
+    g_pumpState = true;
     g_pumpStartTime = millis();
     g_pumpCount++;
     Serial.printf("[PUMP] ON - count=%lu, manual=%s\n",
@@ -65,20 +66,22 @@ void pumpOn()
 // Tắt bơm, cập nhật thời gian bơm và cooldown nếu cần
 void pumpOff()
 {
-    if (!g_pumpState) return;
+    if (!g_pumpState)
+        return;
 
     unsigned long duration = millis() - g_pumpStartTime;
-    g_totalPumpTime   += duration;
-    g_pumpLastOffTime  = millis();
+    g_totalPumpTime += duration;
+    g_pumpLastOffTime = millis();
 
     // Chỉ bật cooldown khi ở chế độ AUTO
     // Manual không cần cooldown vì người dùng tự kiểm soát
     if (!g_pumpManual)
         g_pumpCooldown = true;
     else
-        g_pumpCooldown = false;  // Manual → không cooldown
+        g_pumpCooldown = false; // Manual → không cooldown
 
     g_pumpManual = false;
+    g_scheduleTriggered = false;
     digitalWrite(RELAY_PUMP_PIN, RELAY_OFF);
     g_pumpState = false;
     Serial.printf("[PUMP] OFF - ran %lus, total=%lus, cooldown=%s\n",
@@ -93,7 +96,8 @@ bool isPumpOn() { return g_pumpState; }
 // ============================================================================
 void fanOn()
 {
-    if (g_fanState) return;
+    if (g_fanState)
+        return;
     digitalWrite(FAN_S1_PIN, HIGH); // S1=HIGH → quay thuận
     g_fanState = true;
     Serial.println("[FAN] ON");
@@ -101,8 +105,9 @@ void fanOn()
 
 void fanOff()
 {
-    if (!g_fanState) return;
-    digitalWrite(FAN_S1_PIN, LOW);  // S1=LOW → dừng
+    if (!g_fanState)
+        return;
+    digitalWrite(FAN_S1_PIN, LOW); // S1=LOW → dừng
     g_fanState = false;
     Serial.println("[FAN] OFF");
 }
@@ -128,7 +133,8 @@ void setAllLEDs(uint8_t r, uint8_t g, uint8_t b)
 
 void setLED(uint8_t ledIndex, uint8_t r, uint8_t g, uint8_t b)
 {
-    if (ledIndex < 1 || ledIndex > NEO_COUNT) return;
+    if (ledIndex < 1 || ledIndex > NEO_COUNT)
+        return;
     s_neoPixel.setPixelColor(ledIndex - 1, s_neoPixel.Color(r, g, b));
     s_neoPixel.show();
 }
@@ -151,15 +157,15 @@ void turnOffAllLEDs()
 }
 
 // Các màu trạng thái chuẩn (có thể tùy chỉnh thêm nếu muốn)
-void ledColorGood()      { setAllLEDs(0,   255, 0);   }   // Xanh lá
-void ledColorWarning()   { setAllLEDs(255, 200, 0);   }   // Vàng cam
-void ledColorDanger()    { setAllLEDs(255, 0,   0);   }   // Đỏ
-void ledColorWatering()  { setAllLEDs(0,   100, 255); }   // Xanh dương (tưới nước)
-void ledColorFanOn()     { setAllLEDs(200, 0, 100); }   // Hồng 
-void ledColorGrowLight() { setAllLEDs(255, 255, 255); }   // Trắng (grow light)
+void ledColorGood() { setAllLEDs(0, 255, 0); }          // Xanh lá
+void ledColorWarning() { setAllLEDs(255, 200, 0); }     // Vàng cam
+void ledColorDanger() { setAllLEDs(255, 0, 0); }        // Đỏ
+void ledColorWatering() { setAllLEDs(0, 100, 255); }    // Xanh dương (tưới nước)
+void ledColorFanOn() { setAllLEDs(200, 0, 100); }       // Hồng
+void ledColorGrowLight() { setAllLEDs(255, 255, 255); } // Trắng (grow light)
 
-void ledColorPumpFan()   { setAllLEDs(0, 230, 255); }   // Cyan (pump + fan)
-void ledColorNight()     { turnOffAllLEDs(); }
+void ledColorPumpFan() { setAllLEDs(0, 230, 255); } // Cyan (pump + fan)
+void ledColorNight() { turnOffAllLEDs(); }
 
 // ============================================================================
 // CẬP NHẬT CẢNH BÁO
@@ -167,13 +173,13 @@ void ledColorNight()     { turnOffAllLEDs(); }
 void updateAlerts()
 {
     // Chỉ cảnh báo nhiệt độ khi DHT hoạt động bình thường
-    g_alertTemp     = (!g_dhtError && g_temperature >= TEMP_HIGH_THRESHOLD);
+    g_alertTemp = (!g_dhtError && g_temperature >= TEMP_HIGH_THRESHOLD);
     g_alertHumidity = (!g_dhtError &&
                        (g_humidity < HUMIDITY_LOW_THRESHOLD ||
                         g_humidity > HUMIDITY_HIGH_THRESHOLD));
-    g_alertSoil     = (g_soilMoisture < SOIL_DRY_THRESHOLD);
+    g_alertSoil = (g_soilMoisture < SOIL_DRY_THRESHOLD);
     // Cảnh báo ánh sáng chỉ khi không đang bật grow light
-    g_alertLight    = (g_lightLux < LIGHT_LOW_THRESHOLD && !g_ledGrowState);
+    g_alertLight = (g_lightLux < LIGHT_LOW_THRESHOLD && !g_ledGrowState);
 }
 
 // ============================================================================
@@ -181,8 +187,10 @@ void updateAlerts()
 // ============================================================================
 void autoControlPump()
 {
-    if (!g_autoMode) return;
-    if (g_pumpManual) return;   // Bơm đang do lệnh manual, không can thiệp
+    if (!g_autoMode)
+        return;
+    if (g_pumpManual)
+        return; // Bơm đang do lệnh manual, không can thiệp
 
     if (!g_pumpState)
     {
@@ -211,8 +219,10 @@ void autoControlPump()
 // ============================================================================
 void autoControlFan()
 {
-    if (!g_autoMode) return;
-    if (g_dhtError) return;     // Không điều khiển nếu cảm biến lỗi
+    if (!g_autoMode)
+        return;
+    if (g_dhtError)
+        return; // Không điều khiển nếu cảm biến lỗi
 
     if (!g_fanState && g_temperature >= TEMP_HIGH_THRESHOLD)
     {
