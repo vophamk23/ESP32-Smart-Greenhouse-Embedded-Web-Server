@@ -1,4 +1,5 @@
-#pragma once
+# ifndef GLOBAL_VARS_H
+# define GLOBAL_VARS_H
 /*
  * global_vars.h - Khai báo biến toàn cục có volatile cho thread safety
  *
@@ -97,3 +98,5 @@ extern RGBColor_t g_currentLEDColor;
 // ============================================================================
 extern unsigned long g_totalPumpTime;
 extern uint32_t      g_pumpCount;
+
+# endif // GLOBAL_VARS_H

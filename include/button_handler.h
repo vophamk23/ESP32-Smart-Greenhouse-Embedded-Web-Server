@@ -1,4 +1,3 @@
-
 /*
  * button_handler.h - Xử lý nút nhấn với debounce
  *
@@ -10,9 +9,14 @@
  * Tất cả cấu hình pin và timing nằm trong config.h
  */
 
+#ifndef BUTTON_HANDLER_H
+#define BUTTON_HANDLER_H
+
 #include <Arduino.h>
 #include "lcd_display.h"
 
 // Khai báo hàm xử lý nút nhấn
-void initButtons();         // Gọi trong setup()
-void Task_ScanButtons();    // Đăng ký vào scheduler, period BTN_DEBOUNCE_MS/TIMER_TICK_MS ticks
+void initButtons();      // Gọi trong setup()
+void Task_ScanButtons(); // Đăng ký vào scheduler, period BTN_DEBOUNCE_MS/TIMER_TICK_MS ticks
+
+#endif // BUTTON_HANDLER_H
