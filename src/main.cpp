@@ -7,10 +7,13 @@
  *           greenhouse_webserver_task (priority 1)
  *   Core 1: Arduino loop() + Cooperative Scheduler (priority tự nhiên)
  */
+// ====================== Build Commands ======================================================
+// pio run -t erase #xóa toàn bộ flash (kể cả LittleFS) - dùng khi muốn reset hoàn toàn về trạng thái mới
 // pio run -t clean #xóa build cache
 // pio run #build firmware
 // pio run -t upload #upload firmware lên ESP32
-// pio run -t uploadfs #upload LittleFS(web files)
+// pio run -t uploadfs #upload LittleFS(web files) - uploadfs cái file trong mục data/ (nếu có) lên ESP32, sẽ mount vào LittleFS để webserver đọc
+// ============================================================================
 #include <Arduino.h>
 #include "config.h"
 #include "global_vars.h"
@@ -21,19 +24,12 @@
 #include "app_tasks.h"
 #include "button_handler.h"
 #include "iot_bridge.h"
-#include "check_info.h" // ← thay loadConfig() nội bộ
+#include "check_info.h"
 #include "coreiot_greenhouse.h"
 #include "webserver_greenhouse.h"
 #include "wifi_greenhouse.h"
 
-// ============================================================================
-// BIẾN CONFIG TOÀN CỤC (định nghĩa ở đây, extern ở các file khác)
-// ============================================================================
-char WIFI_SSID[33] = ""; // max SSID 32 chars + null
-char WIFI_PASS[65] = ""; // max WPA2 64 chars + null
-char CORE_IOT_TOKEN[64] = "";
-char CORE_IOT_SERVER[128] = "";
-char CORE_IOT_PORT[6] = "1883";
+
 
 // ============================================================================
 // SETUP
@@ -51,14 +47,7 @@ void setup()
     // Nếu chưa có config → tự động bật AP để cấu hình
     check_info_File(false);
 
-    // ===== 2. HARDWARE =====
-    initLCD();
-    initRTC();
-    initActuators();
-    initSensors();
-    initButtons();
-
-    // ===== IOT BRIDGE TRƯỚC — tạo mutex trước khi đọc sensor =====
+    // ===== 2. IOT BRIDGE TRƯỚC — tạo mutex trước khi đọc sensor =====
     iotBridge_init();
 
     // Load lịch tưới từ FS (nếu có) sau khi đã có mutex
@@ -69,10 +58,17 @@ void setup()
     readLightSensor();
     readSoilMoisture();
 
-    // ===== 3. WIFI =====
+    // ===== 3. HARDWARE =====
+    initLCD();
+    initRTC();
+    initActuators();
+    initSensors();
+    initButtons();
+
+    // ===== 4. WIFI =====
     initWiFi();
 
-    // ===== 4. FREERTOS TASKS trên Core 0 =====
+    // ===== 5. FREERTOS TASKS trên Core 0 =====
     xTaskCreatePinnedToCore(
         greenhouse_wifi_task, "wifi",
         4096, nullptr, 3, nullptr, 0);
@@ -85,7 +81,7 @@ void setup()
         greenhouse_webserver_task, "webserver",
         8192, nullptr, 1, nullptr, 0);
 
-    // ===== 5. COOPERATIVE SCHEDULER (Core 1) =====
+    // ===== 6. COOPERATIVE SCHEDULER (Core 1) =====
     SCH_Init();
     SCH_Init_Timer();
 

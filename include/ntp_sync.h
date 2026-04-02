@@ -1,5 +1,5 @@
-# ifndef NTP_SYNC_H
-# define NTP_SYNC_H
+#ifndef NTP_SYNC_H
+#define NTP_SYNC_H
 
 #include <Arduino.h>
 
@@ -19,4 +19,4 @@ NTPSyncResult syncRTCfromNTP(uint8_t maxRetries = 3, uint32_t timeoutMs = 5000);
 // Lấy chuỗi mô tả kết quả
 const char *ntpResultStr(NTPSyncResult result);
 
-# endif // NTP_SYNC_H
+#endif // NTP_SYNC_H

@@ -139,26 +139,9 @@ void Task_CheckSchedule(void)
     // Dùng static để lưu lại phút đã trigger lần cuối, tránh trigger nhiều lần trong cùng 1 phút khi task chạy nhiều lần
     static uint32_t s_lastTriggeredMinute = 0xFFFFFFFF;
 
-    if (!g_scheduleEnabled)
-    {
-        Serial.println("[SCHED] disabled");
+    // Điều kiện để check lịch: có lịch, RTC ok, bơm đang tắt, và lịch được bật
+    if (!g_scheduleEnabled || g_scheduleCount == 0 || g_pumpState || g_rtcError)
         return;
-    }
-    if (g_scheduleCount == 0)
-    {
-        Serial.println("[SCHED] no schedules");
-        return;
-    }
-    if (g_pumpState)
-    {
-        Serial.println("[SCHED] pump on");
-        return;
-    }
-    if (g_rtcError)
-    {
-        Serial.println("[SCHED] rtc error");
-        return;
-    }
 
     DateTime now = getRTCTime();
     uint32_t currentMinute = now.hour() * 60 + now.minute();
