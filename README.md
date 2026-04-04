@@ -36,8 +36,6 @@
 - [OTA Update](#-ota-update)
 - [Đóng góp](#-đóng-góp)
 
----
-
 ## ✨ Tính năng
 
 | Tính năng                   | Mô tả                                                      |
@@ -55,7 +53,7 @@
 | 📡 **MQTT / IoT Bridge**    | Kết nối với broker MQTT để tích hợp IoT platform           |
 | 👤 **Quản lý tài khoản**    | Xác thực người dùng, bảo vệ giao diện web                  |
 
----
+
 
 ## 🏗️ Kiến trúc hệ thống
 
@@ -100,7 +98,7 @@ Hệ thống khai thác kiến trúc **dual-core** của ESP32 — phân tách r
    WebSocket + REST API         Telemetry + RPC Commands
 ```
 
----
+
 
 ## ⚡ Dual-Core & Cooperative Scheduler
 
@@ -155,7 +153,7 @@ Watchdog bơm (`Task_PumpWatchdog`) có 3 lớp bảo vệ theo thứ tự ưu t
 | `I`  | In thông tin WiFi & IoT        |
 | `?`  | Hiển thị danh sách lệnh        |
 
----
+
 
 ## 📁 Cấu trúc thư mục
 
@@ -238,7 +236,7 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 └── greenhouse_block_diagram.html # Sơ đồ khối hệ thống
 ```
 
----
+
 
 ## 🔧 Phần cứng yêu cầu
 
@@ -269,7 +267,7 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 | `Adafruit_NeoPixel` | Điều khiển LED WS2812                    |
 | `Adafruit_Sensor`   | Abstraction layer cảm biến Adafruit      |
 
----
+
 
 ## ⚙️ Cài đặt & Cấu hình
 
@@ -341,7 +339,7 @@ Mở Serial Monitor để lấy địa chỉ IP, sau đó truy cập:
 http://<ESP32_IP_ADDRESS>
 ```
 
----
+
 
 ## 🌐 Giao diện Web
 
@@ -360,7 +358,7 @@ Giao diện được lưu trên **LittleFS** của ESP32 và phục vụ bởi E
 | Devices     | `/pages/devices.html`    | Danh sách thiết bị            |
 | Account     | `/pages/account.html`    | Tài khoản & bảo mật           |
 
----
+
 
 ## 📡 Giao tiếp thời gian thực
 
@@ -374,7 +372,7 @@ ESP32  ──WebSocket──▶  Browser
 - File phía client: `data/js/websocket.js`
 - Endpoint: `ws://<ESP32_IP>/ws`
 
----
+
 
 ## 🧠 Lập lịch & Smart Logic
 
@@ -392,7 +390,7 @@ Nhiệt độ > 35°C  →  Bật quạt làm mát
 Độ ẩm không khí > 80%  →  Bật thông gió
 ```
 
----
+
 
 ## 🔄 OTA Update
 
@@ -402,7 +400,6 @@ Hệ thống hỗ trợ cập nhật firmware không cần cắm cáp qua **Eleg
 2. Chọn file `.bin` firmware mới
 3. Upload và ESP32 tự động restart
 
----
 
 ## 📊 Sơ đồ khối
 
@@ -414,7 +411,7 @@ greenhouse_block_diagram.html
 
 Mở bằng trình duyệt để xem kiến trúc kết nối phần cứng.
 
----
+
 
 ## 📄 Giấy phép
 
