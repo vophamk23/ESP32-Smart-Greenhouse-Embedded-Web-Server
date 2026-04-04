@@ -9,7 +9,16 @@
 
 # 🌿 ESP32 Smart Greenhouse — Embedded Web Server
 
-> Hệ thống nhà kính thông minh chạy trên **ESP32**, tích hợp Web Server nhúng với giao diện quản lý đầy đủ qua trình duyệt: giám sát cảm biến, điều khiển thiết bị, lập lịch tự động, cảnh báo thông minh và cập nhật firmware OTA.
+**Hệ thống nhà kính thông minh chạy trên **ESP32**, tích hợp Web Server nhúng với giao diện quản lý đầy đủ qua trình duyệt: giám sát cảm biến, điều khiển thiết bị, lập lịch tự động, cảnh báo thông minh và cập nhật firmware OTA.**
+<br/>
+
+[![ESP32](https://img.shields.io/badge/ESP32-FreeRTOS-blue?style=for-the-badge&logo=espressif&logoColor=white)](https://www.espressif.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Language-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![MQTT](https://img.shields.io/badge/MQTT-Protocol-660066?style=for-the-badge&logo=mqtt&logoColor=white)](https://mqtt.org/)
+
+</div>
+
+---
 
 
 ## 📋 Mục lục
