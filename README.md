@@ -1,5 +1,3 @@
-
-
 ```
 ███████╗ ██████╗ ██████╗  ██████╗ ██████╗ ███████╗███████╗███╗   ██╗
 ██╔════╝██╔════╝██╔═══██╗██╔════╝ ██╔══██╗██╔════╝██╔════╝████╗  ██║
@@ -9,440 +7,413 @@
 ╚══════╝ ╚═════╝ ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝  ╚═══╝
 ```
 
-### 🌿 Smart Greenhouse IoT System
+# 🌿 ESP32 Smart Greenhouse — Embedded Web Server
 
-**Hệ thống nhà kính thông minh — Giám sát thời gian thực, điều khiển tự động, thông báo đa kênh**
-
-<br/>
-
-[![ESP32](https://img.shields.io/badge/ESP32-FreeRTOS-blue?style=for-the-badge&logo=espressif&logoColor=white)](https://www.espressif.com/)
-[![NestJS](https://img.shields.io/badge/NestJS-Backend-E0234E?style=for-the-badge&logo=nestjs&logoColor=white)](https://nestjs.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-14-black?style=for-the-badge&logo=nextdotjs&logoColor=white)](https://nextjs.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-336791?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-Language-3178C6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![MQTT](https://img.shields.io/badge/MQTT-Protocol-660066?style=for-the-badge&logo=mqtt&logoColor=white)](https://mqtt.org/)
-
-</div>
+> Hệ thống nhà kính thông minh chạy trên **ESP32**, tích hợp Web Server nhúng với giao diện quản lý đầy đủ qua trình duyệt: giám sát cảm biến, điều khiển thiết bị, lập lịch tự động, cảnh báo thông minh và cập nhật firmware OTA.
 
 ---
 
-## 📖 Mục lục
+## 📋 Mục lục
 
-- [🌐 Tổng quan hệ thống](#-tổng-quan-hệ-thống)
-- [⚙️ Tech Stack](#️-tech-stack)
-- [📁 Cấu trúc dự án](#-cấu-trúc-dự-án)
-- [🧩 Design Patterns](#-design-patterns)
-- [✅ Functional Requirements](#-functional-requirements)
-- [🔧 Cài đặt & Chạy](#-cài-đặt--chạy)
-- [🌍 Biến môi trường](#-biến-môi-trường)
-- [📡 API Endpoints](#-api-endpoints)
-- [⚡ Kiến trúc Dual-Core ESP32](#-kiến-trúc-dual-core-esp32)
+- [Tính năng](#-tính-năng)
+- [Kiến trúc hệ thống](#-kiến-trúc-hệ-thống)
+- [Dual-Core & Cooperative Scheduler](#-dual-core--cooperative-scheduler)
+- [Cấu trúc thư mục](#-cấu-trúc-thư-mục)
+- [Phần cứng yêu cầu](#-phần-cứng-yêu-cầu)
+- [Thư viện sử dụng](#-thư-viện-sử-dụng)
+- [Cài đặt & Cấu hình](#-cài-đặt--cấu-hình)
+- [Giao diện Web](#-giao-diện-web)
+- [Giao tiếp thời gian thực](#-giao-tiếp-thời-gian-thực)
+- [Lập lịch & Smart Logic](#-lập-lịch--smart-logic)
+- [OTA Update](#-ota-update)
+- [Đóng góp](#-đóng-góp)
 
 ---
 
-## 🌐 Tổng quan hệ thống
+## ✨ Tính năng
 
-EcoGreen là hệ thống IoT nhà kính 3 tầng hoạt động độc lập và phối hợp nhịp nhàng:
+| Tính năng                   | Mô tả                                                      |
+| --------------------------- | ---------------------------------------------------------- |
+| 📊 **Dashboard**            | Hiển thị trạng thái tổng quan hệ thống theo thời gian thực |
+| 🌡️ **Giám sát cảm biến**    | Đọc nhiệt độ, độ ẩm (DHT), đồng bộ thời gian thực (RTC)    |
+| 🔌 **Điều khiển thiết bị**  | Bật/tắt actuator thủ công hoặc tự động qua giao diện web   |
+| 🗓️ **Lập lịch (Scheduler)** | Đặt lịch tưới nước, chiếu sáng theo giờ/ngày               |
+| 🧠 **Smart Logic**          | Tự động điều chỉnh thiết bị dựa trên ngưỡng cảm biến       |
+| 🔔 **Thông báo**            | Cảnh báo khi thông số vượt ngưỡng cài đặt                  |
+| 📈 **Biểu đồ**              | Hiển thị lịch sử dữ liệu cảm biến dưới dạng đồ thị         |
+| 📋 **Nhật ký (Logs)**       | Ghi lại lịch sử hoạt động của hệ thống                     |
+| 🖥️ **LCD Display**          | Hiển thị thông tin trực tiếp trên màn hình LCD I2C         |
+| 🔄 **OTA Update**           | Cập nhật firmware không dây qua ElegantOTA                 |
+| 📡 **MQTT / IoT Bridge**    | Kết nối với broker MQTT để tích hợp IoT platform           |
+| 👤 **Quản lý tài khoản**    | Xác thực người dùng, bảo vệ giao diện web                  |
+
+---
+
+## 🏗️ Kiến trúc hệ thống
+
+Hệ thống khai thác kiến trúc **dual-core** của ESP32 — phân tách rõ ràng giữa tác vụ mạng/cloud (Core 0) và tác vụ điều khiển thực tế (Core 1).
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                        EcoGreen Architecture                        │
-├──────────────────┬──────────────────────┬───────────────────────────┤
-│   🔌 FIRMWARE    │     ☁️  BACKEND     │      🖥️  FRONTEND         │
-│   ESP32 C++      │   NestJS + PostgreSQL│    Next.js + Tailwind     │
-│                  │                      │                           │
-│  • Đọc sensor    │  • Xử lý dữ liệu     │  • Dashboard real-time    │
-│  • Điều khiển    │  • Auth & JWT        │  • Biểu đồ lịch sử        │
-│    actuator      │  • MQTT broker       │  • Điều khiển từ xa       │
-│  • Dual-core     │  • Thông báo         │  • Cấu hình lịch tưới     │
-│    FreeRTOS      │  • REST + WebSocket  │  • Quản lý thiết bị       │
-└──────────────────┴──────────────────────┴───────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                            ESP32                                │
+│                                                                 │
+│  ┌───────────────────────────┐  ┌───────────────────────────┐   │
+│  │         CORE 0            │  │         CORE 1            │   │
+│  │   (FreeRTOS Tasks)        │  │  (Cooperative Scheduler)  │   │
+│  │                           │  │      Arduino loop()       │   │
+│  │  ┌─────────────────────┐  │  │                           │   │
+│  │  │ greenhouse_wifi_task│  │  │  Task_ReadAirSensors      │   │
+│  │  │   priority 3        │  │  │  Task_ReadSoilSensor      │   │
+│  │  └─────────────────────┘  │  │  Task_AutoControl         │   │
+│  │  ┌─────────────────────┐  │  │  Task_PumpWatchdog        │   │
+│  │  │greenhouse_coreiot   │  │  │  Task_CheckSchedule       │   │
+│  │  │  _task  priority 2  │  │  │  Task_CheckAlerts         │   │
+│  │  └─────────────────────┘  │  │  Task_UpdateLEDStatus     │   │
+│  │  ┌─────────────────────┐  │  │  Task_UpdateLCD           │   │
+│  │  │greenhouse_webserver │  │  │  Task_AutoSwitchLCDPage   │   │
+│  │  │  _task  priority 1  │  │  │  Task_SendTelemetry       │   │
+│  │  └─────────────────────┘  │  │  Task_ProcessRpc          │   │
+│  │                           │  │  Task_ScanButtons         │   │
+│  │  ESPAsyncWebServer        │  │  Task_Heartbeat           │   │
+│  │  WebSocket endpoint       │  │                           │   │
+│  │  REST API + LittleFS      │  │  sensor_handler           │   │
+│  └───────────────────────────┘  │  actuator_handler         │   │
+│                                 │  lcd_display              │   │
+│  ┌──────────┐  ┌─────────────┐  │  scheduler / smartlogic   │   │
+│  │ DHT22    │  │ Relay/Fan   │  └───────────────────────────┘   │
+│  │ RTC DS   │  │ NeoPixel    │                                  │
+│  │ Soil/Lux │  │ LCD I2C     │                                  │
+│  │ Button   │  │ Pump        │                                  │
+│  └──────────┘  └─────────────┘                                  │
+└─────────────────────────────────────────────────────────────────┘
+          │                              │
+          ▼                              ▼
+   [Browser / Mobile]           [CoreIoT / MQTT Broker]
+   WebSocket + REST API         Telemetry + RPC Commands
 ```
-
-### Hai chế độ truy cập
-
-| Chế độ | URL | Tính năng |
-|:---:|:---|:---|
-| 🏠 **Local (Offline)** | `http://192.168.4.1` | Xem sensor, điều khiển cơ bản — trực tiếp qua ESP32 |
-| 🌍 **Full (Online)** | Domain/IP server | Auth, lịch sử, lịch tưới, thông báo, smart logic |
 
 ---
 
-## ⚙️ Tech Stack
+## ⚡ Dual-Core & Cooperative Scheduler
 
-<details>
-<summary><strong>🔌 Firmware (ESP32)</strong></summary>
+### Phân chia Core
 
-| Thư viện | Mục đích |
-|:---|:---|
-| **PlatformIO** | Build system |
-| **Arduino Framework** | ESP32 core |
-| **FreeRTOS** | Dual-core task management |
-| **ESPAsyncWebServer** | Async HTTP + WebSocket server |
-| **PubSubClient** | MQTT client (CoreIoT / ThingsBoard) |
-| **ArduinoJson** | JSON serialization / deserialization |
-| **LittleFS** | Lưu cấu hình WiFi, MQTT trên flash |
-| **DHT** | Cảm biến nhiệt độ & độ ẩm không khí |
-| **Adafruit NeoPixel** | Điều khiển LED RGB |
-| **RTClib (DS3231)** | Đồng hồ thời gian thực |
+| Core       | Loại        | Task                                                 | Priority | Stack  |
+| ---------- | ----------- | ---------------------------------------------------- | -------- | ------ |
+| **Core 0** | FreeRTOS    | `greenhouse_wifi_task` — giữ kết nối WiFi, reconnect | 3        | 4096   |
+| **Core 0** | FreeRTOS    | `greenhouse_coreiot_task` — giao tiếp CoreIoT/MQTT   | 2        | 8192   |
+| **Core 0** | FreeRTOS    | `greenhouse_webserver_task` — phục vụ HTTP/WebSocket | 1        | 8192   |
+| **Core 1** | Cooperative | Tất cả task điều khiển & cảm biến (xem bảng dưới)    | —        | loop() |
 
-</details>
+> Core 0 xử lý toàn bộ I/O mạng không blocking. Core 1 chạy vòng lặp `SCH_Dispatch_Tasks()` và các lệnh Serial debug.
 
-<details>
-<summary><strong>☁️ Backend (NestJS)</strong></summary>
+### Cooperative Scheduler — Core 1
 
-| Thư viện | Mục đích |
-|:---|:---|
-| **NestJS** | Framework Node.js chính |
-| **TypeScript** | Static typing |
-| **PostgreSQL** | Cơ sở dữ liệu quan hệ |
-| **Socket.io** | Real-time WebSocket |
-| **JWT + Bcrypt** | Xác thực & bảo mật |
-| **MQTT** | Bridge kết nối ESP32 |
-| **Nodemailer** | Gửi email SMTP |
-| **node-cron** | Lập lịch tưới tự động |
+| #   | Task                     | Chu kỳ   | Chức năng                                                                |
+| --- | ------------------------ | -------- | ------------------------------------------------------------------------ |
+| 1   | `Task_ReadAirSensors`    | 2 giây   | Đọc DHT22 (nhiệt độ, độ ẩm) + cảm biến ánh sáng                          |
+| 2   | `Task_ReadSoilSensor`    | 5 giây   | Đọc độ ẩm đất (thay đổi chậm)                                            |
+| 3   | `Task_CheckAlerts`       | 1 giây   | Kiểm tra ngưỡng cảnh báo, cập nhật flag                                  |
+| 4   | `Task_AutoControl`       | 1 giây   | Tự động điều khiển bơm & quạt theo ngưỡng                                |
+| 5   | `Task_PumpWatchdog`      | 1 giây   | Bảo vệ bơm: force OFF nếu chạy quá `PUMP_MAX_ON_TIME_MS`, xử lý cooldown |
+| 6   | `Task_UpdateLEDStatus`   | 500 ms   | Cập nhật NeoPixel theo trạng thái hệ thống                               |
+| 7   | `Task_UpdateLCD`         | 500 ms   | Vẽ lại nội dung trang LCD hiện tại                                       |
+| 8   | `Task_AutoSwitchLCDPage` | 5 giây   | Tự động chuyển trang LCD                                                 |
+| 9   | `Task_Heartbeat`         | 5 giây   | In snapshot trạng thái hệ thống ra Serial                                |
+| 10  | `Task_ScanButtons`       | debounce | Quét nút bấm vật lý                                                      |
+| 11  | `Task_SendTelemetry`     | 5 giây   | Đóng gói & đẩy dữ liệu cảm biến lên CoreIoT                              |
+| 12  | `Task_ProcessRpc`        | 200 ms   | Poll & thực thi lệnh RPC từ cloud                                        |
+| 13  | `Task_CheckSchedule`     | 10 giây  | So khớp giờ RTC với lịch tưới, kích bơm nếu đúng giờ                     |
 
-</details>
+### Pump Watchdog
 
-<details>
-<summary><strong>🖥️ Frontend (Next.js)</strong></summary>
+Watchdog bơm (`Task_PumpWatchdog`) có 3 lớp bảo vệ theo thứ tự ưu tiên:
 
-| Thư viện | Mục đích |
-|:---|:---|
-| **Next.js 14** | App Router framework |
-| **TypeScript** | Static typing |
-| **Tailwind CSS** | Utility-first styling |
-| **Socket.io Client** | Nhận data real-time |
-| **Axios** | HTTP client |
+```
+1. Lịch tưới còn thời gian  →  tắt bơm khi hết duration
+2. Không có lịch, chạy quá MAX_ON_TIME  →  force OFF
+3. Bơm đã tắt  →  đếm cooldown, mở lại khi hết PUMP_COOLDOWN_MS
+```
 
-</details>
+### Serial Debug Commands (Core 1)
+
+| Phím | Hành động                      |
+| ---- | ------------------------------ |
+| `A`  | Toggle AUTO / MANUAL mode      |
+| `P`  | Toggle bơm (chỉ trong MANUAL)  |
+| `F`  | Toggle quạt (chỉ trong MANUAL) |
+| `N`  | Chuyển trang LCD               |
+| `S`  | In dữ liệu cảm biến            |
+| `I`  | In thông tin WiFi & IoT        |
+| `?`  | Hiển thị danh sách lệnh        |
 
 ---
 
-## 📁 Cấu trúc dự án
+## 📁 Cấu trúc thư mục
 
 ```
-Project-Greenhouse-IOT/
+ESP32-Smart-Greenhouse-Embedded-Web-Server/
+├── src/                          # Source code C++ (firmware)
+│   ├── main.cpp                  # Entry point, khởi tạo hệ thống
+│   ├── app_tasks.cpp             # Quản lý các FreeRTOS tasks
+│   ├── sensor_handler.cpp        # Đọc & xử lý dữ liệu cảm biến
+│   ├── actuator_handler.cpp      # Điều khiển relay, thiết bị đầu ra
+│   ├── scheduler.cpp             # Lập lịch tự động
+│   ├── smartlogic.cpp            # Logic tự động theo ngưỡng
+│   ├── webserver_greenhouse.cpp  # Khởi tạo & xử lý Web Server
+│   ├── wifi_greenhouse.cpp       # Kết nối WiFi
+│   ├── lcd_display.cpp           # Hiển thị LCD I2C
+│   ├── ntp_sync.cpp              # Đồng bộ thời gian NTP
+│   ├── iot_bridge.cpp            # Kết nối MQTT/IoT platform
+│   ├── button_handler.cpp        # Xử lý nút bấm vật lý
+│   ├── check_info.cpp            # Kiểm tra thông tin hệ thống
+│   ├── coreiot_greenhouse.cpp    # Tích hợp CoreIoT platform
+│   └── global_vars.cpp           # Biến toàn cục
 │
-├── 📂 src/                         ← ESP32 firmware (C++)
-│   ├── main.cpp                    ← Entry point, khởi tạo tasks
-│   ├── sensor_handler.cpp          ← Đọc DHT, soil, LDR
-│   ├── actuator_handler.cpp        ← Điều khiển relay, pump, fan
-│   ├── App_Tasks.cpp               ← Định nghĩa FreeRTOS tasks
-│   ├── scheduler.cpp               ← Cooperative scheduler Core 1
-│   ├── iot_bridge.cpp              ← MQTT telemetry & RPC handler
-│   ├── webserver_greenhouse.cpp    ← Async WebSocket server
-│   ├── wifi_greenhouse.cpp         ← WiFi STA + AP mode
-│   ├── lcd_display.cpp             ← Hiển thị LCD I2C
+├── include/                      # Header files
+│   ├── config.h                  # Cấu hình chính (WiFi, MQTT, Pins...)
+│   ├── global_vars.h
 │   └── ...
 │
-├── 📂 include/                     ← Header files (.h)
-├── 📂 lib/                         ← Thư viện bên thứ ba
-├── 📂 data/                        ← Web UI nhúng trong ESP32
-│   ├── pages/                      ← HTML pages (dashboard, control...)
-│   ├── js/                         ← JavaScript modules
-│   └── css/                        ← Stylesheets
+├── data/                         # SPIFFS filesystem (Web UI)
+│   ├── index.html                # Trang chủ / redirect
+│   ├── pages/                    # Các trang giao diện
+│   │   ├── dashboard.html
+│   │   ├── control.html
+│   │   ├── charts.html
+│   │   ├── logs.html
+│   │   ├── schedule.html
+│   │   ├── smartlogic.html
+│   │   ├── threshold.html
+│   │   ├── notify.html
+│   │   ├── devices.html
+│   │   └── account.html
+│   ├── partials/                 # Thành phần dùng chung
+│   │   ├── sidebar.html
+│   │   ├── topbar.html
+│   │   ├── login.html
+│   │   └── modals.html
+│   ├── js/                       # JavaScript modules
+│   │   ├── websocket.js          # Kết nối WebSocket
+│   │   ├── charts.js             # Vẽ biểu đồ
+│   │   ├── control.js            # Điều khiển thiết bị
+│   │   ├── schedule.js           # Quản lý lịch
+│   │   ├── smartlogic.js         # Cài đặt smart logic
+│   │   ├── threshold.js          # Cài đặt ngưỡng
+│   │   ├── notify.js             # Thông báo
+│   │   ├── logs.js               # Xem nhật ký
+│   │   ├── devices.js            # Quản lý thiết bị
+│   │   ├── auth.js               # Xác thực
+│   │   ├── state.js              # Quản lý trạng thái
+│   │   ├── ui.js                 # Cập nhật giao diện
+│   │   └── helpers.js            # Hàm tiện ích
+│   └── css/                      # Stylesheet
+│       ├── styles.css
+│       ├── base.css
+│       ├── components.css
+│       └── utilities.css
 │
-├── 📂 backend/                     ← NestJS Backend
-│   └── src/
-│       ├── main.ts
-│       ├── app.module.ts
-│       ├── 📂 config/              ← Database, MQTT config
-│       ├── 📂 database/migrations/ ← SQL init scripts
-│       ├── 📂 common/              ← Guards, decorators
-│       ├── 📂 models/devices/      ← Factory Method products
-│       ├── 📂 observers/           ← Observer pattern (notifiers)
-│       ├── 📂 strategies/          ← Strategy pattern (irrigation)
-│       ├── 📂 services/            ← AlertMonitor, DeviceFactory...
-│       └── 📂 modules/             ← auth, sensors, devices, schedules...
+├── lib/                          # Thư viện cục bộ
+│   ├── DHT/                      # Cảm biến DHT11/DHT22
+│   ├── LCD/                      # LiquidCrystal I2C
+│   ├── RTClib/                   # Đồng hồ thời gian thực
+│   ├── ArduinoJson/              # Xử lý JSON
+│   ├── AsyncTCP/                 # TCP bất đồng bộ cho ESP32
+│   ├── ESPAsyncWebServer/        # Web server bất đồng bộ
+│   ├── PubSubClient/             # MQTT client
+│   ├── ElegantOTA-master/        # OTA update qua web
+│   ├── Adafruit_NeoPixel/        # LED RGB WS2812
+│   └── Adafruit_Sensor/          # Cảm biến Adafruit
 │
-└── 📂 frontend/                    ← Next.js Frontend
-    └── src/
-        ├── middleware.ts           ← Auth guard
-        ├── 📂 app/(app)/           ← Protected pages
-        │   ├── dashboard/
-        │   ├── charts/
-        │   ├── control/
-        │   ├── schedule/
-        │   ├── threshold/
-        │   ├── smartlogic/
-        │   ├── devices/
-        │   ├── logs/
-        │   ├── notify/
-        │   └── account/
-        ├── 📂 hooks/               ← useAuth, useSensors, useWebSocket
-        ├── 📂 lib/                 ← API client, auth helpers
-        └── 📂 types/               ← TypeScript interfaces
+├── platformio.ini                # Cấu hình PlatformIO
+├── partitions.csv                # Phân vùng flash tùy chỉnh
+└── greenhouse_block_diagram.html # Sơ đồ khối hệ thống
 ```
 
 ---
 
-## 🧩 Design Patterns
+## 🔧 Phần cứng yêu cầu
 
-### 🏭 Factory Method — FR11 (Quản lý thiết bị)
-
-> Cho phép đăng ký thiết bị IoT mới mà **không cần sửa mã nguồn lõi**.
-
-```
-device.base.ts               ←  Abstract Product
-├── sensor.device.ts         ←  ConcreteProduct: cảm biến (DHT, soil, LDR)
-├── actuator.device.ts       ←  ConcreteProduct: bơm, quạt, đèn relay
-└── display.device.ts        ←  ConcreteProduct: LCD I2C, NeoPixel
-
-device-factory.service.ts    ←  Creator (Factory Method)
-```
+| Linh kiện           | Mô tả                                       |
+| ------------------- | ------------------------------------------- |
+| **ESP32 DevKit**    | Vi điều khiển chính (esp32dev)              |
+| **DHT22 / DHT11**   | Cảm biến nhiệt độ & độ ẩm                   |
+| **DS1307 / DS3231** | Module đồng hồ thời gian thực (RTC)         |
+| **LCD 16x2 I2C**    | Hiển thị thông tin trực tiếp                |
+| **Relay Module**    | Điều khiển thiết bị công suất (bơm, đèn...) |
+| **WS2812 NeoPixel** | LED RGB (tuỳ chọn, hiển thị trạng thái)     |
+| **Button**          | Nút bấm vật lý reset / thao tác nhanh       |
 
 ---
 
-### 👁️ Observer Pattern — FR10 (Thông báo tự động)
+## 📦 Thư viện sử dụng
 
-> Phân tách hoàn toàn logic **phát hiện sự cố** và **gửi thông báo**.
-
-```
-alert-monitor.service.ts              ←  Subject (setInterval 30s)
-  │
-  ├── telegram.notifier.ts            ←  Observer: retry 3 lần, cooldown 10'
-  ├── email.notifier.ts               ←  Observer: SMTP
-  ├── websocket.notifier.ts           ←  Observer: push real-time
-  └── activity.logger.ts             ←  Observer: ghi log vào DB
-
-notification-observer.interface.ts   ←  Observer interface
-```
-
----
-
-### 🔀 Strategy Pattern — FR06/07/08 (Logic tưới thông minh)
-
-> Cho phép **chuyển đổi linh hoạt** giữa các chiến lược tưới mà không thay đổi logic gốc.
-
-```
-irrigation-context.service.ts             ←  Context
-
-irrigation-strategy.interface.ts          ←  Strategy interface
-├── threshold-irrigation.strategy.ts      ←  Tưới theo ngưỡng độ ẩm đất
-├── schedule-irrigation.strategy.ts       ←  Tưới theo lịch cố định
-└── weather-irrigation.strategy.ts        ←  Tưới theo dự báo thời tiết
-```
+| Thư viện            | Mục đích                                 |
+| ------------------- | ---------------------------------------- |
+| `ESPAsyncWebServer` | Web server bất đồng bộ, không blocking   |
+| `AsyncTCP`          | TCP bất đồng bộ cho ESP32                |
+| `ArduinoJson`       | Parse/serialize JSON cho API             |
+| `DHT`               | Đọc cảm biến DHT11/DHT22                 |
+| `RTClib`            | Giao tiếp module RTC (DS1307, DS3231...) |
+| `LiquidCrystal_I2C` | Điều khiển LCD qua I2C                   |
+| `PubSubClient`      | MQTT client                              |
+| `ElegantOTA`        | Cập nhật firmware qua Web OTA            |
+| `Adafruit_NeoPixel` | Điều khiển LED WS2812                    |
+| `Adafruit_Sensor`   | Abstraction layer cảm biến Adafruit      |
 
 ---
 
-## ✅ Functional Requirements
+## ⚙️ Cài đặt & Cấu hình
 
-| FR | Tính năng | Trạng thái | Ghi chú |
-|:---:|:---|:---:|:---|
-| FR01 | Hiển thị sensor real-time | ✅ | ESP32 WebSocket + Backend Socket.io |
-| FR02 | Giám sát sức khỏe thiết bị | ✅ | WiFi RSSI, sensor status |
-| FR03 | Lịch sử & xuất dữ liệu CSV | ✅ | PostgreSQL time-series |
-| FR04 | Nhật ký hoạt động | ✅ | ActivityLogger Observer |
-| FR05 | Điều khiển thủ công | ✅ | WebSocket RPC → ESP32 |
-| FR06 | Tưới theo ngưỡng độ ẩm | ✅ | ThresholdIrrigationStrategy |
-| FR07 | Lập lịch tưới tự động | ✅ | ScheduleIrrigationStrategy + node-cron |
-| FR08 | Smart Logic thời tiết | ✅ | WeatherIrrigationStrategy + OpenWeather API |
-| FR09 | Xác thực & phiên làm việc | ✅ | JWT + Bcrypt |
-| FR10 | Thông báo Telegram / Email | ✅ | Observer Pattern |
-| FR11 | Quản lý thiết bị IoT | ✅ | Factory Method Pattern |
-| FR12 | Auto mode điều khiển | ✅ | autoControlPump/Fan/LED trong ESP32 |
-| FR13 | Gửi telemetry định kỳ | ✅ | Task_SendTelemetry mỗi 5s |
-| FR14 | Watchdog máy bơm | ✅ | Task_PumpWatchdog — force OFF khi timeout |
+### Yêu cầu
 
----
+- [PlatformIO IDE](https://platformio.org/) (VSCode extension hoặc CLI)
+- Python 3.x
+- Board: `esp32dev`
 
-## 🔧 Cài đặt & Chạy
-
-### Yêu cầu hệ thống
-
-| Thành phần | Phiên bản tối thiểu |
-|:---|:---|
-| Node.js | >= 18.x |
-| PostgreSQL | >= 14 |
-| PlatformIO | Mới nhất |
-| MQTT Broker | Mosquitto hoặc CoreIoT |
-
-**Phần cứng ESP32:** DHT11/22 · LDR · Soil Moisture Sensor · Relay Module · NeoPixel · LCD I2C · RTC DS3231
-
----
-
-### 1️⃣ ESP32 Firmware
+### Bước 1: Clone repository
 
 ```bash
-# Clone repository
-git clone https://github.com/your-repo/Project-Greenhouse-IOT.git
-cd Project-Greenhouse-IOT
-
-# Build và flash firmware lên ESP32
-pio run --target upload
-
-# Upload web UI lên LittleFS
-pio run --target uploadfs
-
-# Mở Serial Monitor để debug
-pio device monitor --baud 115200
+git clone https://github.com/<your-username>/ESP32-Smart-Greenhouse-Embedded-Web-Server.git
+cd ESP32-Smart-Greenhouse-Embedded-Web-Server
 ```
 
-> 💡 Sau khi flash, kết nối WiFi **`Greenhouse-AP`** (password: `12345678`), vào `http://192.168.4.1` để cấu hình WiFi & MQTT.
+### Bước 2: Cấu hình hệ thống
 
----
+Chỉnh sửa file `include/config.h`:
 
-### 2️⃣ Backend (NestJS)
+```cpp
+// WiFi
+#define WIFI_SSID     "your_wifi_ssid"
+#define WIFI_PASSWORD "your_wifi_password"
+
+// MQTT Broker
+#define MQTT_SERVER   "broker.hivemq.com"
+#define MQTT_PORT     1883
+#define MQTT_TOPIC    "greenhouse/"
+
+// Web Server
+#define WEB_SERVER_PORT 80
+
+// Chân GPIO (tuỳ sơ đồ đấu nối)
+#define DHT_PIN       4
+#define RELAY_PIN_1   26
+#define RELAY_PIN_2   27
+#define NEOPIXEL_PIN  13
+#define BUTTON_PIN    0
+#define LCD_SDA       21
+#define LCD_SCL       22
+```
+
+### Bước 3: Upload filesystem (LittleFS)
 
 ```bash
-cd backend
+# Xóa toàn bộ flash (tuỳ chọn, dùng khi muốn reset hoàn toàn)
+pio run -t erase
 
-# Cài đặt dependencies
-npm install
-
-# Tạo file cấu hình môi trường
-cp .env.example .env
-# ✏️  Chỉnh sửa .env theo hướng dẫn bên dưới
-
-# Khởi tạo cơ sở dữ liệu
-psql -U postgres -d greenhouse -f src/database/migrations/001_init.sql
-
-# Chạy môi trường development
-npm run start:dev
-
-# Build & chạy production
-npm run build && npm run start:prod
+# Upload toàn bộ thư mục data/ lên LittleFS
+pio run -t uploadfs
 ```
 
----
-
-### 3️⃣ Frontend (Next.js)
+### Bước 4: Build & Upload firmware
 
 ```bash
-cd frontend
+# Build
+pio run
 
-# Cài đặt dependencies
-npm install
+# Upload
+pio run -t upload
+```
 
-# Tạo file cấu hình môi trường
-cp .env.example .env.local
-# ✏️  Điền NEXT_PUBLIC_API_URL và NEXT_PUBLIC_WS_URL
+### Bước 5: Truy cập giao diện Web
 
-# Chạy môi trường development
-npm run dev
+Mở Serial Monitor để lấy địa chỉ IP, sau đó truy cập:
 
-# Build & chạy production
-npm run build && npm run start
+```
+http://<ESP32_IP_ADDRESS>
 ```
 
 ---
 
-## 🌍 Biến môi trường
+## 🌐 Giao diện Web
 
-### `backend/.env`
+Giao diện được lưu trên **LittleFS** của ESP32 và phục vụ bởi ESPAsyncWebServer.
 
-```env
-# ── Database ──────────────────────────────────────────
-DATABASE_URL=postgresql://postgres:password@localhost:5432/greenhouse
+| Trang       | Đường dẫn                | Mô tả                         |
+| ----------- | ------------------------ | ----------------------------- |
+| Dashboard   | `/pages/dashboard.html`  | Tổng quan hệ thống            |
+| Control     | `/pages/control.html`    | Điều khiển thiết bị thủ công  |
+| Charts      | `/pages/charts.html`     | Biểu đồ lịch sử cảm biến      |
+| Logs        | `/pages/logs.html`       | Nhật ký hoạt động             |
+| Schedule    | `/pages/schedule.html`   | Lập lịch tự động              |
+| Smart Logic | `/pages/smartlogic.html` | Quy tắc điều khiển thông minh |
+| Threshold   | `/pages/threshold.html`  | Cài đặt ngưỡng cảnh báo       |
+| Notify      | `/pages/notify.html`     | Quản lý thông báo             |
+| Devices     | `/pages/devices.html`    | Danh sách thiết bị            |
+| Account     | `/pages/account.html`    | Tài khoản & bảo mật           |
 
-# ── Authentication ────────────────────────────────────
-JWT_SECRET=your-super-secret-jwt-key-min-32-chars
-JWT_EXPIRES_IN=24h
+---
 
-# ── MQTT Broker ───────────────────────────────────────
-MQTT_BROKER_URL=mqtt://localhost:1883
-MQTT_USERNAME=
-MQTT_PASSWORD=
+## 📡 Giao tiếp thời gian thực
 
-# ── Telegram ──────────────────────────────────────────
-TELEGRAM_ENCRYPT_KEY=your-32-char-encryption-key
+Hệ thống sử dụng **WebSocket** để đẩy dữ liệu cảm biến và trạng thái thiết bị lên trình duyệt theo thời gian thực mà không cần reload trang.
 
-# ── Email SMTP ────────────────────────────────────────
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=your@gmail.com
-SMTP_PASS=your-app-password
-
-# ── App ───────────────────────────────────────────────
-PORT=3001
-CORS_ORIGIN=http://localhost:3000
+```
+ESP32  ──WebSocket──▶  Browser
+       ◀──Command───   Browser
 ```
 
-### `frontend/.env.local`
+- File phía client: `data/js/websocket.js`
+- Endpoint: `ws://<ESP32_IP>/ws`
 
-```env
-NEXT_PUBLIC_API_URL=http://localhost:3001
-NEXT_PUBLIC_WS_URL=http://localhost:3001
+---
+
+## 🧠 Lập lịch & Smart Logic
+
+### Scheduler
+
+Cho phép đặt lịch bật/tắt thiết bị theo khung giờ cụ thể trong ngày (sử dụng RTC để đảm bảo chính xác ngay cả khi mất điện).
+
+### Smart Logic (Threshold-based Automation)
+
+Tự động điều khiển thiết bị khi giá trị cảm biến vượt ngưỡng đã cài đặt:
+
+```
+Nhiệt độ > 35°C  →  Bật quạt làm mát
+Độ ẩm đất < 40%  →  Bật bơm tưới
+Độ ẩm không khí > 80%  →  Bật thông gió
 ```
 
 ---
 
-## 📡 API Endpoints
+## 🔄 OTA Update
 
-### 🔐 Auth — `/api/auth`
+Hệ thống hỗ trợ cập nhật firmware không cần cắm cáp qua **ElegantOTA**:
 
-| Method | Endpoint | Mô tả |
-|:---:|:---|:---|
-| `POST` | `/login` | Đăng nhập → trả về JWT token |
-| `GET` | `/check-session` | Kiểm tra token còn hợp lệ |
-| `POST` | `/logout` | Đăng xuất |
-
-### 👤 Users — `/api/user`
-
-| Method | Endpoint | Mô tả |
-|:---:|:---|:---|
-| `GET` | `/profile` | Lấy thông tin người dùng |
-| `PUT` | `/profile` | Cập nhật profile và mật khẩu |
-
-### 📊 Sensors — `/api/sensors`
-
-| Method | Endpoint | Mô tả |
-|:---:|:---|:---|
-| `GET` | `/history?range=24h` | Lịch sử sensor (`24h` / `7d` / `30d`) |
-| `GET` | `/export?format=csv` | Xuất dữ liệu CSV / Excel |
-
-### 🔌 Devices — `/api/devices`
-
-| Method | Endpoint | Mô tả |
-|:---:|:---|:---|
-| `GET` | `/` | Danh sách thiết bị |
-| `POST` | `/` | Đăng ký thiết bị mới |
-| `DELETE` | `/:id` | Xóa thiết bị |
-
-### 🕐 Schedules — `/api/schedules`
-
-| Method | Endpoint | Mô tả |
-|:---:|:---|:---|
-| `GET` | `/` | Danh sách lịch tưới |
-| `POST` | `/` | Tạo lịch mới |
-| `PUT` | `/:id` | Cập nhật lịch |
-| `DELETE` | `/:id` | Xóa lịch |
-
-### 🔔 Notifications — `/api/notifications`
-
-| Method | Endpoint | Mô tả |
-|:---:|:---|:---|
-| `POST` | `/telegram/test` | Gửi tin nhắn test Telegram |
-| `POST` | `/telegram/save` | Lưu cấu hình Telegram |
-| `POST` | `/email/test` | Gửi email test |
-| `POST` | `/email/save` | Lưu cấu hình Email |
+1. Truy cập `http://<ESP32_IP>/update`
+2. Chọn file `.bin` firmware mới
+3. Upload và ESP32 tự động restart
 
 ---
 
-## ⚡ Kiến trúc Dual-Core ESP32
+## 📊 Sơ đồ khối
+
+Xem sơ đồ khối hệ thống chi tiết tại file:
 
 ```
-┌──────────────────────────────────┬───────────────────────────────────┐
-│         CORE 0 — FreeRTOS        │        CORE 1 — Scheduler         │
-│                                  │                                   │
-│  greenhouse_wifi_task            │  Task_ReadAirSensors   (2s)       │
-│  greenhouse_coreiot_task  ◄──┐   │  Task_ReadSoilSensor   (5s)       │
-│  greenhouse_webserver_task ─►│   │  Task_SendTelemetry    (5s)       │
-│                              │   │  Task_AutoControl      (1s)       │
-│  ┌──────────────────────┐   │    │  Task_ProcessRpc       (event)    │
-│  │  xTelemetryQueue     │◄──┘    │  Task_PumpWatchdog     (1s)       │
-│  │  xRpcCommandQueue    │──────► │  Task_UpdateLCD        (1s)       │
-│  └──────────────────────┘        │  Task_ScanButtons      (50ms)     │
-│                                  │                                   │
-└──────────────────────────────────┴───────────────────────────────────┘
-           ▲  MQTT / WebSocket                    ▼  GPIO / I2C / SPI
-           │                                      │
-    ☁️  Backend Server                  🔌 Sensors & Actuators
+greenhouse_block_diagram.html
+```
 
+Mở bằng trình duyệt để xem kiến trúc kết nối phần cứng.
 
-**Được xây dựng với ❤️ bởi nhóm EcoGreen**
+---
 
-[![MIT License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
+## 📄 Giấy phép
 
+Dự án được phân phối theo giấy phép **MIT**. Xem file `LICENSE` để biết thêm chi tiết.
+
+---
+
+<div align="center">
+  Made with ❤️ for Smart Agriculture
 </div>

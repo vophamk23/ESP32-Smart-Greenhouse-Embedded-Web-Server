@@ -1,0 +1,1891 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+    <title>Greenhouse IoT — Sơ đồ khối</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        background: #f5f2eb;
+        font-family: "JetBrains Mono", monospace;
+        color: #1a1a18;
+        padding: 32px 28px 48px;
+      }
+      h1 {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        margin-bottom: 4px;
+      }
+      .subtitle {
+        font-size: 11px;
+        color: #8a8a7a;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+      }
+      .meta {
+        font-size: 10px;
+        color: #8a8a7a;
+        line-height: 1.8;
+        margin-bottom: 20px;
+      }
+      .meta b {
+        color: #1a1a18;
+      }
+
+      /* legend */
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 14px;
+        margin-bottom: 20px;
+        padding: 10px 14px;
+        border: 1px solid #d0ccbc;
+        background: #faf8f3;
+        border-radius: 3px;
+      }
+      .li {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 10px;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        color: #3a3a35;
+      }
+      .ld {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+        flex-shrink: 0;
+      }
+
+      /* diagram card */
+      .card {
+        background: #faf8f3;
+        border: 1px solid #d0ccbc;
+        border-radius: 3px;
+        overflow: hidden;
+        margin-bottom: 20px;
+      }
+      svg {
+        display: block;
+        width: 100%;
+        height: auto;
+      }
+
+      /* notes */
+      .notes {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .nc {
+        border: 1px solid #d0ccbc;
+        background: #faf8f3;
+        padding: 12px 14px;
+        border-radius: 2px;
+      }
+      .nt {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 2px;
+        border-bottom: 1px solid #d0ccbc;
+        padding-bottom: 6px;
+        margin-bottom: 8px;
+      }
+      .nr {
+        display: flex;
+        justify-content: space-between;
+        font-size: 10px;
+        padding: 3px 0;
+        border-bottom: 1px dashed #d0ccbc;
+      }
+      .nr:last-child {
+        border-bottom: none;
+      }
+      .nl {
+        color: #8a8a7a;
+        letter-spacing: 0.8px;
+      }
+      .nv {
+        font-weight: 700;
+        color: #1a1a18;
+        text-align: right;
+      }
+      .np {
+        color: #d4580a;
+        font-weight: 700;
+      }
+
+      footer {
+        margin-top: 20px;
+        font-size: 9px;
+        color: #8a8a7a;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+        text-align: center;
+        border-top: 1px solid #d0ccbc;
+        padding-top: 10px;
+      }
+
+      @media (max-width: 700px) {
+        .notes {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>GREENHOUSE IoT</h1>
+    <p class="subtitle">Sơ đồ khối — ESP32 Dev Module · PlatformIO</p>
+    <p class="meta">
+      <b>MCU:</b> ESP32 Xtensa LX6 Dual-Core 240MHz · 4MB Flash · 520KB SRAM
+      &nbsp;|&nbsp; <b>Bus:</b> I²C (SDA=GPIO21, SCL=GPIO22) · ADC 12-bit · GPIO
+      Digital &nbsp;|&nbsp; <b>Power:</b> 5V USB → AMS1117 3.3V reg
+    </p>
+
+    <div class="legend">
+      <div class="li">
+        <div class="ld" style="background: #1a3a5c"></div>
+        MCU / ESP32
+      </div>
+      <div class="li">
+        <div class="ld" style="background: #2d5a27"></div>
+        Sensor
+      </div>
+      <div class="li">
+        <div class="ld" style="background: #6b2020"></div>
+        Actuator
+      </div>
+      <div class="li">
+        <div class="ld" style="background: #5c4a00"></div>
+        Power
+      </div>
+      <div class="li">
+        <div class="ld" style="background: #2a3a5c"></div>
+        UI Display
+      </div>
+      <div class="li">
+        <div class="ld" style="background: #5c2a00"></div>
+        Relay
+      </div>
+      <div class="li">
+        <svg width="30" height="10">
+          <line
+            x1="0"
+            y1="5"
+            x2="26"
+            y2="5"
+            stroke="#2d5a27"
+            stroke-width="2"
+            marker-end="url(#lg-d)"
+          />
+          <defs>
+            <marker
+              id="lg-d"
+              markerWidth="6"
+              markerHeight="6"
+              refX="5"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L6,3 L0,6Z" fill="#2d5a27" />
+            </marker>
+          </defs>
+        </svg>
+        Digital / 1-Wire
+      </div>
+      <div class="li">
+        <svg width="30" height="10">
+          <line
+            x1="0"
+            y1="5"
+            x2="26"
+            y2="5"
+            stroke="#00589c"
+            stroke-width="2"
+            marker-end="url(#lg-i)"
+          />
+          <defs>
+            <marker
+              id="lg-i"
+              markerWidth="6"
+              markerHeight="6"
+              refX="5"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L6,3 L0,6Z" fill="#00589c" />
+            </marker>
+          </defs>
+        </svg>
+        I²C Bus
+      </div>
+      <div class="li">
+        <svg width="30" height="10">
+          <line
+            x1="0"
+            y1="5"
+            x2="26"
+            y2="5"
+            stroke="#9c5c00"
+            stroke-width="2"
+            marker-end="url(#lg-a)"
+          />
+          <defs>
+            <marker
+              id="lg-a"
+              markerWidth="6"
+              markerHeight="6"
+              refX="5"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L6,3 L0,6Z" fill="#9c5c00" />
+            </marker>
+          </defs>
+        </svg>
+        ADC Analog
+      </div>
+      <div class="li">
+        <svg width="30" height="10">
+          <line
+            x1="0"
+            y1="5"
+            x2="26"
+            y2="5"
+            stroke="#7a1a1a"
+            stroke-width="2"
+            marker-end="url(#lg-c)"
+          />
+          <defs>
+            <marker
+              id="lg-c"
+              markerWidth="6"
+              markerHeight="6"
+              refX="5"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L6,3 L0,6Z" fill="#7a1a1a" />
+            </marker>
+          </defs>
+        </svg>
+        Control GPIO
+      </div>
+      <div class="li">
+        <svg width="30" height="10">
+          <line
+            x1="0"
+            y1="5"
+            x2="26"
+            y2="5"
+            stroke="#8b0000"
+            stroke-width="2"
+            stroke-dasharray="5,3"
+            marker-end="url(#lg-p)"
+          />
+          <defs>
+            <marker
+              id="lg-p"
+              markerWidth="6"
+              markerHeight="6"
+              refX="5"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L6,3 L0,6Z" fill="#8b0000" />
+            </marker>
+          </defs>
+        </svg>
+        Power 3.3V/5V
+      </div>
+      <div class="li">
+        <svg width="30" height="10">
+          <line
+            x1="0"
+            y1="5"
+            x2="26"
+            y2="5"
+            stroke="#6a0080"
+            stroke-width="2"
+            marker-end="url(#lg-n)"
+          />
+          <defs>
+            <marker
+              id="lg-n"
+              markerWidth="6"
+              markerHeight="6"
+              refX="5"
+              refY="3"
+              orient="auto"
+            >
+              <path d="M0,0 L6,3 L0,6Z" fill="#6a0080" />
+            </marker>
+          </defs>
+        </svg>
+        NeoPixel Data
+      </div>
+    </div>
+
+    <div class="card">
+      <svg viewBox="0 0 1100 760" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <marker
+            id="ad"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M0,0 L7,3.5 L0,7Z" fill="#2d5a27" />
+          </marker>
+          <marker
+            id="ai"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M0,0 L7,3.5 L0,7Z" fill="#00589c" />
+          </marker>
+          <marker
+            id="aa"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M0,0 L7,3.5 L0,7Z" fill="#9c5c00" />
+          </marker>
+          <marker
+            id="ac"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M0,0 L7,3.5 L0,7Z" fill="#7a1a1a" />
+          </marker>
+          <marker
+            id="ap"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M0,0 L7,3.5 L0,7Z" fill="#8b0000" />
+          </marker>
+          <marker
+            id="an"
+            markerWidth="7"
+            markerHeight="7"
+            refX="6"
+            refY="3.5"
+            orient="auto"
+          >
+            <path d="M0,0 L7,3.5 L0,7Z" fill="#6a0080" />
+          </marker>
+        </defs>
+
+        <!-- bg -->
+        <rect width="1100" height="760" fill="#faf8f3" />
+
+        <!-- ═══════════════════════════ SECTION HEADERS ═══════════════════════════ -->
+        <text
+          x="60"
+          y="26"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="#8a8a7a"
+          letter-spacing="3"
+        >
+          INPUT SENSORS
+        </text>
+        <text
+          x="420"
+          y="26"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="#8a8a7a"
+          letter-spacing="3"
+        >
+          MCU — ESP32
+        </text>
+        <text
+          x="820"
+          y="26"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="#8a8a7a"
+          letter-spacing="3"
+        >
+          OUTPUT ACTUATORS
+        </text>
+
+        <!-- dividers -->
+        <line
+          x1="390"
+          y1="14"
+          x2="390"
+          y2="746"
+          stroke="#d0ccbc"
+          stroke-width="1"
+          stroke-dasharray="4,4"
+        />
+        <line
+          x1="800"
+          y1="14"
+          x2="800"
+          y2="746"
+          stroke="#d0ccbc"
+          stroke-width="1"
+          stroke-dasharray="4,4"
+        />
+
+        <!-- ═══════════════════════════ USB POWER ═══════════════════════════ -->
+        <rect x="50" y="40" width="130" height="48" rx="3" fill="#5c4a00" />
+        <text
+          x="115"
+          y="58"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          USB 5V
+        </text>
+        <text
+          x="115"
+          y="74"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Micro-USB · Power
+        </text>
+
+        <!-- 5V → ESP32 power line (top, no crossing) -->
+        <path
+          d="M180,64 L405,64 L405,100"
+          stroke="#8b0000"
+          stroke-width="2"
+          stroke-dasharray="6,3"
+          fill="none"
+          marker-end="url(#ap)"
+        />
+        <text
+          x="290"
+          y="57"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="#8b0000"
+          text-anchor="middle"
+        >
+          5V
+        </text>
+
+        <!-- ═══════════════════════════ SENSORS (left column) ═══════════════════════════ -->
+
+        <!-- DHT11 · GPIO27 -->
+        <rect x="50" y="130" width="130" height="60" rx="3" fill="#2d5a27" />
+        <text
+          x="115"
+          y="150"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          DHT11
+        </text>
+        <text
+          x="115"
+          y="166"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Temp + Humidity
+        </text>
+        <text
+          x="115"
+          y="181"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          ±2°C · ±5%RH
+        </text>
+
+        <!-- LDR · GPIO34 -->
+        <rect x="50" y="240" width="130" height="60" rx="3" fill="#2d5a27" />
+        <text
+          x="115"
+          y="260"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          LDR Module
+        </text>
+        <text
+          x="115"
+          y="276"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Light · DO Digital
+        </text>
+        <text
+          x="115"
+          y="291"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          LM393 Comparator
+        </text>
+
+        <!-- Soil · GPIO33 -->
+        <rect x="50" y="350" width="130" height="60" rx="3" fill="#2d5a27" />
+        <text
+          x="115"
+          y="370"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          Soil Sensor
+        </text>
+        <text
+          x="115"
+          y="386"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Capacitive ADC
+        </text>
+        <text
+          x="115"
+          y="401"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          GPIO33 · 12-bit
+        </text>
+
+        <!-- Button group -->
+        <rect x="50" y="460" width="130" height="80" rx="3" fill="#2d4a60" />
+        <text
+          x="115"
+          y="480"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          Buttons × 3
+        </text>
+        <text
+          x="115"
+          y="496"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          GPIO19 · Mode
+        </text>
+        <text
+          x="115"
+          y="510"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          GPIO18 · Pump
+        </text>
+        <text
+          x="115"
+          y="524"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          GPIO5 · Fan
+        </text>
+
+        <!-- ═══════════════════════════ SENSOR WIRES ═══════════════════════════
+     All wires go straight right — no crossing.
+     Each sensor connects at its own y-level.
+════════════════════════════════════════════════════════════════════════ -->
+
+        <!-- DHT11 → GPIO27 (1-Wire, y=160) -->
+        <path
+          d="M180,160 L400,160"
+          stroke="#2d5a27"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#ad)"
+        />
+        <text
+          x="288"
+          y="154"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="#2d5a27"
+          text-anchor="middle"
+        >
+          1-Wire · GPIO27
+        </text>
+
+        <!-- LDR → GPIO34 (digital, y=270) -->
+        <path
+          d="M180,270 L400,270"
+          stroke="#2d5a27"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#ad)"
+        />
+        <text
+          x="288"
+          y="264"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="#2d5a27"
+          text-anchor="middle"
+        >
+          DO Digital · GPIO34
+        </text>
+
+        <!-- Soil → GPIO33 (ADC, y=380) -->
+        <path
+          d="M180,380 L400,380"
+          stroke="#9c5c00"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#aa)"
+        />
+        <text
+          x="288"
+          y="374"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="#9c5c00"
+          text-anchor="middle"
+        >
+          ADC · GPIO33
+        </text>
+
+        <!-- Buttons → GPIO19/18/5 (y=500) -->
+        <path
+          d="M180,500 L400,500"
+          stroke="#2d5a27"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#ad)"
+        />
+        <text
+          x="288"
+          y="494"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="#2d5a27"
+          text-anchor="middle"
+        >
+          GPIO19/18/5
+        </text>
+
+        <!-- 3.3V power to sensors (dashed, y=120 above sensors) -->
+        <path
+          d="M180,56 L370,56 L370,120"
+          stroke="#8b0000"
+          stroke-width="1.5"
+          stroke-dasharray="5,3"
+          fill="none"
+          marker-end="url(#ap)"
+        />
+        <text
+          x="280"
+          y="50"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="#8b0000"
+          text-anchor="middle"
+        >
+          3.3V → sensors
+        </text>
+
+        <!-- ═══════════════════════════ ESP32 BOX ═══════════════════════════ -->
+        <rect
+          x="400"
+          y="88"
+          width="380"
+          height="590"
+          rx="4"
+          fill="#1a3a5c"
+          opacity=".06"
+        />
+        <rect
+          x="400"
+          y="88"
+          width="380"
+          height="590"
+          rx="4"
+          fill="none"
+          stroke="#1a3a5c"
+          stroke-width="2"
+        />
+
+        <!-- ESP32 chip block -->
+        <rect x="420" y="100" width="340" height="88" rx="4" fill="#1a3a5c" />
+        <text
+          x="590"
+          y="126"
+          font-family="JetBrains Mono,monospace"
+          font-size="13"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          ESP32 Dev Module
+        </text>
+        <text
+          x="590"
+          y="145"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Xtensa LX6 Dual-Core · 240MHz · 4MB Flash
+        </text>
+        <text
+          x="590"
+          y="161"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          3.3V I/O · WiFi · LittleFS filesystem
+        </text>
+        <text
+          x="590"
+          y="177"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          AMS1117 3.3V reg on-board
+        </text>
+
+        <!-- CORE 0 box -->
+        <rect x="420" y="208" width="160" height="170" rx="3" fill="#0f2a47" />
+        <text
+          x="500"
+          y="228"
+          font-family="JetBrains Mono,monospace"
+          font-size="10"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          CORE 0
+        </text>
+        <text
+          x="500"
+          y="244"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          FreeRTOS Tasks
+        </text>
+        <!-- core 0 tasks -->
+        <rect x="432" y="256" width="136" height="26" rx="2" fill="#183c60" />
+        <text
+          x="500"
+          y="265"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          wifi_task
+        </text>
+        <text
+          x="500"
+          y="277"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          priority 3 · 4096B
+        </text>
+
+        <rect x="432" y="288" width="136" height="26" rx="2" fill="#183c60" />
+        <text
+          x="500"
+          y="297"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          coreiot_task
+        </text>
+        <text
+          x="500"
+          y="309"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          priority 2 · 8192B
+        </text>
+
+        <rect x="432" y="320" width="136" height="26" rx="2" fill="#183c60" />
+        <text
+          x="500"
+          y="329"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          webserver_task
+        </text>
+        <text
+          x="500"
+          y="341"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          priority 1 · 8192B
+        </text>
+
+        <rect x="432" y="352" width="136" height="18" rx="2" fill="#102235" />
+        <text
+          x="500"
+          y="364"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          ESPAsyncWebServer · WebSocket
+        </text>
+
+        <!-- CORE 1 box -->
+        <rect x="600" y="208" width="168" height="170" rx="3" fill="#0f2a47" />
+        <text
+          x="684"
+          y="228"
+          font-family="JetBrains Mono,monospace"
+          font-size="10"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          CORE 1
+        </text>
+        <text
+          x="684"
+          y="244"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          Cooperative Scheduler
+        </text>
+
+        <rect x="612" y="256" width="144" height="110" rx="2" fill="#183c60" />
+        <text
+          x="684"
+          y="270"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          Task_ReadAirSensors 2s
+        </text>
+        <text
+          x="684"
+          y="283"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          Task_ReadSoilSensor 5s
+        </text>
+        <text
+          x="684"
+          y="296"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          Task_CheckAlerts 1s
+        </text>
+        <text
+          x="684"
+          y="309"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          Task_AutoControl 1s
+        </text>
+        <text
+          x="684"
+          y="322"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          Task_PumpWatchdog 1s
+        </text>
+        <text
+          x="684"
+          y="335"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          Task_UpdateLED/LCD 500ms
+        </text>
+        <text
+          x="684"
+          y="348"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="middle"
+        >
+          Task_SendTelemetry 5s
+        </text>
+        <text
+          x="684"
+          y="361"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          + 5 more tasks…
+        </text>
+
+        <!-- I2C bus bar -->
+        <rect
+          x="420"
+          y="400"
+          width="340"
+          height="18"
+          rx="2"
+          fill="#00589c"
+          opacity=".18"
+        />
+        <text
+          x="590"
+          y="413"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          font-weight="700"
+          fill="#00589c"
+          text-anchor="middle"
+        >
+          I²C BUS · SDA = GPIO21 · SCL = GPIO22
+        </text>
+
+        <!-- Modules row -->
+        <rect x="420" y="434" width="100" height="40" rx="3" fill="#0f2a47" />
+        <text
+          x="470"
+          y="452"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          sensor_handler
+        </text>
+        <text
+          x="470"
+          y="466"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          DHT · LDR · Soil
+        </text>
+
+        <rect x="532" y="434" width="100" height="40" rx="3" fill="#0f2a47" />
+        <text
+          x="582"
+          y="452"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          actuator_handler
+        </text>
+        <text
+          x="582"
+          y="466"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          Relay · NeoPixel
+        </text>
+
+        <rect x="644" y="434" width="100" height="40" rx="3" fill="#0f2a47" />
+        <text
+          x="694"
+          y="452"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          scheduler
+        </text>
+        <text
+          x="694"
+          y="466"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          RTC · 13 tasks
+        </text>
+
+        <!-- GPIO labels row (left edge, inputs) -->
+        <text
+          x="412"
+          y="168"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="end"
+        >
+          GPIO27 ← DHT11
+        </text>
+        <text
+          x="412"
+          y="278"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="end"
+        >
+          GPIO34 ← LDR DO
+        </text>
+        <text
+          x="412"
+          y="388"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="end"
+        >
+          GPIO33 ← Soil ADC
+        </text>
+        <text
+          x="412"
+          y="508"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="end"
+        >
+          GPIO19/18/5 ← Btns
+        </text>
+
+        <!-- GPIO labels row (right edge, outputs) -->
+        <text
+          x="788"
+          y="168"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="start"
+        >
+          GPIO17 → Relay pump
+        </text>
+        <text
+          x="788"
+          y="186"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="start"
+        >
+          GPIO25 → Fan S1
+        </text>
+        <text
+          x="788"
+          y="204"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="start"
+        >
+          GPIO26 → NeoPixel
+        </text>
+        <text
+          x="788"
+          y="222"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="start"
+        >
+          GPIO21 → LCD SDA
+        </text>
+        <text
+          x="788"
+          y="240"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6ab0e0"
+          text-anchor="start"
+        >
+          GPIO22 → LCD SCL
+        </text>
+
+        <!-- Serial / LittleFS -->
+        <rect x="420" y="494" width="160" height="40" rx="3" fill="#0a1a2a" />
+        <text
+          x="500"
+          y="512"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          UART0 Serial
+        </text>
+        <text
+          x="500"
+          y="526"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          115200 baud · debug cmd
+        </text>
+
+        <rect x="600" y="494" width="168" height="40" rx="3" fill="#0a1a2a" />
+        <text
+          x="684"
+          y="512"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          LittleFS
+        </text>
+        <text
+          x="684"
+          y="526"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          Web UI · config · schedules
+        </text>
+
+        <!-- MQTT / IoT bridge -->
+        <rect x="420" y="554" width="340" height="40" rx="3" fill="#1a2a3a" />
+        <text
+          x="590"
+          y="572"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          iot_bridge — PubSubClient / MQTT
+        </text>
+        <text
+          x="590"
+          y="586"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.5)"
+          text-anchor="middle"
+        >
+          CoreIoT platform · Telemetry + RPC commands
+        </text>
+
+        <!-- NTP -->
+        <rect x="420" y="614" width="340" height="32" rx="3" fill="#102030" />
+        <text
+          x="590"
+          y="634"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="rgba(255,255,255,.7)"
+          text-anchor="middle"
+        >
+          ntp_sync · RTC DS3231 (I²C 0x68) · time reference
+        </text>
+
+        <!-- ElegantOTA -->
+        <rect x="420" y="656" width="340" height="14" rx="2" fill="#102030" />
+        <text
+          x="590"
+          y="666"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          ElegantOTA · OTA firmware update via browser /update
+        </text>
+
+        <!-- ═══════════════════════════ ACTUATORS (right column) ═══════════════════════════ -->
+
+        <!-- Relay 2-ch -->
+        <rect x="820" y="130" width="140" height="60" rx="3" fill="#5c2a00" />
+        <text
+          x="890"
+          y="152"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          Relay 2-ch
+        </text>
+        <text
+          x="890"
+          y="168"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Active-LOW · 5V
+        </text>
+        <text
+          x="890"
+          y="182"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          10A/250VAC
+        </text>
+
+        <!-- Water pump (via relay IN1 / GPIO17) -->
+        <rect x="1000" y="114" width="80" height="46" rx="3" fill="#6b2020" />
+        <text
+          x="1040"
+          y="134"
+          font-family="JetBrains Mono,monospace"
+          font-size="10"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          Bơm
+        </text>
+        <text
+          x="1040"
+          y="150"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Water Pump
+        </text>
+
+        <!-- Fan (via GPIO25) -->
+        <rect x="1000" y="176" width="80" height="46" rx="3" fill="#6b2020" />
+        <text
+          x="1040"
+          y="196"
+          font-family="JetBrains Mono,monospace"
+          font-size="10"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          Quạt
+        </text>
+        <text
+          x="1040"
+          y="212"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Fan S1 GPIO25
+        </text>
+
+        <!-- NeoPixel -->
+        <rect x="820" y="242" width="260" height="54" rx="3" fill="#3a006a" />
+        <text
+          x="950"
+          y="262"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          NeoPixel WS2812B × 4
+        </text>
+        <text
+          x="950"
+          y="278"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          GPIO26 · DATA · 5V · GND
+        </text>
+        <text
+          x="950"
+          y="290"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          GRN=ok YLW=warn RED=crit BLU=pump WHT=grow
+        </text>
+
+        <!-- LCD -->
+        <rect x="820" y="316" width="260" height="60" rx="3" fill="#2a3a5c" />
+        <text
+          x="950"
+          y="338"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          LCD 16×2 I²C
+        </text>
+        <text
+          x="950"
+          y="354"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Addr 0x27 · 5V · SDA/SCL
+        </text>
+        <text
+          x="950"
+          y="368"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          4 pages auto-switch · 5s interval
+        </text>
+
+        <!-- External load power -->
+        <rect x="820" y="400" width="130" height="50" rx="3" fill="#5c4a00" />
+        <text
+          x="885"
+          y="420"
+          font-family="JetBrains Mono,monospace"
+          font-size="10"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          5V–12V PSU
+        </text>
+        <text
+          x="885"
+          y="436"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          Pump / Fan load
+        </text>
+        <text
+          x="885"
+          y="446"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          External supply
+        </text>
+
+        <!-- WiFi / Cloud -->
+        <rect x="820" y="480" width="260" height="50" rx="3" fill="#1a2a3a" />
+        <text
+          x="950"
+          y="500"
+          font-family="JetBrains Mono,monospace"
+          font-size="11"
+          font-weight="700"
+          fill="white"
+          text-anchor="middle"
+        >
+          WiFi → Cloud / Browser
+        </text>
+        <text
+          x="950"
+          y="516"
+          font-family="JetBrains Mono,monospace"
+          font-size="9"
+          fill="rgba(255,255,255,.65)"
+          text-anchor="middle"
+        >
+          HTTP · WebSocket · MQTT CoreIoT
+        </text>
+        <text
+          x="950"
+          y="528"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="rgba(255,255,255,.45)"
+          text-anchor="middle"
+        >
+          greenhouse_wifi_task reconnects on drop
+        </text>
+
+        <!-- ═══════════════════════════ ACTUATOR WIRES ═══════════════════════════
+     All wires come from right edge of ESP32 (x=780).
+     Each at a separate Y to avoid crossing.
+════════════════════════════════════════════════════════════════════════ -->
+
+        <!-- GPIO17 → Relay IN1 (y=148) -->
+        <path
+          d="M780,148 L820,148"
+          stroke="#7a1a1a"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#ac)"
+        />
+        <text
+          x="800"
+          y="141"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#7a1a1a"
+          text-anchor="middle"
+        >
+          GPIO17
+        </text>
+
+        <!-- GPIO25 → Fan (via bus y=168) -->
+        <path
+          d="M780,168 L820,168"
+          stroke="#7a1a1a"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#ac)"
+        />
+        <text
+          x="800"
+          y="161"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#7a1a1a"
+          text-anchor="middle"
+        >
+          GPIO25
+        </text>
+
+        <!-- Relay → Pump -->
+        <path
+          d="M960,148 L1000,137"
+          stroke="#7a1a1a"
+          stroke-width="1.5"
+          fill="none"
+          marker-end="url(#ac)"
+        />
+        <text
+          x="980"
+          y="138"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#7a1a1a"
+          text-anchor="middle"
+        >
+          COM/NO
+        </text>
+
+        <!-- Relay → Fan -->
+        <path
+          d="M960,165 L1000,199"
+          stroke="#7a1a1a"
+          stroke-width="1.5"
+          fill="none"
+          marker-end="url(#ac)"
+        />
+
+        <!-- GPIO26 → NeoPixel (y=188) -->
+        <path
+          d="M780,188 L820,268"
+          stroke="#6a0080"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#an)"
+        />
+        <text
+          x="801"
+          y="234"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#6a0080"
+          text-anchor="start"
+        >
+          GPIO26
+        </text>
+
+        <!-- I2C → LCD (y=240 going right, then down to LCD) -->
+        <path
+          d="M780,240 L810,240 L810,346 L820,346"
+          stroke="#00589c"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#ai)"
+        />
+        <text
+          x="807"
+          y="295"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#00589c"
+          text-anchor="end"
+        >
+          I²C
+        </text>
+
+        <!-- External PSU → Relay COM (dashed) -->
+        <path
+          d="M885,400 L885,225 L960,225 L960,190"
+          stroke="#8b0000"
+          stroke-width="1.5"
+          stroke-dasharray="5,3"
+          fill="none"
+          marker-end="url(#ap)"
+        />
+        <text
+          x="936"
+          y="216"
+          font-family="JetBrains Mono,monospace"
+          font-size="7"
+          fill="#8b0000"
+          text-anchor="middle"
+        >
+          12V load
+        </text>
+
+        <!-- WiFi cloud box arrow -->
+        <path
+          d="M780,560 L820,505"
+          stroke="#00589c"
+          stroke-width="2"
+          fill="none"
+          marker-end="url(#ai)"
+        />
+
+        <!-- ═══════════════════════════ GND BUS ═══════════════════════════ -->
+        <rect
+          x="50"
+          y="738"
+          width="1030"
+          height="12"
+          rx="2"
+          fill="#1a1a18"
+          opacity=".1"
+        />
+        <text
+          x="565"
+          y="748"
+          font-family="JetBrains Mono,monospace"
+          font-size="8"
+          font-weight="700"
+          fill="#1a1a18"
+          opacity=".4"
+          text-anchor="middle"
+        >
+          GND ═══ COMMON GROUND ═══ GND
+        </text>
+
+        <!-- GND drop lines -->
+        <line
+          x1="115"
+          y1="520"
+          x2="115"
+          y2="738"
+          stroke="#1a1a18"
+          stroke-width="1"
+          stroke-dasharray="3,6"
+          opacity=".2"
+        />
+        <line
+          x1="590"
+          y1="680"
+          x2="590"
+          y2="738"
+          stroke="#1a1a18"
+          stroke-width="1"
+          stroke-dasharray="3,6"
+          opacity=".2"
+        />
+        <line
+          x1="890"
+          y1="450"
+          x2="890"
+          y2="738"
+          stroke="#1a1a18"
+          stroke-width="1"
+          stroke-dasharray="3,6"
+          opacity=".2"
+        />
+        <line
+          x1="1040"
+          y1="222"
+          x2="1040"
+          y2="738"
+          stroke="#1a1a18"
+          stroke-width="1"
+          stroke-dasharray="3,6"
+          opacity=".2"
+        />
+
+        <!-- border -->
+        <rect
+          x="1"
+          y="1"
+          width="1098"
+          height="758"
+          fill="none"
+          stroke="#d0ccbc"
+          stroke-width="1"
+        />
+      </svg>
+    </div>
+
+    <!-- NOTES TABLE -->
+    <div class="notes">
+      <div class="nc">
+        <div class="nt">GPIO MAP</div>
+        <div class="nr">
+          <span class="nl">DHT11 Data</span><span class="np">GPIO 27</span>
+        </div>
+        <div class="nr">
+          <span class="nl">LDR DO Digital</span><span class="np">GPIO 34</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Soil Capacitive ADC</span
+          ><span class="np">GPIO 33</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Relay Pump (IN1)</span
+          ><span class="np">GPIO 17</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Fan S1 (FAN)</span><span class="np">GPIO 25</span>
+        </div>
+        <div class="nr">
+          <span class="nl">NeoPixel Data</span><span class="np">GPIO 26</span>
+        </div>
+        <div class="nr">
+          <span class="nl">I²C SDA (LCD + RTC)</span
+          ><span class="np">GPIO 21</span>
+        </div>
+        <div class="nr">
+          <span class="nl">I²C SCL (LCD + RTC)</span
+          ><span class="np">GPIO 22</span>
+        </div>
+        <div class="nr">
+          <span class="nl">BTN Mode</span><span class="np">GPIO 19</span>
+        </div>
+        <div class="nr">
+          <span class="nl">BTN Pump</span><span class="np">GPIO 18</span>
+        </div>
+        <div class="nr">
+          <span class="nl">BTN Fan</span><span class="np">GPIO 5</span>
+        </div>
+      </div>
+
+      <div class="nc">
+        <div class="nt">NGƯỠNG ĐIỀU KHIỂN</div>
+        <div class="nr">
+          <span class="nl">Temp critical (LED RED)</span
+          ><span class="nv">≥ 35°C</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Temp high → Fan ON</span
+          ><span class="nv">≥ 32°C</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Temp low → Fan OFF</span
+          ><span class="nv">&lt; 31°C</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Humidity high</span><span class="nv">≥ 85%</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Humidity low</span><span class="nv">≤ 40%</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Soil dry → Pump ON</span
+          ><span class="nv">&lt; 30%</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Soil wet → Pump OFF</span
+          ><span class="nv">≥ 65%</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Light low → Grow LED</span
+          ><span class="nv">&lt; 500 lux</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Light high → LED OFF</span
+          ><span class="nv">≥ 999 lux</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Pump max ON time</span><span class="nv">2 phút</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Pump cooldown</span><span class="nv">2 phút</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Relay logic</span><span class="nv">Active-LOW</span>
+        </div>
+      </div>
+
+      <div class="nc">
+        <div class="nt">TASK SCHEDULER (Core 1)</div>
+        <div class="nr">
+          <span class="nl">HW Timer tick</span
+          ><span class="nv">10 ms/tick</span>
+        </div>
+        <div class="nr">
+          <span class="nl">ReadAirSensors</span><span class="nv">2 000 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">ReadSoilSensor</span><span class="nv">5 000 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">CheckAlerts</span><span class="nv">1 000 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">AutoControl</span><span class="nv">1 000 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">PumpWatchdog</span><span class="nv">1 000 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">UpdateLED / LCD</span><span class="nv">500 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">AutoSwitchLCDPage</span
+          ><span class="nv">5 000 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">Heartbeat</span><span class="nv">5 000 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">ScanButtons</span><span class="nv">debounce</span>
+        </div>
+        <div class="nr">
+          <span class="nl">SendTelemetry</span><span class="nv">5 000 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">ProcessRpc</span><span class="nv">200 ms</span>
+        </div>
+        <div class="nr">
+          <span class="nl">CheckSchedule</span><span class="nv">10 000 ms</span>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      Greenhouse IoT System v2.0 &nbsp;·&nbsp; ESP32 Dev Module &nbsp;·&nbsp;
+      PlatformIO / Arduino Framework &nbsp;·&nbsp; 2026
+    </footer>
+  </body>
+</html>
