@@ -11,7 +11,6 @@
 
 > Hệ thống nhà kính thông minh chạy trên **ESP32**, tích hợp Web Server nhúng với giao diện quản lý đầy đủ qua trình duyệt: giám sát cảm biến, điều khiển thiết bị, lập lịch tự động, cảnh báo thông minh và cập nhật firmware OTA.
 
----
 
 ## 📋 Mục lục
 
