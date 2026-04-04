@@ -273,73 +273,109 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 
 ### Yêu cầu
 
-- [PlatformIO IDE](https://platformio.org/) (VSCode extension hoặc CLI)
-- Python 3.x
-- Board: `esp32dev`
+- VSCode + [PlatformIO IDE extension](https://platformio.org/install/ide?install=vscode)
+- Cáp USB Micro-B
+- Driver CH340 hoặc CP2102 (tuỳ board)
 
-### Bước 1: Clone repository
+### Clone repository
 
 ```bash
-git clone https://github.com/<your-username>/ESP32-Smart-Greenhouse-Embedded-Web-Server.git
+git clone https://github.com/vophamk23/ESP32-Smart-Greenhouse-Embedded-Web-Server.git
 cd ESP32-Smart-Greenhouse-Embedded-Web-Server
 ```
 
-### Bước 2: Cấu hình hệ thống
+### Cấu hình `data/info.dat` (LittleFS credentials)
 
-Chỉnh sửa file `include/config.h`:
+File `data/info.dat` chứa thông tin kết nối WiFi và MQTT, được firmware đọc từ LittleFS khi khởi động. Tạo file với nội dung sau:
+
+```json
+{
+  "WIFI_SSID":       "tên wifi",
+  "WIFI_PASS":       "mật khẩu wifi",
+  "CORE_IOT_TOKEN":  "token core iot",
+  "CORE_IOT_SERVER": "app.coreiot.io",
+  "CORE_IOT_PORT":   "1883",
+  "LOCAL_MQTT_HOST": "broker.emqx.io",
+  "LOCAL_MQTT_PORT": "1883"
+}
+```
+
+> ⚠️ **Lưu ý bảo mật:** Không commit file `info.dat` chứa thông tin thật lên Git công khai. Thêm vào `.gitignore` nếu cần.
+
+
+
+### Cấu hình GPIO trong `include/config.h`
 
 ```cpp
-// WiFi
-#define WIFI_SSID     "your_wifi_ssid"
-#define WIFI_PASSWORD "your_wifi_password"
-
-// MQTT Broker
-#define MQTT_SERVER   "broker.hivemq.com"
-#define MQTT_PORT     1883
-#define MQTT_TOPIC    "greenhouse/"
-
-// Web Server
-#define WEB_SERVER_PORT 80
-
-// Chân GPIO (tuỳ sơ đồ đấu nối)
-#define DHT_PIN       4
-#define RELAY_PIN_1   26
-#define RELAY_PIN_2   27
-#define NEOPIXEL_PIN  13
-#define BUTTON_PIN    0
-#define LCD_SDA       21
-#define LCD_SCL       22
+// GPIO pins — xem sơ đồ khối để biết cách đấu nối
+#define DHT_PIN           27
+#define LIGHT_SENSOR_PIN  34
+#define SOIL_MOISTURE_PIN 33
+#define RELAY_PUMP_PIN    17
+#define FAN_S1_PIN        25
+#define NEO_PIN           26
+#define BTN_MODE_PIN      19
+#define BTN_PUMP_PIN      18
+#define BTN_FAN_PIN        5
 ```
 
-### Bước 3: Upload filesystem (LittleFS)
+
+### Các lệnh build (PlatformIO CLI)
 
 ```bash
-# Xóa toàn bộ flash (tuỳ chọn, dùng khi muốn reset hoàn toàn)
+cd ecogreen-iot
+
+# Xoá toàn bộ flash (reset hoàn toàn)
 pio run -t erase
 
-# Upload toàn bộ thư mục data/ lên LittleFS
-pio run -t uploadfs
-```
+# Xoá build cache
+pio run -t clean
 
-### Bước 4: Build & Upload firmware
-
-```bash
-# Build
+# Build firmware
 pio run
 
-# Upload
+# Upload firmware lên ESP32
 pio run -t upload
+
+# Upload LittleFS (web UI + info.dat trong thư mục data/)
+pio run -t uploadfs
+
+# Mở Serial Monitor (115200 baud)
+pio device monitor --baud 115200
 ```
 
-### Bước 5: Truy cập giao diện Web
+Hoặc dùng VSCode PlatformIO toolbar: **Build → Upload → Upload Filesystem → Monitor**
+
+
+### Kiểm tra ESP32 hoạt động
+
+Mở Serial Monitor, phải thấy output tương tự:
+
+```
+==============================
+  Greenhouse IoT + CoreIoT
+==============================
+[WiFi] Connected! IP: 192.168.x.x
+[MQTT] Connecting to CoreIoT... OK
+[MQTT-LOCAL] Connecting to Mosquitto... OK
+[TELE] Queued: T=28.5 H=72 Soil=45
+========== GREENHOUSE STATUS ==========
+  Time: 04/04/2026 08:30:00
+  WiFi: OK  IP: 192.168.x.x
+  Temp: 28.5°C  Humi: 72%
+  Soil: 45%  Light: 1000lux (BRIGHT)
+  PUMP: OFF  FAN: OFF  LED_GROW: OFF
+  Mode: AUTO  PumpManual: N  Cooldown: N
+=======================================
+```
+
+### Truy cập giao diện Web
 
 Mở Serial Monitor để lấy địa chỉ IP, sau đó truy cập:
 
 ```
-http://<ESP32_IP_ADDRESS>
+http://<IP: 192.168.x.x>
 ```
-
-
 
 ## 🌐 Giao diện Web
 
