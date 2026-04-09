@@ -36,26 +36,26 @@
 - [OTA Update](#-ota-update)
 - [Đóng góp](#-đóng-góp)
 
-## ✨ Tính năng
+## Tính năng
 
-| Tính năng                   | Mô tả                                                      |
-| --------------------------- | ---------------------------------------------------------- |
-| 📊 **Dashboard**            | Hiển thị trạng thái tổng quan hệ thống theo thời gian thực |
-| 🌡️ **Giám sát cảm biến**    | Đọc nhiệt độ, độ ẩm (DHT), đồng bộ thời gian thực (RTC)    |
-| 🔌 **Điều khiển thiết bị**  | Bật/tắt actuator thủ công hoặc tự động qua giao diện web   |
-| 🗓️ **Lập lịch (Scheduler)** | Đặt lịch tưới nước, chiếu sáng theo giờ/ngày               |
-| 🧠 **Smart Logic**          | Tự động điều chỉnh thiết bị dựa trên ngưỡng cảm biến       |
-| 🔔 **Thông báo**            | Cảnh báo khi thông số vượt ngưỡng cài đặt                  |
-| 📈 **Biểu đồ**              | Hiển thị lịch sử dữ liệu cảm biến dưới dạng đồ thị         |
-| 📋 **Nhật ký (Logs)**       | Ghi lại lịch sử hoạt động của hệ thống                     |
-| 🖥️ **LCD Display**          | Hiển thị thông tin trực tiếp trên màn hình LCD I2C         |
-| 🔄 **OTA Update**           | Cập nhật firmware không dây qua ElegantOTA                 |
-| 📡 **MQTT / IoT Bridge**    | Kết nối với broker MQTT để tích hợp IoT platform           |
-| 👤 **Quản lý tài khoản**    | Xác thực người dùng, bảo vệ giao diện web                  |
+| Tính năng                | Mô tả                                                      |
+| ------------------------ | ---------------------------------------------------------- |
+| **Dashboard**            | Hiển thị trạng thái tổng quan hệ thống theo thời gian thực |
+| **Giám sát cảm biến**    | Đọc nhiệt độ, độ ẩm (DHT), đồng bộ thời gian thực (RTC)    |
+| **Điều khiển thiết bị**  | Bật/tắt actuator thủ công hoặc tự động qua giao diện web   |
+| **Lập lịch (Scheduler)** | Đặt lịch tưới nước, chiếu sáng theo giờ/ngày               |
+| **Smart Logic**          | Tự động điều chỉnh thiết bị dựa trên ngưỡng cảm biến       |
+| **Thông báo**            | Cảnh báo khi thông số vượt ngưỡng cài đặt                  |
+| **Biểu đồ**              | Hiển thị lịch sử dữ liệu cảm biến dưới dạng đồ thị         |
+| **Nhật ký (Logs)**       | Ghi lại lịch sử hoạt động của hệ thống                     |
+| **LCD Display**          | Hiển thị thông tin trực tiếp trên màn hình LCD I2C         |
+| **OTA Update**           | Cập nhật firmware không dây qua ElegantOTA                 |
+| **MQTT / IoT Bridge**    | Kết nối với broker MQTT để tích hợp IoT platform           |
+| **Quản lý tài khoản**    | Xác thực người dùng, bảo vệ giao diện web                  |
 
 
 
-## 🏗️ Kiến trúc hệ thống
+## Kiến trúc hệ thống
 
 Hệ thống khai thác kiến trúc **dual-core** của ESP32 — phân tách rõ ràng giữa tác vụ mạng/cloud (Core 0) và tác vụ điều khiển thực tế (Core 1).
 
@@ -100,7 +100,7 @@ Hệ thống khai thác kiến trúc **dual-core** của ESP32 — phân tách r
 
 
 
-## ⚡ Dual-Core & Cooperative Scheduler
+## Dual-Core & Cooperative Scheduler
 
 ### Phân chia Core
 
@@ -155,7 +155,7 @@ Watchdog bơm (`Task_PumpWatchdog`) có 3 lớp bảo vệ theo thứ tự ưu t
 
 
 
-## 📁 Cấu trúc thư mục
+## Cấu trúc thư mục
 
 ```
 ESP32-Smart-Greenhouse-Embedded-Web-Server/
@@ -238,7 +238,7 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 
 
 
-## 🔧 Phần cứng yêu cầu
+## Phần cứng yêu cầu
 
 | Linh kiện           | Mô tả                                       |
 | ------------------- | ------------------------------------------- |
@@ -252,7 +252,7 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 
 ---
 
-## 📦 Thư viện sử dụng
+## Thư viện sử dụng
 
 | Thư viện            | Mục đích                                 |
 | ------------------- | ---------------------------------------- |
@@ -377,7 +377,7 @@ Mở Serial Monitor để lấy địa chỉ IP, sau đó truy cập:
 http://<IP: 192.168.x.x>
 ```
 
-## 🌐 Giao diện Web
+## Giao diện Web
 
 Giao diện được lưu trên **LittleFS** của ESP32 và phục vụ bởi ESPAsyncWebServer.
 
@@ -410,7 +410,7 @@ ESP32  ──WebSocket──▶  Browser
 
 
 
-## 🧠 Lập lịch & Smart Logic
+## Lập lịch & Smart Logic
 
 ### Scheduler
 
@@ -428,7 +428,7 @@ Nhiệt độ > 35°C  →  Bật quạt làm mát
 
 
 
-## 🔄 OTA Update
+## OTA Update
 
 Hệ thống hỗ trợ cập nhật firmware không cần cắm cáp qua **ElegantOTA**:
 
@@ -437,7 +437,7 @@ Hệ thống hỗ trợ cập nhật firmware không cần cắm cáp qua **Eleg
 3. Upload và ESP32 tự động restart
 
 
-## 📊 Sơ đồ khối
+## Sơ đồ khối
 
 Xem sơ đồ khối hệ thống chi tiết tại file:
 
@@ -449,7 +449,7 @@ Mở bằng trình duyệt để xem kiến trúc kết nối phần cứng.
 
 
 
-## 📄 Giấy phép
+## Giấy phép
 
 Dự án được phân phối theo giấy phép **MIT**. Xem file `LICENSE` để biết thêm chi tiết.
 
