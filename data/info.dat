@@ -1,9 +1,9 @@
 {
-  "WIFI_SSID": "Tuoi",
-  "WIFI_PASS": "25062011@##@",
+  "WIFI_SSID": "Vopham",
+  "WIFI_PASS": "congvolv0",
   "CORE_IOT_TOKEN": "h8ycpa6d5uodkqr011cz",
   "CORE_IOT_SERVER": "app.coreiot.io",
   "CORE_IOT_PORT": "1883",
-  "LOCAL_MQTT_HOST": "192.168.1.10",
+  "LOCAL_MQTT_HOST": "broker.emqx.io",
   "LOCAL_MQTT_PORT": "1883"
 }

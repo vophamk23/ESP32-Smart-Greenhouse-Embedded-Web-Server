@@ -14,7 +14,9 @@
  *     "pump": true, "fan": false, "autoMode": true,
  *     "alertTemp": false, "alertSoil": true,
  *     "ledColor": "#00FF00",
- *     "pumpCount": 3, "totalPumpTimeSec": 240
+ *     "pumpCount": 3, "totalPumpTimeSec": 240,
+ *     "cfg_soilDry": 30, "cfg_soilWet": 65,
+ *     "cfg_tempHigh": 32, "cfg_pumpMax": 120, "cfg_pumpCool": 120
  *   }
  *
  * WebSocket JSON nhận từ browser:
@@ -23,11 +25,14 @@
  *   { "cmd": "setMode",    "value": "AUTO" }
  *   { "cmd": "setScheduleEnabled", "value": true }
  *   { "cmd": "setSchedules", "value": [...] }
+ *   { "cmd": "setThreshold", "soilDry": 30, "soilWet": 65,
+ *                             "tempHigh": 32, "pumpMax": 120, "pumpCool": 120 }
  */
 
 #include "webserver_greenhouse.h"
 #include "iot_bridge.h"
 #include "global_vars.h"
+#include "config.h"
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
 #include <LittleFS.h>
@@ -44,7 +49,7 @@ static bool s_serverRunning = false;
 // ============================================================================
 // LƯU LỊCH XUỐNG LITTLEFS
 // ============================================================================
-static void saveSchedulesToFS()
+void saveSchedulesToFS()
 {
     File f = LittleFS.open("/schedules.dat", "w");
     if (!f)
@@ -53,20 +58,31 @@ static void saveSchedulesToFS()
         return;
     }
 
+    // Snapshot trước khi serialize để không giữ lock trong lúc ghi file
+    bool enabled;
+    uint8_t count;
+    ScheduleEntry_t tmp[MAX_SCHEDULES];
+
+    SENSOR_LOCK();
+    enabled = g_scheduleEnabled;
+    count = g_scheduleCount;
+    memcpy(tmp, g_schedules, sizeof(ScheduleEntry_t) * count);
+    SENSOR_UNLOCK();
+
     DynamicJsonDocument doc(1024);
-    doc["enabled"] = g_scheduleEnabled;
+    doc["enabled"] = enabled;
     JsonArray arr = doc.createNestedArray("schedules");
 
-    for (uint8_t i = 0; i < g_scheduleCount; i++)
+    for (uint8_t i = 0; i < count; i++)
     {
         JsonObject o = arr.createNestedObject();
         char timeBuf[6];
         snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d",
-                 g_schedules[i].hour, g_schedules[i].minute);
+                 tmp[i].hour, tmp[i].minute);
         o["time"] = timeBuf;
-        o["duration"] = g_schedules[i].duration;
-        o["days"] = g_schedules[i].days;
-        o["enabled"] = g_schedules[i].enabled;
+        o["duration"] = tmp[i].duration;
+        o["days"] = tmp[i].days;
+        o["enabled"] = tmp[i].enabled;
     }
 
     serializeJson(doc, f);
@@ -94,20 +110,22 @@ void loadSchedulesFromFS()
     }
     f.close();
 
-    g_scheduleEnabled = doc["enabled"].as<bool>();
-    g_scheduleCount = 0;
+    // Parse vào biến tạm trước, rồi mới lock để ghi vào global
+    bool newEnabled = doc["enabled"].as<bool>();
+    uint8_t newCount = 0;
+    ScheduleEntry_t tmp[MAX_SCHEDULES];
 
     JsonArray arr = doc["schedules"].as<JsonArray>();
     for (JsonObject o : arr)
     {
-        if (g_scheduleCount >= MAX_SCHEDULES)
+        if (newCount >= MAX_SCHEDULES)
             break;
 
         uint8_t h = 0, m = 0;
         const char *t = o["time"] | "00:00";
         sscanf(t, "%hhu:%hhu", &h, &m);
 
-        g_schedules[g_scheduleCount++] = {
+        tmp[newCount++] = {
             h,
             m,
             (uint8_t)(o["duration"] | 15),
@@ -115,8 +133,89 @@ void loadSchedulesFromFS()
             o["enabled"].as<bool>()};
     }
 
+    SENSOR_LOCK();
+    g_scheduleEnabled = newEnabled;
+    g_scheduleCount = newCount;
+    memcpy(g_schedules, tmp, sizeof(ScheduleEntry_t) * newCount);
+    SENSOR_UNLOCK();
+
     Serial.printf("[SCHED] Loaded %d schedules, enabled=%s\n",
-                  g_scheduleCount, g_scheduleEnabled ? "YES" : "NO");
+                  newCount, newEnabled ? "YES" : "NO");
+}
+
+// ============================================================================
+// LƯU NGƯỠNG XUỐNG LITTLEFS
+// ============================================================================
+void saveThresholdToFS()
+{
+    DynamicJsonDocument doc(256);
+
+    SENSOR_LOCK();
+    doc["soilDry"] = g_soilDryThreshold;
+    doc["soilWet"] = g_soilWetThreshold;
+    doc["tempHigh"] = g_tempHighThreshold;
+    doc["tempLow"] = g_tempLowThreshold;
+    doc["pumpMax"] = (int)(g_pumpMaxOnMs / 1000UL);
+    doc["pumpCool"] = (int)(g_pumpCooldownMs / 1000UL);
+    SENSOR_UNLOCK();
+
+    File f = LittleFS.open("/threshold.dat", "w");
+    if (!f)
+    {
+        Serial.println("[THRESH] Cannot write /threshold.dat");
+        return;
+    }
+    serializeJson(doc, f);
+    f.close();
+    Serial.println("[THRESH] Saved to /threshold.dat");
+}
+
+// ============================================================================
+// LOAD NGƯỠNG TỪ LITTLEFS
+// ============================================================================
+void loadThresholdFromFS()
+{
+    File f = LittleFS.open("/threshold.dat", "r");
+    if (!f)
+    {
+        Serial.println("[THRESH] /threshold.dat not found - using defaults");
+        return;
+    }
+
+    DynamicJsonDocument doc(256);
+    if (deserializeJson(doc, f))
+    {
+        f.close();
+        return;
+    }
+    f.close();
+
+    // Parse vào biến tạm, validate, rồi mới lock ghi global
+    float soilDry = doc["soilDry"] | DEFAULT_SOIL_DRY;
+    float soilWet = doc["soilWet"] | DEFAULT_SOIL_WET;
+    float tempHigh = doc["tempHigh"] | DEFAULT_TEMP_HIGH;
+    float tempLow = doc["tempLow"] | DEFAULT_TEMP_LOW;
+    int pumpMax = doc["pumpMax"] | 120;
+    int pumpCool = doc["pumpCool"] | 120;
+
+    // Validate: soilDry phải nhỏ hơn soilWet, tempLow < tempHigh
+    if (soilDry >= soilWet || tempLow >= tempHigh)
+    {
+        Serial.println("[THRESH] Invalid values in file - using defaults");
+        return;
+    }
+
+    SENSOR_LOCK();
+    g_soilDryThreshold = soilDry;
+    g_soilWetThreshold = soilWet;
+    g_tempHighThreshold = tempHigh;
+    g_tempLowThreshold = tempLow;
+    g_pumpMaxOnMs = (unsigned long)pumpMax * 1000UL;
+    g_pumpCooldownMs = (unsigned long)pumpCool * 1000UL;
+    SENSOR_UNLOCK();
+
+    Serial.printf("[THRESH] Loaded: soilDry=%.0f soilWet=%.0f tempHigh=%.0f pumpMax=%ds pumpCool=%ds\n",
+                  soilDry, soilWet, tempHigh, pumpMax, pumpCool);
 }
 
 // ============================================================================
@@ -151,36 +250,42 @@ static void handleBrowserMessage(const String &json)
         if (val)
             pkt.command = (strcmp(val, "AUTO") == 0) ? RPC_MODE_AUTO : RPC_MODE_MANUAL;
     }
-    // ---- setScheduleEnabled ----
+
+    // Set bật/tắt lịch tưới tự động - đơn giản nên gộp chung vào "setMode" cũng được, nhưng tách riêng cho rõ ràng
     else if (strcmp(cmd, "setScheduleEnabled") == 0)
     {
-        g_scheduleEnabled = doc["value"].as<bool>();
+        bool val = doc["value"].as<bool>();
+        SENSOR_LOCK();
+        g_scheduleEnabled = val;
+        SENSOR_UNLOCK();
+
         saveSchedulesToFS();
-        Serial.printf("[SCHED] Enabled: %s\n", g_scheduleEnabled ? "ON" : "OFF");
+        Serial.printf("[SCHED] Enabled: %s\n", val ? "ON" : "OFF");
     }
-    // ---- setSchedules ----
+
+    // Set toàn bộ lịch tưới (danh sách) — payload phức tạp hơn nên tách riêng thành "setSchedules"
     else if (strcmp(cmd, "setSchedules") == 0)
     {
         JsonArray arr = doc["value"].as<JsonArray>();
-        g_scheduleCount = 0;
+        uint8_t newCount = 0;
+        ScheduleEntry_t tmp[MAX_SCHEDULES];
 
         for (JsonObject s : arr)
         {
-            if (g_scheduleCount >= MAX_SCHEDULES)
+            if (newCount >= MAX_SCHEDULES)
                 break;
 
             const char *timeStr = s["time"] | "00:00";
             uint8_t h = 0, m = 0;
             sscanf(timeStr, "%hhu:%hhu", &h, &m);
 
-            // Parse days array [0,1,3] → bitmask
             uint8_t dayMask = 0;
             JsonArray daysArr = s["days"].as<JsonArray>();
             for (int d : daysArr)
                 if (d >= 0 && d <= 6)
                     dayMask |= (1 << d);
 
-            g_schedules[g_scheduleCount++] = {
+            tmp[newCount++] = {
                 h,
                 m,
                 (uint8_t)(constrain((int)(s["duration"] | 15), 1, 120)),
@@ -188,8 +293,44 @@ static void handleBrowserMessage(const String &json)
                 s["enabled"].as<bool>()};
         }
 
+        SENSOR_LOCK();
+        g_scheduleCount = newCount;
+        memcpy(g_schedules, tmp, sizeof(ScheduleEntry_t) * newCount);
+        SENSOR_UNLOCK();
+
         saveSchedulesToFS();
-        Serial.printf("[SCHED] Saved %d schedules\n", g_scheduleCount);
+        Serial.printf("[SCHED] Saved %d schedules\n", newCount);
+    }
+
+    // Set ngưỡng điều khiển (soilDry, soilWet, tempHigh, tempLow, pumpMax, pumpCool)
+    else if (strcmp(cmd, "setThreshold") == 0)
+    {
+        float soilDry = doc["soilDry"] | g_soilDryThreshold;
+        float soilWet = doc["soilWet"] | g_soilWetThreshold;
+        float tempHigh = doc["tempHigh"] | g_tempHighThreshold;
+        float tempLow = tempHigh - 1.0f; // hysteresis cố định 1°C
+        int pumpMax = doc["pumpMax"] | (int)(g_pumpMaxOnMs / 1000UL);
+        int pumpCool = doc["pumpCool"] | (int)(g_pumpCooldownMs / 1000UL);
+
+        // Validate trước khi ghi
+        if (soilDry >= soilWet)
+        {
+            Serial.println("[THRESH] soilDry >= soilWet - rejected");
+            return;
+        }
+
+        SENSOR_LOCK();
+        g_soilDryThreshold = soilDry;
+        g_soilWetThreshold = soilWet;
+        g_tempHighThreshold = tempHigh;
+        g_tempLowThreshold = tempLow;
+        g_pumpMaxOnMs = (unsigned long)pumpMax * 1000UL;
+        g_pumpCooldownMs = (unsigned long)pumpCool * 1000UL;
+        SENSOR_UNLOCK();
+
+        saveThresholdToFS();
+        Serial.printf("[THRESH] Updated: soilDry=%.0f soilWet=%.0f tempHigh=%.0f pumpMax=%ds pumpCool=%ds\n",
+                      soilDry, soilWet, tempHigh, pumpMax, pumpCool);
     }
 
     // Gửi lệnh vào queue nếu có
@@ -254,30 +395,58 @@ static void startWebServer()
     // 3. REST endpoint: lấy danh sách lịch tưới
     s_server.on("/api/schedules", HTTP_GET, [](AsyncWebServerRequest *req)
                 {
+        bool enabled;
+        uint8_t count;
+        ScheduleEntry_t tmp[MAX_SCHEDULES];
+
+        SENSOR_LOCK();
+        enabled = g_scheduleEnabled;
+        count   = g_scheduleCount;
+        memcpy(tmp, g_schedules, sizeof(ScheduleEntry_t) * count);
+        SENSOR_UNLOCK();
+
         DynamicJsonDocument doc(1024);
-        doc["enabled"] = g_scheduleEnabled;
+        doc["enabled"] = enabled;
         JsonArray arr  = doc.createNestedArray("schedules");
 
-        for (uint8_t i = 0; i < g_scheduleCount; i++)
+        for (uint8_t i = 0; i < count; i++)
         {
             JsonObject o = arr.createNestedObject();
             char timeBuf[6];
             snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d",
-                     g_schedules[i].hour, g_schedules[i].minute);
+                     tmp[i].hour, tmp[i].minute);
             o["time"]     = timeBuf;
-            o["duration"] = g_schedules[i].duration;
-            o["days"]     = g_schedules[i].days;
-            o["enabled"]  = g_schedules[i].enabled;
+            o["duration"] = tmp[i].duration;
+            o["days"]     = tmp[i].days;
+            o["enabled"]  = tmp[i].enabled;
         }
 
         String json;
         serializeJson(doc, json);
         req->send(200, "application/json", json); });
 
-    // 4. Serve toàn bộ file tĩnh từ LittleFS
+    // 4. REST endpoint: lấy ngưỡng điều khiển hiện tại
+    s_server.on("/api/threshold", HTTP_GET, [](AsyncWebServerRequest *req)
+                {
+        StaticJsonDocument<256> doc;
+
+        SENSOR_LOCK();
+        doc["soilDry"]  = g_soilDryThreshold;
+        doc["soilWet"]  = g_soilWetThreshold;
+        doc["tempHigh"] = g_tempHighThreshold;
+        doc["tempLow"]  = g_tempLowThreshold;
+        doc["pumpMax"]  = (int)(g_pumpMaxOnMs  / 1000UL);
+        doc["pumpCool"] = (int)(g_pumpCooldownMs / 1000UL);
+        SENSOR_UNLOCK();
+
+        String json;
+        serializeJson(doc, json);
+        req->send(200, "application/json", json); });
+
+    // 5. Serve toàn bộ file tĩnh từ LittleFS
     s_server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
-    // 5. ElegantOTA
+    // 6. ElegantOTA
     ElegantOTA.begin(&s_server);
 
     s_server.begin();
@@ -316,7 +485,12 @@ void greenhouse_webserver_task(void *pvParameters)
             {
                 lastPushTime = now;
 
-                StaticJsonDocument<512> doc;
+                // Tăng lên 640 để chứa thêm cfg_* fields
+                StaticJsonDocument<640> doc;
+
+                uint8_t ledR, ledG, ledB;
+                float cfgSoilDry, cfgSoilWet, cfgTempHigh;
+                int cfgPumpMax, cfgPumpCool;
 
                 SENSOR_LOCK();
                 doc["temperature"] = g_temperature;
@@ -333,19 +507,32 @@ void greenhouse_webserver_task(void *pvParameters)
                 doc["pumpCount"] = (int)g_pumpCount;
                 doc["totalPumpTimeSec"] = (long)(g_totalPumpTime / 1000UL);
                 doc["dhtError"] = g_dhtError;
-                uint8_t ledR = g_currentLEDColor.r;
-                uint8_t ledG = g_currentLEDColor.g;
-                uint8_t ledB = g_currentLEDColor.b;
-                SENSOR_UNLOCK();
-
-                doc["wifiRssi"] = WiFi.RSSI();
-                doc["freeHeap"] = ESP.getFreeHeap();
                 doc["lcdPage"] = g_lcdPage;
                 doc["scheduleEnabled"] = g_scheduleEnabled;
+                ledR = g_currentLEDColor.r;
+                ledG = g_currentLEDColor.g;
+                ledB = g_currentLEDColor.b;
+                cfgSoilDry = g_soilDryThreshold;
+                cfgSoilWet = g_soilWetThreshold;
+                cfgTempHigh = g_tempHighThreshold;
+                cfgPumpMax = (int)(g_pumpMaxOnMs / 1000UL);
+                cfgPumpCool = (int)(g_pumpCooldownMs / 1000UL);
+                SENSOR_UNLOCK();
+
+                // thread-safe, không cần lock
+                doc["wifiRssi"] = WiFi.RSSI();
+                doc["freeHeap"] = ESP.getFreeHeap();
 
                 char ledHex[8];
                 snprintf(ledHex, sizeof(ledHex), "#%02X%02X%02X", ledR, ledG, ledB);
                 doc["ledColor"] = ledHex;
+
+                // Gửi ngưỡng hiện tại để frontend sync slider khi load trang
+                doc["cfg_soilDry"] = cfgSoilDry;
+                doc["cfg_soilWet"] = cfgSoilWet;
+                doc["cfg_tempHigh"] = cfgTempHigh;
+                doc["cfg_pumpMax"] = cfgPumpMax;
+                doc["cfg_pumpCool"] = cfgPumpCool;
 
                 String json;
                 serializeJson(doc, json);

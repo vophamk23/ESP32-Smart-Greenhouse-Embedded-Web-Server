@@ -96,7 +96,7 @@ void displayPage_TempHumidity()
     }
 
     // Row 1
-    if (!g_dhtError && g_temperature >= TEMP_CRITICAL)
+    if (!g_dhtError && g_temperature >= DEFAULT_TEMP_CRITICAL)
     {
         s_lcd.setCursor(0, 1);
         s_lcd.write(ICON_WARN);
@@ -213,7 +213,7 @@ void displayPage_AlertStats()
 
     // Row 1 - cảnh báo ưu tiên
     s_lcd.setCursor(0, 1);
-    if (!g_dhtError && g_temperature >= TEMP_CRITICAL)
+    if (!g_dhtError && g_temperature >= DEFAULT_TEMP_CRITICAL)
     {
         s_lcd.write(ICON_WARN);
         lcdPrint16(1, 1, " TEMP CRITICAL!");

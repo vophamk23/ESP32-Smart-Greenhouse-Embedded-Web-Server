@@ -44,11 +44,11 @@ void pumpOn()
     if (!g_pumpManual && !g_scheduleTriggered && g_pumpCooldown)
     {
         unsigned long elapsed = millis() - g_pumpLastOffTime;
-        if (elapsed < PUMP_COOLDOWN_MS)
+        if (elapsed < g_pumpCooldownMs)
         {
             Serial.printf("[PUMP] Cooldown active (%lus/%lus) - skip\n",
                           elapsed / 1000,
-                          (unsigned long)(PUMP_COOLDOWN_MS / 1000));
+                          g_pumpCooldownMs / 1000);
             return;
         }
         g_pumpCooldown = false;
@@ -173,11 +173,11 @@ void ledColorNight() { turnOffAllLEDs(); }
 void updateAlerts()
 {
     // Chỉ cảnh báo nhiệt độ khi DHT hoạt động bình thường
-    g_alertTemp = (!g_dhtError && g_temperature >= TEMP_HIGH_THRESHOLD);
+    g_alertTemp = (!g_dhtError && g_temperature >= g_tempHighThreshold);
     g_alertHumidity = (!g_dhtError &&
                        (g_humidity < HUMIDITY_LOW_THRESHOLD ||
                         g_humidity > HUMIDITY_HIGH_THRESHOLD));
-    g_alertSoil = (g_soilMoisture < SOIL_DRY_THRESHOLD);
+    g_alertSoil = (g_soilMoisture < g_soilDryThreshold);
     // Cảnh báo ánh sáng chỉ khi không đang bật grow light
     g_alertLight = (g_lightLux < LIGHT_LOW_THRESHOLD && !g_ledGrowState);
 }
@@ -195,18 +195,18 @@ void autoControlPump()
     if (!g_pumpState)
     {
         // Điều kiện bật bơm: đất quá khô
-        if (g_soilMoisture < SOIL_DRY_THRESHOLD)
+        if (g_soilMoisture < g_soilDryThreshold)
             pumpOn();
     }
     else
     {
         // Điều kiện tắt bơm: đất đủ ẩm HOẶC đã bơm quá lâu
-        if (g_soilMoisture >= SOIL_WET_THRESHOLD)
+        if (g_soilMoisture >= g_soilWetThreshold)
         {
             Serial.println("[AUTO] Soil wet enough -> pump OFF");
             pumpOff();
         }
-        else if (millis() - g_pumpStartTime >= PUMP_MAX_ON_TIME_MS)
+        else if (millis() - g_pumpStartTime >= g_pumpMaxOnMs)
         {
             Serial.println("[AUTO] Pump max time exceeded -> force OFF");
             pumpOff();
@@ -224,11 +224,11 @@ void autoControlFan()
     if (g_dhtError)
         return; // Không điều khiển nếu cảm biến lỗi
 
-    if (!g_fanState && g_temperature >= TEMP_HIGH_THRESHOLD)
+    if (!g_fanState && g_temperature >= g_tempHighThreshold)
     {
         fanOn();
     }
-    else if (g_fanState && g_temperature < TEMP_LOW_THRESHOLD)
+    else if (g_fanState && g_temperature < g_tempLowThreshold)
     {
         fanOff();
     }
@@ -247,7 +247,7 @@ void autoControlFan()
 void autoControlLED()
 {
     // 1. CRITICAL - ưu tiên tuyệt đối dù AUTO hay MANUAL
-    if (!g_dhtError && g_temperature >= TEMP_CRITICAL)
+    if (!g_dhtError && g_temperature >= DEFAULT_TEMP_CRITICAL)
     {
         ledColorDanger();
         return;

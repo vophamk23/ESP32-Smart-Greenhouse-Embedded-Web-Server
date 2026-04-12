@@ -29,8 +29,6 @@
 #include "webserver_greenhouse.h"
 #include "wifi_greenhouse.h"
 
-
-
 // ============================================================================
 // SETUP
 // ============================================================================
@@ -52,6 +50,9 @@ void setup()
 
     // Load lịch tưới từ FS (nếu có) sau khi đã có mutex
     loadSchedulesFromFS();
+
+    // Load ngưỡng điều khiển từ FS (nếu có), dùng DEFAULT_* nếu chưa có file
+    loadThresholdFromFS();
 
     // Đọc sensor lần đầu để có dữ liệu hiển thị ngay khi khởi động
     readDHT();

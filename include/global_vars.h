@@ -102,6 +102,16 @@ extern bool g_alertSoil;
 extern bool g_alertLight;
 
 // ============================================================================
+// NGƯỠNG ĐIỀU KHIỂN (có thể thay đổi runtime qua WebSocket)
+// ============================================================================
+extern float g_soilDryThreshold;       // % — bật bơm
+extern float g_soilWetThreshold;       // % — tắt bơm
+extern float g_tempHighThreshold;      // °C — bật quạt
+extern float g_tempLowThreshold;       // °C — tắt quạt (hysteresis)
+extern unsigned long g_pumpMaxOnMs;    // ms — thời gian bơm tối đa
+extern unsigned long g_pumpCooldownMs; // ms — thời gian chờ giữa các lần
+
+// ============================================================================
 // LED RGB MÀU HIỆN TẠI
 // ============================================================================
 extern RGBColor_t g_currentLEDColor;

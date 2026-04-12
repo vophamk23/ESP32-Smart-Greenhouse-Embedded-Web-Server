@@ -10,7 +10,7 @@ function updateThresholdDisplay() {
   const wet = parseInt(document.getElementById("threshWet")?.value || 70);
   const pMax = parseInt(document.getElementById("pumpMax")?.value || 60);
   const pCool = parseInt(document.getElementById("pumpCool")?.value || 120);
-  const tHigh = parseInt(document.getElementById("tempHigh")?.value || 35);
+  const tHigh = parseInt(document.getElementById("tempHigh")?.value || 32);
 
   setText("threshDryVal", dry);
   setText("threshWetVal", wet);
@@ -35,6 +35,37 @@ function updateThresholdDisplay() {
   }
 }
 
+// ============================================================
+// Sync slider từ cfg_* do ESP32 gửi về qua WebSocket
+// Gọi từ ws.onmessage handler khi nhận data
+// ============================================================
+function syncThresholdFromESP32(data) {
+  let changed = false;
+
+  if (data.cfg_soilDry !== undefined) {
+    document.getElementById("threshDry").value = data.cfg_soilDry;
+    changed = true;
+  }
+  if (data.cfg_soilWet !== undefined) {
+    document.getElementById("threshWet").value = data.cfg_soilWet;
+    changed = true;
+  }
+  if (data.cfg_tempHigh !== undefined) {
+    document.getElementById("tempHigh").value = data.cfg_tempHigh;
+    changed = true;
+  }
+  if (data.cfg_pumpMax !== undefined) {
+    document.getElementById("pumpMax").value = data.cfg_pumpMax;
+    changed = true;
+  }
+  if (data.cfg_pumpCool !== undefined) {
+    document.getElementById("pumpCool").value = data.cfg_pumpCool;
+    changed = true;
+  }
+
+  if (changed) updateThresholdDisplay();
+}
+
 function saveThreshold() {
   const dry = parseInt(document.getElementById("threshDry")?.value);
   const wet = parseInt(document.getElementById("threshWet")?.value);
@@ -46,6 +77,7 @@ function saveThreshold() {
     showToast("Ngưỡng khô phải nhỏ hơn ngưỡng ướt!", true);
     return;
   }
+
   State.threshold = {
     soilDry: dry,
     soilWet: wet,
@@ -53,8 +85,17 @@ function saveThreshold() {
     pumpCool: pCool,
     tempHigh: tHigh,
   };
-  // Send to ESP32
-  sendWS({ cmd: "setThreshold", value: State.threshold });
+
+  // ✅ Gửi flat object — ESP32 đọc trực tiếp các field, không wrap trong "value"
+  sendWS({
+    cmd: "setThreshold",
+    soilDry: dry,
+    soilWet: wet,
+    tempHigh: tHigh,
+    pumpMax: pMax,
+    pumpCool: pCool,
+  });
+
   showToast("✓ Đã lưu ngưỡng tưới.");
 }
 
@@ -66,11 +107,13 @@ function resetThreshold() {
     pumpCool: 120,
     tempHigh: 32,
   };
+
   document.getElementById("threshDry").value = defaults.soilDry;
   document.getElementById("threshWet").value = defaults.soilWet;
   document.getElementById("pumpMax").value = defaults.pumpMax;
   document.getElementById("pumpCool").value = defaults.pumpCool;
   document.getElementById("tempHigh").value = defaults.tempHigh;
+
   State.threshold = { ...defaults };
   updateThresholdDisplay();
   showToast("Đã đặt lại mặc định.");

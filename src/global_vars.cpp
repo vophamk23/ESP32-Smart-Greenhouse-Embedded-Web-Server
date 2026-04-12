@@ -2,6 +2,7 @@
  * global_vars.cpp - Định nghĩa biến toàn cục
  */
 #include "global_vars.h"
+#include "config.h"
 
 // ============================================================================
 // CONFIG NETWORK
@@ -24,7 +25,7 @@ bool g_lightError = false;
 
 // ==================== RTC DS3231 ====================
 RTC_DS3231 g_rtc;
-bool g_rtcError = false;
+bool g_rtcError = true;
 
 // ==================== TRẠNG THÁI THIẾT BỊ ====================
 bool g_pumpState = false;
@@ -63,3 +64,11 @@ RGBColor_t g_currentLEDColor = {0, 0, 0};
 // ==================== THỐNG KÊ ====================
 unsigned long g_totalPumpTime = 0;
 uint32_t g_pumpCount = 0;
+
+// ==================== NGƯỠNG ĐIỀU KHIỂN ====================
+float g_soilDryThreshold = DEFAULT_SOIL_DRY;
+float g_soilWetThreshold = DEFAULT_SOIL_WET;
+float g_tempHighThreshold = DEFAULT_TEMP_HIGH;
+float g_tempLowThreshold = DEFAULT_TEMP_LOW;
+unsigned long g_pumpMaxOnMs = DEFAULT_PUMP_MAX_MS;
+unsigned long g_pumpCooldownMs = DEFAULT_PUMP_COOL_MS;

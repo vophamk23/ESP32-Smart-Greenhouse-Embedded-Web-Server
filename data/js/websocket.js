@@ -5,8 +5,6 @@
    NHẬN:  JSON chứa toàn bộ trạng thái cảm biến + thiết bị (mỗi 1s)
    GỬI:   { cmd: "setPump"|"setFan"|"setMode", value: ... }
 ============================================================ */
-"use strict";
-
 /* ────────────────────────────────────────────────────────────
    connectWS()
    Tạo kết nối WebSocket tới ESP32 và đăng ký toàn bộ event handler.
@@ -55,6 +53,7 @@ function connectWS() {
      onmessage — Nhận JSON từ ESP32 (mỗi ~1 giây)
      d là object chứa: temperature, humidity, soilMoisture,
      lightLux, pump, fan, autoMode, alertTemp, alertSoil, ...
+     cfg_soilDry, cfg_soilWet, cfg_tempHigh, cfg_pumpMax, cfg_pumpCool
  */
   State.ws.onmessage = (event) => {
     try {
@@ -64,6 +63,10 @@ function connectWS() {
       Object.assign(State.data, d); // Merge dữ liệu mới vào State toàn cục
       updateUI(d); // Cập nhật tất cả các DOM element
       pushChartPoint(d); // Thêm điểm dữ liệu mới vào biểu đồ (charts.js)
+
+      // ── Sync slider ngưỡng tưới từ cfg_* do ESP32 gửi về ──
+      // Chỉ chạy 1 lần hiệu quả khi có thay đổi (hàm tự kiểm tra)
+      syncThresholdFromESP32(d);
 
       // ── Theo dõi trạng thái bơm để tự ghi nhật ký hoạt động ──
 

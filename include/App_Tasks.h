@@ -11,8 +11,8 @@
 #define TIMER_TICK_MS 10 // Scheduler tick mỗi 10ms
 
 // ==================== TIMING (MS) ====================
-#define TASK_SENSOR_READ_DELAY_MS 2000      // Đọc cảm biến mỗi 2 giây
-#define TASK_SOIL_READ_DELAY_MS 5000        // Đọc đất mỗi 5 giây
+#define TASK_SENSOR_READ_DELAY_MS 500       // Đọc cảm biến mỗi 0.5 giây
+#define TASK_SOIL_READ_DELAY_MS 1000        // Đọc đất mỗi 1 giây
 #define TASK_LCD_UPDATE_DELAY_MS 500        // Cập nhật LCD mỗi 500ms
 #define TASK_LCD_PAGE_SWITCH_DELAY_MS 10000 // Tự chuyển trang LCD mỗi 10 giây
 #define TASK_AUTO_CONTROL_DELAY_MS 1000     // Chạy logic điều khiển mỗi 1 giây
@@ -23,10 +23,10 @@
 #define BTN_DEBOUNCE_MS 50                  // Debounce mỗi 50ms
 
 // Timing cho các task liên quan đến IoT và lịch tưới
-#define TASK_TELEMETRY_DELAY_MS 5000       // Gửi telemetry lên cloud mỗi 5s
-#define TASK_RPC_POLL_DELAY_MS 200         // Poll lệnh RPC từ cloud mỗi 200ms
-#define TASK_SCHEDULE_CHECK_DELAY_MS 10000 // Kiểm tra lịch tưới mỗi 10s
-// #define TASK_WIFI_WATCHDOG_DELAY_MS 30000    // Kiểm tra WiFi mỗi 30s
+#define TASK_TELEMETRY_DELAY_MS 2000      // Gửi telemetry lên cloud mỗi 2 giây
+#define TASK_RPC_POLL_DELAY_MS 200        // Poll lệnh RPC từ cloud mỗi 200ms
+#define TASK_SCHEDULE_CHECK_DELAY_MS 5000 // Kiểm tra lịch tưới mỗi 5 giây
+// #define TASK_WIFI_WATCHDOG_DELAY_MS 30000    // Kiểm tra WiFi mỗi 30 giây
 
 // ==================== TIMING IN TICKS ====================
 #define TASK_SENSOR_READ_TICKS (TASK_SENSOR_READ_DELAY_MS / TIMER_TICK_MS)

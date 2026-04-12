@@ -64,26 +64,27 @@
 // ============================================================================
 // NGƯỠNG ĐIỀU KHIỂN TỰ ĐỘNG
 // ============================================================================
-// Nhiệt độ (°C)
-#define TEMP_CRITICAL 35.0f       // Nguy hiểm cực cao -> LED đỏ
-#define TEMP_HIGH_THRESHOLD 32.0f // Bật quạt
-#define TEMP_LOW_THRESHOLD 31.0f  // Tắt quạt (hysteresis)
+// Dùng khi chưa có file /threshold.dat trên LittleFS
+// Các giá trị này có thể thay đổi runtime qua WebSocket và được lưu xuống FS
+// ============================================================================
 
-// Độ ẩm không khí (%)
+// Nhiệt độ (°C)
+#define DEFAULT_TEMP_CRITICAL 35.0f // Nguy hiểm cực cao → LED đỏ (không đổi được)
+#define DEFAULT_TEMP_HIGH 32.0f     // Bật quạt
+#define DEFAULT_TEMP_LOW 31.0f      // Tắt quạt (hysteresis)
+
+// Độ ẩm không khí (%) — chưa expose lên web, giữ cố định
 #define HUMIDITY_HIGH_THRESHOLD 85.0f
 #define HUMIDITY_LOW_THRESHOLD 40.0f
 
 // Độ ẩm đất (%)
-#define SOIL_DRY_THRESHOLD 30.0f // Dưới -> bơm ON
-#define SOIL_WET_THRESHOLD 65.0f // Trên  -> bơm OFF
+#define DEFAULT_SOIL_DRY 30.0f // Dưới ngưỡng này → bơm ON
+#define DEFAULT_SOIL_WET 65.0f // Trên ngưỡng này → bơm OFF
 
-// Ánh sáng (lux giả lập)
-#define LIGHT_LOW_THRESHOLD 500.0f  // Dưới -> bật đèn grow
-#define LIGHT_HIGH_THRESHOLD 999.0f // Trên -> tắt đèn grow
+// Ánh sáng (lux) — chưa expose lên web, giữ cố định
+#define LIGHT_LOW_THRESHOLD 500.0f
+#define LIGHT_HIGH_THRESHOLD 999.0f
 
-// ============================================================================
-// BẢO VỆ BƠM NƯỚC
-// ============================================================================
 /*
 Đất khô → pumpOn()
     │
@@ -94,10 +95,11 @@
     └── Nếu sau 5 phút đất VẪN khô → force pumpOff()
         (bảo vệ bơm không cháy)*/
 // Thời gian tối đa bơm được phép chạy liên tục trong 1 lần bật)
-#define PUMP_MAX_ON_TIME_MS (2UL * 60UL * 1000UL) // 2 phút tối đa mỗi lần
+#define DEFAULT_PUMP_MAX_MS (2UL * 60UL * 1000UL) // 2 phút tối đa mỗi lần
 
 // Thời gian chờ bắt buộc sau khi bơm tắt, trước khi được phép bơm lần tiếp theo
-#define PUMP_COOLDOWN_MS (2UL * 60UL * 1000UL) // 2 phút chờ giữa các lần bơm
+#define DEFAULT_PUMP_COOL_MS (2UL * 60UL * 1000UL) // 2 phút chờ giữa các lần bơm
+
 
 // ============================================================================
 // NEOPIXEL BRIGHTNESS (0-255)

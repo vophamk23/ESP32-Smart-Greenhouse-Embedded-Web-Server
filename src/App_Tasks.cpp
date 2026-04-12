@@ -79,11 +79,11 @@ void Task_PumpWatchdog(void)
 
         // Ưu tiên 2: force OFF theo PUMP_MAX_ON_TIME_MS
         // Chỉ áp dụng khi KHÔNG có lịch đang chạy
-        if (g_scheduleOffTime == 0 && elapsed >= PUMP_MAX_ON_TIME_MS)
+        if (g_scheduleOffTime == 0 && elapsed >= g_pumpMaxOnMs)
         {
             Serial.printf("[WATCHDOG] Pump ran %lus >= max %lus -> force OFF\n",
                           elapsed / 1000,
-                          (unsigned long)(PUMP_MAX_ON_TIME_MS / 1000));
+                          (unsigned long)(g_pumpMaxOnMs / 1000));
             g_scheduleOffTime = 0;
             g_scheduleTriggered = false; // Reset flag khi watchdog force OFF
             pumpOff();
@@ -101,7 +101,7 @@ void Task_PumpWatchdog(void)
     // Cooldown timeout
     if (g_pumpCooldown)
     {
-        if (millis() - g_pumpLastOffTime >= PUMP_COOLDOWN_MS)
+        if (millis() - g_pumpLastOffTime >= g_pumpCooldownMs)
         {
             g_pumpCooldown = false;
             Serial.println("[WATCHDOG] Pump cooldown ended");
@@ -136,29 +136,31 @@ void Task_ProcessRpc(void)
 // ============================================================
 void Task_CheckSchedule(void)
 {
-    // Dùng static để lưu lại phút đã trigger lần cuối, tránh trigger nhiều lần trong cùng 1 phút khi task chạy nhiều lần
     static uint32_t s_lastTriggeredMinute = 0xFFFFFFFF;
 
-    // Điều kiện để check lịch: có lịch, RTC ok, bơm đang tắt, và lịch được bật
-    if (!g_scheduleEnabled || g_scheduleCount == 0 || g_pumpState || g_rtcError)
+    // Snapshot trong lock
+    bool enabled;
+    uint8_t count;
+    ScheduleEntry_t tmp[MAX_SCHEDULES];
+
+    SENSOR_LOCK();
+    enabled = g_scheduleEnabled;
+    count = g_scheduleCount;
+    memcpy(tmp, g_schedules, sizeof(ScheduleEntry_t) * count);
+    SENSOR_UNLOCK();
+
+    if (!enabled || count == 0 || g_pumpState || g_rtcError)
         return;
 
+    // Lấy thời gian thực từ DS3231
     DateTime now = getRTCTime();
     uint32_t currentMinute = now.hour() * 60 + now.minute();
-
-    // Đã trigger trong phút này rồi → skip toàn bộ
     if (currentMinute == s_lastTriggeredMinute)
         return;
 
-    Serial.printf("[SCHED] now=%02d:%02d dow=%d count=%d\n",
-                  now.hour(), now.minute(), now.dayOfTheWeek(), g_scheduleCount);
-
-    for (uint8_t i = 0; i < g_scheduleCount; i++)
+    for (uint8_t i = 0; i < count; i++)
     {
-        ScheduleEntry_t &s = g_schedules[i];
-        Serial.printf("[SCHED] entry%d en=%d days=0x%02X h=%d m=%d\n",
-                      i, s.enabled, s.days, s.hour, s.minute);
-
+        ScheduleEntry_t &s = tmp[i]; // ← dùng bản sao
         if (!s.enabled)
             continue;
         if (!(s.days & (1 << now.dayOfTheWeek())))
@@ -171,7 +173,7 @@ void Task_CheckSchedule(void)
         Serial.printf("[SCHED] Match entry %d: %02d:%02d, %d min\n",
                       i, s.hour, s.minute, s.duration);
 
-        s_lastTriggeredMinute = currentMinute; // ← update sau khi confirm match
+        s_lastTriggeredMinute = currentMinute;
         g_scheduleTriggered = true;
         pumpOn();
         g_scheduleOffTime = millis() + ((unsigned long)s.duration * 60000UL);
