@@ -2,8 +2,8 @@
  * task_webserver_greenhouse.h
  */
 
-#ifndef WEBSERVER_GREENHOUSE_H
-#define WEBSERVER_GREENHOUSE_H
+#ifndef WEB_SERVER_H
+#define WEB_SERVER_H
 
 #include <Arduino.h>
 #include "iot_bridge.h"
@@ -20,4 +20,4 @@ void loadThresholdFromFS();
 
 void saveThresholdToFS();
 void saveSchedulesToFS();
-#endif // WEBSERVER_GREENHOUSE_H
+#endif // WEB_SERVER_H

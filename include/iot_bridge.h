@@ -1,17 +1,5 @@
 /*
  * iot_bridge.h - Cầu nối giữa Cooperative Scheduler và FreeRTOS IoT Tasks
- *
- * Vai trò:
- *   - Định nghĩa shared data queue và semaphore giữa hai core
- *   - Greenhouse scheduler (Core 1) ghi data vào queue
- *   - CoreIoT task / WebSocket task (Core 0) đọc từ queue để publish
- *   - RPC từ cloud → callback → cờ lệnh → scheduler đọc và thực thi
- *
- * Luồng dữ liệu:
- *   Sensor → g_xxx (global_vars) → Task_SendTelemetry → xTelemetryQueue
- *                                                      → coreiot_task → MQTT
- *                                                      → webserver_task → WS
- *   Cloud RPC → callback → g_rpc_xxx flags → Task_AutoControl đọc & thực thi
  */
 
 #ifndef IOT_BRIDGE_H
@@ -53,6 +41,15 @@ struct TelemetryPacket_t
     uint8_t ledR;
     uint8_t ledG;
     uint8_t ledB;
+
+    // AI Insights (TinyML & Anomaly Detection)
+    uint8_t       aiState;
+    float         aiConfidence;
+    uint32_t      aiInferenceTimeUs;
+    float         aiAnomalyScore;
+    bool          aiIsAnomaly;
+    float         aiOnlineAccuracy;
+    char          aiAnomalyType[32];
 };
 
 // ============================================================================
@@ -75,44 +72,23 @@ struct RpcPacket_t
 };
 
 // ============================================================================
-// QUEUES & SEMAPHORES (extern - khởi tạo trong iot_bridge.cpp)
+// QUEUES & SEMAPHORES
 // ============================================================================
-
-// Queue chứa telemetry packet mới nhất (depth=1, overwrite nếu chưa đọc kịp)
 extern QueueHandle_t xTelemetryQueue;
-
-// Queue nhận lệnh RPC từ cloud (depth=8, scheduler poll định kỳ)
 extern QueueHandle_t xRpcCommandQueue;
-
-// Binary semaphore: WiFi connected → release để IoT task bắt đầu kết nối MQTT
 extern EventGroupHandle_t xWiFiEventGroup;
-
-// Mutex bảo vệ truy cập sensor data (gọi từ Task_SendTelemetry và các task đọc cảm biến)
 extern SemaphoreHandle_t g_sensorMutex;
 
 #define WIFI_CONNECTED_BIT  BIT0
 
-
-// Thêm vào sau khai báo xWiFiEventGroup:
-
-
-// 2 macro tiện dụng để dùng ở mọi nơi:
 #define SENSOR_LOCK()    xSemaphoreTake(g_sensorMutex, portMAX_DELAY)
 #define SENSOR_UNLOCK()  xSemaphoreGive(g_sensorMutex)
 
 // ============================================================================
-// HÀM KHỞI TẠO
+// HÀM KHỞI TẠO & TIỆN ÍCH
 // ============================================================================
 void iotBridge_init();
-
-// ============================================================================
-// HÀM TIỆN ÍCH (gọi từ scheduler task)
-// ============================================================================
-
-// Gửi snapshot dữ liệu hiện tại vào queue (gọi từ Task_SendTelemetry)
 void iotBridge_sendTelemetry();
-
-// Đọc lệnh RPC pending và thực thi (gọi từ Task_AutoControl hoặc task riêng)
 void iotBridge_processRpcCommands();
 
 #endif // IOT_BRIDGE_H

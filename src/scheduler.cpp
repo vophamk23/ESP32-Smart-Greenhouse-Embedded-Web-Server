@@ -24,12 +24,20 @@ void IRAM_ATTR onTimer()
 }
 
 // Khởi tạo timer để gọi onTimer() mỗi 10ms
+#include <esp_arduino_version.h>
+
 void SCH_Init_Timer(void)
 {
-    timer = timerBegin(0, 80, true);           // 80MHz / 80 = 1MHz
-   timerAttachInterrupt(timer, &onTimer, false);
-    timerAlarmWrite(timer, TIMER_TICK_MS * 1000, true); // 10ms
+#if defined(ESP_ARDUINO_VERSION_MAJOR) && (ESP_ARDUINO_VERSION_MAJOR >= 3)
+    timer = timerBegin(1000000); // 1MHz
+    timerAttachInterrupt(timer, &onTimer);
+    timerAlarm(timer, TIMER_TICK_MS * 1000, true, 0); // 10ms auto-reload
+#else
+    timer = timerBegin(0, 80, true);
+    timerAttachInterrupt(timer, &onTimer, true);
+    timerAlarmWrite(timer, TIMER_TICK_MS * 1000, true);
     timerAlarmEnable(timer);
+#endif
     Serial.println("[SCH] Timer 10ms started");
 }
 

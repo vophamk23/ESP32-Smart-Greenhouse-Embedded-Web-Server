@@ -2,34 +2,26 @@
 #define SENSOR_HANDLER_H
 
 #include <Arduino.h>
-
-/*
- * Thư viện sử dụng (local lib/):
- *   - DHT (Adafruit) - đã có sẵn trong lib/DHT
- *   - Adafruit_Sensor - đã có sẵn trong lib/Adafruit_Sensor
- *   - LDR module DO: không cần thư viện
- *   - Cảm biến đất ADC: không cần thư viện
- */
-#include "DHT.h"    // dùng thư viện local lib/DHT
 #include <RTClib.h>
+#include "config.h"
 
+#if USE_DHT20
+  #include "DHT20.h"
+#else
+  #include "DHT.h"
+#endif
 
 // ==================== KHỞI TẠO ====================
 void initSensors();
+void initRTC();
 
 // ==================== ĐỌC CẢM BIẾN ====================
 void readDHT();             // Đọc nhiệt độ & độ ẩm -> g_temperature, g_humidity
-void readLightSensor();     // Đọc LDR DO -> g_lightLux (0 hoặc 1000)
-void readSoilMoisture();    // Đọc độ ẩm đất (ADC) -> g_soilMoisture
+void readLightSensor();     // Đọc quang trở ADC -> g_lightLux
+void readSoilMoisture();    // Đọc độ ẩm đất (ADC + EMA Filter) -> g_soilMoisture
 
-void initRTC();         // Khởi tạo DS3231
+DateTime getRTCTime();      // Trả về thời gian hiện tại từ DS3231 hoặc giả lập
 
-DateTime getRTCTime();  // Trả về thời gian hiện tại từ DS3231
-// ==================== GETTER ====================
-DHT* getDHT();
-
-// ==================== UTILITY ====================
-// float mapSoilADC(int adcValue);
-void  printSensorData();
+void printSensorData();
 
 #endif // SENSOR_HANDLER_H

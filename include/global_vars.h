@@ -1,29 +1,25 @@
 #ifndef GLOBAL_VARS_H
 #define GLOBAL_VARS_H
+
 /*
- * global_vars.h - Khai báo biến toàn cục có volatile cho thread safety
- *
- * Tất cả biến được đọc/ghi từ nhiều context (ISR + loop) phải là volatile.
- * Các biến chỉ dùng trong loop() không cần volatile nhưng khai báo chung cho đồng nhất.
+ * global_vars.h - Khai báo biến toàn cục hệ thống Greenhouse IoT & Edge AI
  */
 
 #include <Arduino.h>
 #include <RTClib.h>
-#include <iot_bridge.h>
+#include "iot_bridge.h"
 
 // ============================================================================
-// CONFIG NETWORK
+// CONFIG NETWORK & CLOUD COREIOT
 // ============================================================================
 extern char WIFI_SSID[33];
 extern char WIFI_PASS[65];
 extern char CORE_IOT_TOKEN[64];
 extern char CORE_IOT_SERVER[128];
 extern char CORE_IOT_PORT[6];
-extern char LOCAL_MQTT_HOST[64];
-extern char LOCAL_MQTT_PORT[6];
 
 // ============================================================================
-// LỊCH TƯỚI
+// LỊCH TƯỚI NƯỚC
 // ============================================================================
 #define MAX_SCHEDULES 10
 
@@ -39,11 +35,11 @@ struct ScheduleEntry_t
 extern ScheduleEntry_t g_schedules[MAX_SCHEDULES];
 extern uint8_t g_scheduleCount;
 extern bool g_scheduleEnabled;
-extern unsigned long g_scheduleOffTime; // millis() thời điểm cần tắt bơm theo lịch
-extern bool g_scheduleTriggered;        // true nếu bơm đang chạy do lịch tưới, dùng để bypass cooldown
+extern unsigned long g_scheduleOffTime;
+extern bool g_scheduleTriggered;
 
 // ============================================================================
-// KIỂU DỮ LIỆU
+// KIỂU DỮ LIỆU MÀU RGB
 // ============================================================================
 struct RGBColor_t
 {
@@ -51,7 +47,7 @@ struct RGBColor_t
 };
 
 // ============================================================================
-// DỮ LIỆU CẢM BIẾN (chỉ ghi trong loop/task, không phải ISR -> không cần volatile)
+// DỮ LIỆU CẢM BIẾN
 // ============================================================================
 extern float g_temperature;
 extern float g_humidity;
@@ -61,15 +57,29 @@ extern bool g_dhtError;
 extern bool g_lightError;
 
 // ============================================================================
+// BIẾN TRÍ TUỆ NHÂN TẠO TINYML (EDGE AI)
+// ============================================================================
+extern uint8_t g_aiState;            // 0: COMFORTABLE, 1: HEAT_WARNING, 2: EXTREME_ALERT
+extern float g_aiConfidence;         // Độ tin cậy mô hình (%)
+extern uint32_t g_aiInferenceTimeUs; // Thời gian suy luận on-chip (µs)
+extern char g_aiStateStr[32];        // Chuỗi trạng thái ("COMFORTABLE", ...)
+extern char g_aiForecastStr[64];     // Chuỗi dự báo thời tiết 30 phút tới
+extern bool g_aiAutoControl;         // Cho phép AI tự động ra quyết định kích hoạt quạt/bơm
+extern float g_aiAnomalyScore;       // Điểm dị thường cảm biến (0.00 - 1.00)
+extern bool g_aiIsAnomaly;           // Cờ báo dị thường (predictedAnomaly)
+extern char g_aiAnomalyType[32];     // Chuỗi loại dị thường ("NORMAL", "FLAME_TAMPER", ...)
+extern float g_aiOnlineAccuracy;     // Tỷ lệ dự đoán đúng tích lũy (%)
+
+// ============================================================================
 // TRẠNG THÁI THIẾT BỊ
 // ============================================================================
 extern bool g_pumpState;
 extern bool g_fanState;
 extern bool g_ledGrowState;
-extern bool g_pumpManual; // true = bơm do lệnh manual, không auto off theo soil
+extern bool g_pumpManual;
 
 // ============================================================================
-// THỜI GIAN BƠM
+// THỜI GIAN & COOLDOWN BƠM
 // ============================================================================
 extern unsigned long g_pumpStartTime;
 extern unsigned long g_pumpLastOffTime;
@@ -82,11 +92,10 @@ extern int g_lcdPage;
 extern unsigned long g_lcdPageTimer;
 
 // ============================================================================
-// RTC DS3231
-// Dùng chung I2C bus SDA=21, SCL=22 với LCD
+// RTC DS3231 (Tùy chọn, không bắt buộc)
 // ============================================================================
 extern RTC_DS3231 g_rtc;
-extern bool g_rtcError; // true nếu RTC không tìm thấy hoặc mất nguồn
+extern bool g_rtcError;
 
 // ============================================================================
 // CHẾ ĐỘ HỆ THỐNG
@@ -102,14 +111,14 @@ extern bool g_alertSoil;
 extern bool g_alertLight;
 
 // ============================================================================
-// NGƯỠNG ĐIỀU KHIỂN (có thể thay đổi runtime qua WebSocket)
+// NGƯỠNG ĐIỀU KHIỂN
 // ============================================================================
-extern float g_soilDryThreshold;       // % — bật bơm
-extern float g_soilWetThreshold;       // % — tắt bơm
-extern float g_tempHighThreshold;      // °C — bật quạt
-extern float g_tempLowThreshold;       // °C — tắt quạt (hysteresis)
-extern unsigned long g_pumpMaxOnMs;    // ms — thời gian bơm tối đa
-extern unsigned long g_pumpCooldownMs; // ms — thời gian chờ giữa các lần
+extern float g_soilDryThreshold;
+extern float g_soilWetThreshold;
+extern float g_tempHighThreshold;
+extern float g_tempLowThreshold;
+extern unsigned long g_pumpMaxOnMs;
+extern unsigned long g_pumpCooldownMs;
 
 // ============================================================================
 // LED RGB MÀU HIỆN TẠI

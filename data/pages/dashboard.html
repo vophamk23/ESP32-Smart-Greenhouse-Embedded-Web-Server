@@ -48,7 +48,43 @@
     <!-- Hidden alert holders still in DOM for ui.js compatibility -->
     <div id="al-light" class="hidden"></div>
     <div id="al-dht" class="hidden"></div>
-    <div id="al-pump-wd" class="hidden"></div>
+        <div id="al-pump-wd" class="hidden"></div>
+        <div id="al-anomaly" class="hidden"></div>
+  </section>
+
+  <!-- AI TinyML Insights Banner (Edge AI on ESP32-S3) -->
+  <section class="glass-card p-5 rounded-2xl border border-primary/20 bg-gradient-to-r from-emerald-50/60 via-teal-50/40 to-white shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary flex-shrink-0">
+        <span class="material-symbols-outlined text-2xl">neurology</span>
+      </div>
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="text-xs font-bold uppercase tracking-wider text-primary">Edge AI (TinyML On-Device)</span>
+          <span id="ai-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800">COMFORTABLE</span>
+          <span id="ai-anomaly-badge" class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700">NORMAL</span>
+        </div>
+        <p id="ai-forecast-text" class="text-sm font-semibold text-slate-700 mt-0.5">Vi khí hậu ổn định (Đang suy luận on-chip...)</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-6 text-xs text-slate-500">
+      <div class="text-right">
+        <span class="block text-[10px] uppercase font-bold text-slate-400">Độ tin cậy</span>
+        <span id="ai-conf-val" class="font-bold text-slate-700 text-sm">--%</span>
+      </div>
+      <div class="text-right">
+        <span class="block text-[10px] uppercase font-bold text-slate-400">Dị thường (Score)</span>
+        <span id="ai-score-val" class="font-bold text-slate-700 text-sm">0.00</span>
+      </div>
+      <div class="text-right">
+        <span class="block text-[10px] uppercase font-bold text-slate-400">Độ chính xác Online</span>
+        <span id="ai-online-acc" class="font-bold text-emerald-600 text-sm">100%</span>
+      </div>
+      <div class="text-right">
+        <span class="block text-[10px] uppercase font-bold text-slate-400">Suy luận</span>
+        <span id="ai-latency-val" class="font-bold text-slate-700 text-sm">-- µs</span>
+      </div>
+    </div>
   </section>
 
   <!-- ── Sensor bento grid ── -->

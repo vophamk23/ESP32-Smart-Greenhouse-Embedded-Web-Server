@@ -1,6 +1,6 @@
-#include "wifi_greenhouse.h"
+#include "wifi_manager.h"
 #include "iot_bridge.h" // xWiFiEventGroup, WIFI_CONNECTED_BIT
-#include "check_info.h" // WIFI_SSID, WIFI_PASS (đọc từ /info.dat trên LittleFS)
+#include "config_manager.h" // WIFI_SSID, WIFI_PASS (đọc từ /info.dat trên LittleFS)
 #include "ntp_sync.h"
 /* ============================================================
    wifi_greenhouse.cpp

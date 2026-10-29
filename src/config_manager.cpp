@@ -1,4 +1,4 @@
-#include "check_info.h"
+#include "config_manager.h"
 
 // ============================================================================
 // LOAD
@@ -8,7 +8,7 @@ void Load_info_File()
     File file = LittleFS.open("/info.dat", "r");
     if (!file)
     {
-        Serial.println("[CFG] /info.dat not found");
+        Serial.println("[CFG] /info.dat not found, using default configuration");
         return;
     }
 
@@ -29,17 +29,12 @@ void Load_info_File()
     if (doc["CORE_IOT_TOKEN"].is<const char *>())
         snprintf(CORE_IOT_TOKEN, sizeof(CORE_IOT_TOKEN), "%s", (const char *)(doc["CORE_IOT_TOKEN"] | ""));
     if (doc["CORE_IOT_SERVER"].is<const char *>())
-        snprintf(CORE_IOT_SERVER, sizeof(CORE_IOT_SERVER), "%s", (const char *)(doc["CORE_IOT_SERVER"] | ""));
+        snprintf(CORE_IOT_SERVER, sizeof(CORE_IOT_SERVER), "%s", (const char *)(doc["CORE_IOT_SERVER"] | "app.coreiot.io"));
     if (doc["CORE_IOT_PORT"].is<const char *>())
         snprintf(CORE_IOT_PORT, sizeof(CORE_IOT_PORT), "%s", (const char *)(doc["CORE_IOT_PORT"] | "1883"));
-    if (doc["LOCAL_MQTT_HOST"].is<const char *>())
-        snprintf(LOCAL_MQTT_HOST, sizeof(LOCAL_MQTT_HOST), "%s", (const char *)(doc["LOCAL_MQTT_HOST"] | ""));
-    if (doc["LOCAL_MQTT_PORT"].is<const char *>())
-        snprintf(LOCAL_MQTT_PORT, sizeof(LOCAL_MQTT_PORT), "%s", (const char *)(doc["LOCAL_MQTT_PORT"] | "1883"));
 
-    Serial.printf("[CFG] Loaded: SSID=%s, Server=%s:%s, LocalMQTT=%s:%s\n",
-                  WIFI_SSID, CORE_IOT_SERVER, CORE_IOT_PORT,
-                  LOCAL_MQTT_HOST, LOCAL_MQTT_PORT);
+    Serial.printf("[CFG] Loaded: SSID=%s, CoreIOT Server=%s:%s, Token=%s\n",
+                  WIFI_SSID, CORE_IOT_SERVER, CORE_IOT_PORT, CORE_IOT_TOKEN);
 }
 
 // ============================================================================
@@ -49,17 +44,13 @@ void Save_info_File(const char *wifi_ssid,
                     const char *wifi_pass,
                     const char *core_token,
                     const char *core_server,
-                    const char *core_port,
-                    const char *local_host,
-                    const char *local_port)
+                    const char *core_port)
 {
     snprintf(WIFI_SSID, sizeof(WIFI_SSID), "%s", wifi_ssid);
     snprintf(WIFI_PASS, sizeof(WIFI_PASS), "%s", wifi_pass);
     snprintf(CORE_IOT_TOKEN, sizeof(CORE_IOT_TOKEN), "%s", core_token);
     snprintf(CORE_IOT_SERVER, sizeof(CORE_IOT_SERVER), "%s", core_server);
     snprintf(CORE_IOT_PORT, sizeof(CORE_IOT_PORT), "%s", core_port);
-    snprintf(LOCAL_MQTT_HOST, sizeof(LOCAL_MQTT_HOST), "%s", local_host);
-    snprintf(LOCAL_MQTT_PORT, sizeof(LOCAL_MQTT_PORT), "%s", local_port);
 
     DynamicJsonDocument doc(1024);
     doc["WIFI_SSID"] = wifi_ssid;
@@ -67,8 +58,6 @@ void Save_info_File(const char *wifi_ssid,
     doc["CORE_IOT_TOKEN"] = core_token;
     doc["CORE_IOT_SERVER"] = core_server;
     doc["CORE_IOT_PORT"] = core_port;
-    doc["LOCAL_MQTT_HOST"] = local_host;
-    doc["LOCAL_MQTT_PORT"] = local_port;
 
     File file = LittleFS.open("/info.dat", "w");
     if (!file)
@@ -80,7 +69,7 @@ void Save_info_File(const char *wifi_ssid,
     serializeJson(doc, file);
     file.close();
 
-    Serial.println("[CFG] Saved! Restarting...");
+    Serial.println("[CFG] Config saved to LittleFS! Restarting...");
     delay(200);
     ESP.restart();
 }
@@ -100,25 +89,24 @@ void Delete_info_File()
 }
 
 // ============================================================================
-// CHECK
+// CHECK & MOUNT LITTLEFS
 // ============================================================================
 bool check_info_File(bool check)
 {
-    if (!check)
+    if (!LittleFS.begin(true))
     {
-        if (!LittleFS.begin(true))
-        {
-            Serial.println("[CFG] LittleFS mount failed!");
-            return false;
-        }
-        Load_info_File();
-    }
-
-    if (WIFI_SSID[0] == '\0')
-    {
-        Serial.println("[CFG] No WiFi config found - AP mode will start");
+        Serial.println("[CFG] LittleFS Mount Failed!");
         return false;
     }
+    Serial.println("[CFG] LittleFS Mounted Successfully");
 
-    return true;
+    if (check)
+    {
+        return LittleFS.exists("/info.dat");
+    }
+    else
+    {
+        Load_info_File();
+        return true;
+    }
 }

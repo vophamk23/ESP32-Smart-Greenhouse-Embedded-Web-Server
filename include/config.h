@@ -1,107 +1,122 @@
 /*
- * config.h - Cấu hình toàn bộ hệ thống Greenhouse IoT
- * Chỉnh sửa file này để thay đổi thông số phần cứng và ngưỡng cảm biến.
+ * config.h - Cấu hình toàn bộ hệ thống Greenhouse IoT cho Yolo:UNO (ESP32-S3)
+ * Tự động tương thích với cả Kit Yolo:UNO (ESP32-S3) và ESP32 thường.
  */
 
-// ============================================================================
-// CHÂN GPIO (ESP32) - Nguồn 3.3V
-// ============================================================================
-#define DHT_PIN 27           // DHT11/22 data pin
-#define LIGHT_SENSOR_PIN 34  // LDR module (DO digital)
-#define SOIL_MOISTURE_PIN 33 // Capacitive soil sensor ADC
-#define RELAY_PUMP_PIN 17    // Relay bơm nước (IN1)
-#define NEO_PIN 26           // NeoPixel data pin
-#define NEO_COUNT 4          // Số LED NeoPixel
-#define FAN_S1_PIN 25        // Fan Yolo S1 (quay thuận)
-#define BTN_MODE_PIN 19      // Toggle AUTO <-> MANUAL
-#define BTN_PUMP_PIN 18      // Toggle Pump  (chỉ MANUAL)
-#define BTN_FAN_PIN 5        // Toggle Fan   (chỉ MANUAL)
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include <Arduino.h>
 
 // ============================================================================
-// LCD 16x2 I2C (Nguồn 5V, SDA=GPIO21, SCL=GPIO22)
+// LỰA CHỌN CẢM BIẾN NHIỆT ĐỘ - ĐỘ ẨM
 // ============================================================================
-#define LCD_ADDRESS 0x27 // Thử 0x3F nếu không hiển thị
-#define LCD_COLS 16
-#define LCD_ROWS 2
-#define LCD_PAGE_COUNT 4 // Tổng số trang màn hình
-#define SDA_PIN 21
-#define SCL_PIN 22
+#define USE_DHT20 1          // 1: Cảm biến I2C DHT20 (chuẩn phòng lab Bách Khoa)
+                             // 0: Cảm biến DHT11/DHT22 chân số 1 dây
 
 // ============================================================================
-// RTC DS3231 I2C (dùng chung bus SDA=21, SCL=22 với LCD)
-// DS3231 địa chỉ mặc định 0x68 — không xung đột với LCD 0x27
+// ĐỊNH NGHĨA CHÂN NGOẠI VI (PINOUT)
 // ============================================================================
-#define RTC_I2C_ADDRESS 0x68 // Địa chỉ cố định của DS3231
+#if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_YOLO_UNO)
+  // ── CẤU HÌNH DÀNH CHO KIT YOLO:UNO (ESP32-S3) ──
+  // I2C Cổng ĐỎ Grove: Dùng chung cho DHT20 (0x38), LCD 1602 (0x21 / 0x27)
+  #define SDA_PIN             11
+  #define SCL_PIN             12
+
+  #define NEO_PIN             45          // LED RGB NeoPixel on-board Yolo:UNO
+  #define NEO_COUNT           1           // 1 hạt LED RGB tích hợp trên board
+  #define LED_PIN             48          // LED đơn on-board Yolo:UNO (GPIO 48)
+
+  #define RELAY_PUMP_PIN      4           // Rơ-le điều khiển Bơm nước (Chân D4)
+  #define FAN_S1_PIN          5           // Điều khiển Quạt làm mát (Chân D5)
+
+  #define LIGHT_SENSOR_PIN    2           // Cảm biến ánh sáng LDR (ADC1 kênh 1)
+  #define SOIL_MOISTURE_PIN   1           // Cảm biến độ ẩm đất (ADC1 kênh 0)
+
+  #define BTN_MODE_PIN        8           // Nút nhấn chuyển chế độ Auto / Manual
+  #define BTN_PUMP_PIN        9           // Nút bật/tắt bơm thủ công
+  #define BTN_FAN_PIN         10          // Nút bật/tắt quạt thủ công
+
+  #define LCD_ADDRESS         0x21        // Địa chỉ I2C màn hình LCD trên Yolo:UNO
+  #define LCD_ADDRESS_ALT     0x27        // Địa chỉ I2C dự phòng nếu dùng module rời
+#else
+  // ── CẤU HÌNH DỰ PHÒNG CHO ESP32 THƯỜNG (ESP32DEV) ──
+  #define SDA_PIN             21
+  #define SCL_PIN             22
+
+  #define NEO_PIN             26
+  #define NEO_COUNT           4
+  #define LED_PIN             2
+
+  #define RELAY_PUMP_PIN      17
+  #define FAN_S1_PIN          25
+
+  #define LIGHT_SENSOR_PIN    34
+  #define SOIL_MOISTURE_PIN   33
+
+  #define BTN_MODE_PIN        19
+  #define BTN_PUMP_PIN        18
+  #define BTN_FAN_PIN         5
+
+  #define LCD_ADDRESS         0x27
+  #define LCD_ADDRESS_ALT     0x3F
+#endif
 
 // ============================================================================
-// CẤU HÌNH CẢM BIẾN
+// LCD 16x2 I2C
 // ============================================================================
-#define DHT_TYPE DHT11 // DHT11 hoặc DHT22
-
-// Calibration ADC đất (capacitive): đo thực tế trước khi dùng
-// Cắm sensor vào không khí hoàn toàn khô -> ghi ADC_DRY
-// Nhúng sensor vào nước  -> ghi ADC_WET
-#define SOIL_ADC_DRY 3900  // ADC khi đất khô hoàn toàn (~80% 4095)
-#define SOIL_ADC_WET 2200  // ADC khi ngập nước (~20% 4095)
-#define SOIL_ADC_SAMPLES 5 // Số mẫu lấy trung bình (giảm nhiễu)
-
-// Calibration lux từ ADC analog (đo thực tế)
-#define LIGHT_ADC_BRIGHT 2000 // ADC khi có ánh sáng
-#define LIGHT_ADC_DARK 50     // ADC khi che tối
-#define LIGHT_ADC_SAMPLES 5   // Số mẫu trung bình
-
-// DO=LOW (đủ sáng) -> 1000 lux, DO=HIGH (tối) -> 0 lux
-#define LIGHT_LUX_BRIGHT 1000.0f
-#define LIGHT_LUX_DARK 0.0f
+#define LCD_COLS              16
+#define LCD_ROWS              2
+#define LCD_PAGE_COUNT        4
 
 // ============================================================================
-// RELAY LOGIC
+// RTC DS3231 I2C (Địa chỉ 0x68)
 // ============================================================================
-// Relay active-LOW: IN=LOW -> relay bật, IN=HIGH -> relay tắt
-#define RELAY_ON LOW
-#define RELAY_OFF HIGH
+#define RTC_I2C_ADDRESS       0x68
 
 // ============================================================================
-// NGƯỠNG ĐIỀU KHIỂN TỰ ĐỘNG
+// CẤU HÌNH CẢM BIẾN & HIỆU CHUẨN ADC
 // ============================================================================
-// Dùng khi chưa có file /threshold.dat trên LittleFS
-// Các giá trị này có thể thay đổi runtime qua WebSocket và được lưu xuống FS
+#define DHT_PIN               SDA_PIN     // Dùng khi USE_DHT20 = 0
+#define DHT_TYPE              11          // 11 = DHT11, 22 = DHT22
+
+#define SOIL_ADC_DRY          3900        // Đất khô hoàn toàn
+#define SOIL_ADC_WET          2200        // Ngập nước
+#define SOIL_ADC_SAMPLES      5
+
+#define LIGHT_ADC_BRIGHT      2000
+#define LIGHT_ADC_DARK        50
+#define LIGHT_ADC_SAMPLES     5
+#define LIGHT_LUX_BRIGHT      1000.0f
+#define LIGHT_LUX_DARK        0.0f
+
 // ============================================================================
+// LOGIC RƠ-LE
+// ============================================================================
+#define RELAY_ON              LOW         // Rơ-le active-LOW
+#define RELAY_OFF             HIGH
 
-// Nhiệt độ (°C)
-#define DEFAULT_TEMP_CRITICAL 35.0f // Nguy hiểm cực cao → LED đỏ (không đổi được)
-#define DEFAULT_TEMP_HIGH 32.0f     // Bật quạt
-#define DEFAULT_TEMP_LOW 31.0f      // Tắt quạt (hysteresis)
+// ============================================================================
+// NGƯỠNG ĐIỀU KHIỂN TỰ ĐỘNG (DEFAULT KHI CHƯA CÓ LITTLEFS)
+// ============================================================================
+#define DEFAULT_TEMP_CRITICAL 36.0f       // Nhiệt độ cực đoan -> LED Đỏ
+#define DEFAULT_TEMP_HIGH     32.0f       // Bật quạt
+#define DEFAULT_TEMP_LOW      31.0f       // Tắt quạt (vùng trễ Hysteresis 1°C)
 
-// Độ ẩm không khí (%) — chưa expose lên web, giữ cố định
 #define HUMIDITY_HIGH_THRESHOLD 85.0f
-#define HUMIDITY_LOW_THRESHOLD 40.0f
+#define HUMIDITY_LOW_THRESHOLD  40.0f
 
-// Độ ẩm đất (%)
-#define DEFAULT_SOIL_DRY 30.0f // Dưới ngưỡng này → bơm ON
-#define DEFAULT_SOIL_WET 65.0f // Trên ngưỡng này → bơm OFF
+#define DEFAULT_SOIL_DRY      30.0f       // Đất dưới 30% -> Bơm ON
+#define DEFAULT_SOIL_WET      65.0f       // Đất trên 65% -> Bơm OFF
 
-// Ánh sáng (lux) — chưa expose lên web, giữ cố định
-#define LIGHT_LOW_THRESHOLD 500.0f
-#define LIGHT_HIGH_THRESHOLD 999.0f
+#define LIGHT_LOW_THRESHOLD   500.0f
+#define LIGHT_HIGH_THRESHOLD  999.0f
 
-/*
-Đất khô → pumpOn()
-    │
-    │ Bơm chạy...
-    │
-    ├── Nếu đất đủ ẩm trước 5 phút → pumpOff() bình thường
-    │
-    └── Nếu sau 5 phút đất VẪN khô → force pumpOff()
-        (bảo vệ bơm không cháy)*/
-// Thời gian tối đa bơm được phép chạy liên tục trong 1 lần bật)
-#define DEFAULT_PUMP_MAX_MS (2UL * 60UL * 1000UL) // 2 phút tối đa mỗi lần
+// Bảo vệ máy bơm
+#define DEFAULT_PUMP_MAX_MS   (2UL * 60UL * 1000UL) // Tối đa 2 phút mỗi lần bơm
+#define DEFAULT_PUMP_COOLDOWN_MS (30UL * 1000UL)   // Nghỉ 30 giây giữa 2 lần bơm
 
-// Thời gian chờ bắt buộc sau khi bơm tắt, trước khi được phép bơm lần tiếp theo
-#define DEFAULT_PUMP_COOL_MS (2UL * 60UL * 1000UL) // 2 phút chờ giữa các lần bơm
+// Độ sáng LED NeoPixel
+#define NEO_BRIGHTNESS        100
 
-
-// ============================================================================
-// NEOPIXEL BRIGHTNESS (0-255)
-// ============================================================================
-#define NEO_BRIGHTNESS 150 // 0-255 (150 ~ 60%)
+#endif // CONFIG_H

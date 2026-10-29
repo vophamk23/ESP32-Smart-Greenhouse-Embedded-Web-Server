@@ -1,35 +1,14 @@
 /*
- * webserver_greenhouse.cpp - WebServer + WebSocket Task cho Greenhouse IoT
+ * webserver_greenhouse.cpp - WebServer + WebSocket Task cho Greenhouse IoT & Edge AI
  *
  * Chức năng:
  *   - Serve web UI từ LittleFS (/index.html, /script.js, /styles.css)
- *   - WebSocket /ws: đẩy telemetry real-time mỗi 1s
+ *   - WebSocket /ws: đẩy telemetry real-time mỗi 1s kèm AI insights
  *   - Nhận lệnh điều khiển từ browser qua WebSocket → xRpcCommandQueue
  *   - ElegantOTA: cập nhật firmware qua browser
- *
- * WebSocket JSON format gửi đến browser:
- *   {
- *     "temperature": 28.5, "humidity": 65.0,
- *     "soilMoisture": 45.0, "lightLux": 1000.0,
- *     "pump": true, "fan": false, "autoMode": true,
- *     "alertTemp": false, "alertSoil": true,
- *     "ledColor": "#00FF00",
- *     "pumpCount": 3, "totalPumpTimeSec": 240,
- *     "cfg_soilDry": 30, "cfg_soilWet": 65,
- *     "cfg_tempHigh": 32, "cfg_pumpMax": 120, "cfg_pumpCool": 120
- *   }
- *
- * WebSocket JSON nhận từ browser:
- *   { "cmd": "setPump",    "value": true }
- *   { "cmd": "setFan",     "value": false }
- *   { "cmd": "setMode",    "value": "AUTO" }
- *   { "cmd": "setScheduleEnabled", "value": true }
- *   { "cmd": "setSchedules", "value": [...] }
- *   { "cmd": "setThreshold", "soilDry": 30, "soilWet": 65,
- *                             "tempHigh": 32, "pumpMax": 120, "pumpCool": 120 }
  */
 
-#include "webserver_greenhouse.h"
+#include "web_server.h"
 #include "iot_bridge.h"
 #include "global_vars.h"
 #include "config.h"
@@ -58,7 +37,6 @@ void saveSchedulesToFS()
         return;
     }
 
-    // Snapshot trước khi serialize để không giữ lock trong lúc ghi file
     bool enabled;
     uint8_t count;
     ScheduleEntry_t tmp[MAX_SCHEDULES];
@@ -76,7 +54,7 @@ void saveSchedulesToFS()
     for (uint8_t i = 0; i < count; i++)
     {
         JsonObject o = arr.createNestedObject();
-        char timeBuf[6];
+        char timeBuf[16];
         snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d",
                  tmp[i].hour, tmp[i].minute);
         o["time"] = timeBuf;
@@ -110,7 +88,6 @@ void loadSchedulesFromFS()
     }
     f.close();
 
-    // Parse vào biến tạm trước, rồi mới lock để ghi vào global
     bool newEnabled = doc["enabled"].as<bool>();
     uint8_t newCount = 0;
     ScheduleEntry_t tmp[MAX_SCHEDULES];
@@ -190,7 +167,6 @@ void loadThresholdFromFS()
     }
     f.close();
 
-    // Parse vào biến tạm, validate, rồi mới lock ghi global
     float soilDry = doc["soilDry"] | DEFAULT_SOIL_DRY;
     float soilWet = doc["soilWet"] | DEFAULT_SOIL_WET;
     float tempHigh = doc["tempHigh"] | DEFAULT_TEMP_HIGH;
@@ -198,7 +174,6 @@ void loadThresholdFromFS()
     int pumpMax = doc["pumpMax"] | 120;
     int pumpCool = doc["pumpCool"] | 120;
 
-    // Validate: soilDry phải nhỏ hơn soilWet, tempLow < tempHigh
     if (soilDry >= soilWet || tempLow >= tempHigh)
     {
         Serial.println("[THRESH] Invalid values in file - using defaults");
@@ -250,8 +225,16 @@ static void handleBrowserMessage(const String &json)
         if (val)
             pkt.command = (strcmp(val, "AUTO") == 0) ? RPC_MODE_AUTO : RPC_MODE_MANUAL;
     }
-
-    // Set bật/tắt lịch tưới tự động - đơn giản nên gộp chung vào "setMode" cũng được, nhưng tách riêng cho rõ ràng
+    // ---- setAiMode ----
+    else if (strcmp(cmd, "setAiMode") == 0)
+    {
+        bool val = doc["enabled"].as<bool>();
+        SENSOR_LOCK();
+        g_aiAutoControl = val;
+        SENSOR_UNLOCK();
+        Serial.printf("[AI] Auto Control toggled: %s\n", val ? "ENABLED" : "DISABLED");
+    }
+    // ---- setScheduleEnabled ----
     else if (strcmp(cmd, "setScheduleEnabled") == 0)
     {
         bool val = doc["value"].as<bool>();
@@ -262,8 +245,7 @@ static void handleBrowserMessage(const String &json)
         saveSchedulesToFS();
         Serial.printf("[SCHED] Enabled: %s\n", val ? "ON" : "OFF");
     }
-
-    // Set toàn bộ lịch tưới (danh sách) — payload phức tạp hơn nên tách riêng thành "setSchedules"
+    // ---- setSchedules ----
     else if (strcmp(cmd, "setSchedules") == 0)
     {
         JsonArray arr = doc["value"].as<JsonArray>();
@@ -301,18 +283,16 @@ static void handleBrowserMessage(const String &json)
         saveSchedulesToFS();
         Serial.printf("[SCHED] Saved %d schedules\n", newCount);
     }
-
-    // Set ngưỡng điều khiển (soilDry, soilWet, tempHigh, tempLow, pumpMax, pumpCool)
+    // ---- setThreshold ----
     else if (strcmp(cmd, "setThreshold") == 0)
     {
         float soilDry = doc["soilDry"] | g_soilDryThreshold;
         float soilWet = doc["soilWet"] | g_soilWetThreshold;
         float tempHigh = doc["tempHigh"] | g_tempHighThreshold;
-        float tempLow = tempHigh - 1.0f; // hysteresis cố định 1°C
+        float tempLow = tempHigh - 1.0f;
         int pumpMax = doc["pumpMax"] | (int)(g_pumpMaxOnMs / 1000UL);
         int pumpCool = doc["pumpCool"] | (int)(g_pumpCooldownMs / 1000UL);
 
-        // Validate trước khi ghi
         if (soilDry >= soilWet)
         {
             Serial.println("[THRESH] soilDry >= soilWet - rejected");
@@ -333,7 +313,6 @@ static void handleBrowserMessage(const String &json)
                       soilDry, soilWet, tempHigh, pumpMax, pumpCool);
     }
 
-    // Gửi lệnh vào queue nếu có
     if (pkt.command != RPC_NONE && xRpcCommandQueue)
         xQueueSend(xRpcCommandQueue, &pkt, 0);
 }
@@ -346,12 +325,12 @@ static void onWsEvent(AsyncWebSocket *server, AsyncWebSocketClient *client,
 {
     if (type == WS_EVT_CONNECT)
     {
-        Serial.printf("[WS] Client #%u connected: %s\n",
-                      client->id(), client->remoteIP().toString().c_str());
+        Serial.printf("[WS] Client #%lu connected: %s\n",
+                      (unsigned long)client->id(), client->remoteIP().toString().c_str());
     }
     else if (type == WS_EVT_DISCONNECT)
     {
-        Serial.printf("[WS] Client #%u disconnected\n", client->id());
+        Serial.printf("[WS] Client #%lu disconnected\n", (unsigned long)client->id());
     }
     else if (type == WS_EVT_DATA)
     {
@@ -373,19 +352,29 @@ static void startWebServer()
     s_ws.onEvent(onWsEvent);
     s_server.addHandler(&s_ws);
 
-    // 2. REST endpoint: snapshot trạng thái hiện tại
+    // 2. REST endpoint: snapshot trạng thái hiện tại kèm AI Insights
     s_server.on("/api/status", HTTP_GET, [](AsyncWebServerRequest *req)
                 {
-        StaticJsonDocument<256> doc;
+        StaticJsonDocument<640> doc;
 
         SENSOR_LOCK();
-        doc["temperature"]  = g_temperature;
-        doc["humidity"]     = g_humidity;
-        doc["soilMoisture"] = g_soilMoisture;
-        doc["lightLux"]     = g_lightLux;
-        doc["pump"]         = g_pumpState;
-        doc["fan"]          = g_fanState;
-        doc["autoMode"]     = g_autoMode;
+        doc["temperature"]    = g_temperature;
+        doc["humidity"]       = g_humidity;
+        doc["soilMoisture"]   = g_soilMoisture;
+        doc["lightLux"]       = g_lightLux;
+        doc["pump"]           = g_pumpState;
+        doc["fan"]            = g_fanState;
+        doc["autoMode"]       = g_autoMode;
+        doc["aiState"]        = g_aiState;
+        doc["aiStateStr"]     = g_aiStateStr;
+        doc["aiConfidence"]   = g_aiConfidence;
+        doc["aiInferenceUs"]  = g_aiInferenceTimeUs;
+        doc["aiForecast"]     = g_aiForecastStr;
+        doc["aiAutoControl"]  = g_aiAutoControl;
+        doc["anomalyScore"]   = g_aiAnomalyScore;
+        doc["isAnomaly"]      = g_aiIsAnomaly;
+        doc["anomalyType"]    = g_aiAnomalyType;
+        doc["onlineAccuracy"] = g_aiOnlineAccuracy;
         SENSOR_UNLOCK();
 
         String json;
@@ -412,7 +401,7 @@ static void startWebServer()
         for (uint8_t i = 0; i < count; i++)
         {
             JsonObject o = arr.createNestedObject();
-            char timeBuf[6];
+            char timeBuf[16];
             snprintf(timeBuf, sizeof(timeBuf), "%02d:%02d",
                      tmp[i].hour, tmp[i].minute);
             o["time"]     = timeBuf;
@@ -459,7 +448,6 @@ static void startWebServer()
 // ============================================================================
 void greenhouse_webserver_task(void *pvParameters)
 {
-    // Đợi WiFi kết nối trước khi bắt đầu (tối đa 30s)
     if (xWiFiEventGroup != nullptr)
         xEventGroupWaitBits(xWiFiEventGroup,
                             WIFI_CONNECTED_BIT,
@@ -474,10 +462,9 @@ void greenhouse_webserver_task(void *pvParameters)
     {
         ElegantOTA.loop();
 
-        // Cleanup WebSocket clients định kỳ (tránh memory leak)
         s_ws.cleanupClients();
 
-        // Đẩy dữ liệu real-time mỗi 1 giây nếu có client kết nối
+        // Đẩy dữ liệu real-time mỗi 1 giây qua WebSocket
         if (s_ws.count() > 0)
         {
             unsigned long now = millis();
@@ -485,30 +472,42 @@ void greenhouse_webserver_task(void *pvParameters)
             {
                 lastPushTime = now;
 
-                // Tăng lên 640 để chứa thêm cfg_* fields
-                StaticJsonDocument<640> doc;
+                StaticJsonDocument<1024> doc;
 
                 uint8_t ledR, ledG, ledB;
                 float cfgSoilDry, cfgSoilWet, cfgTempHigh;
                 int cfgPumpMax, cfgPumpCool;
 
                 SENSOR_LOCK();
-                doc["temperature"] = g_temperature;
-                doc["humidity"] = g_humidity;
-                doc["soilMoisture"] = g_soilMoisture;
-                doc["lightLux"] = g_lightLux;
-                doc["pump"] = g_pumpState;
-                doc["fan"] = g_fanState;
-                doc["autoMode"] = g_autoMode;
-                doc["alertTemp"] = g_alertTemp;
-                doc["alertHumidity"] = g_alertHumidity;
-                doc["alertSoil"] = g_alertSoil;
-                doc["alertLight"] = g_alertLight;
-                doc["pumpCount"] = (int)g_pumpCount;
+                doc["temperature"]      = g_temperature;
+                doc["humidity"]         = g_humidity;
+                doc["soilMoisture"]     = g_soilMoisture;
+                doc["lightLux"]         = g_lightLux;
+                doc["pump"]             = g_pumpState;
+                doc["fan"]              = g_fanState;
+                doc["autoMode"]         = g_autoMode;
+                doc["alertTemp"]        = g_alertTemp;
+                doc["alertHumidity"]    = g_alertHumidity;
+                doc["alertSoil"]        = g_alertSoil;
+                doc["alertLight"]       = g_alertLight;
+                doc["pumpCount"]        = (int)g_pumpCount;
                 doc["totalPumpTimeSec"] = (long)(g_totalPumpTime / 1000UL);
-                doc["dhtError"] = g_dhtError;
-                doc["lcdPage"] = g_lcdPage;
-                doc["scheduleEnabled"] = g_scheduleEnabled;
+                doc["dhtError"]         = g_dhtError;
+                doc["lcdPage"]          = g_lcdPage;
+                doc["scheduleEnabled"]  = g_scheduleEnabled;
+
+                // Các trường AI TinyML & Anomaly Detection
+                doc["aiState"]          = g_aiState;
+                doc["aiStateStr"]       = g_aiStateStr;
+                doc["aiConfidence"]     = g_aiConfidence;
+                doc["aiInferenceUs"]    = g_aiInferenceTimeUs;
+                doc["aiForecast"]       = g_aiForecastStr;
+                doc["aiAutoControl"]    = g_aiAutoControl;
+                doc["anomalyScore"]     = g_aiAnomalyScore;
+                doc["isAnomaly"]        = g_aiIsAnomaly;
+                doc["anomalyType"]      = g_aiAnomalyType;
+                doc["onlineAccuracy"]   = g_aiOnlineAccuracy;
+
                 ledR = g_currentLEDColor.r;
                 ledG = g_currentLEDColor.g;
                 ledB = g_currentLEDColor.b;
@@ -519,7 +518,6 @@ void greenhouse_webserver_task(void *pvParameters)
                 cfgPumpCool = (int)(g_pumpCooldownMs / 1000UL);
                 SENSOR_UNLOCK();
 
-                // thread-safe, không cần lock
                 doc["wifiRssi"] = WiFi.RSSI();
                 doc["freeHeap"] = ESP.getFreeHeap();
 
@@ -527,11 +525,10 @@ void greenhouse_webserver_task(void *pvParameters)
                 snprintf(ledHex, sizeof(ledHex), "#%02X%02X%02X", ledR, ledG, ledB);
                 doc["ledColor"] = ledHex;
 
-                // Gửi ngưỡng hiện tại để frontend sync slider khi load trang
-                doc["cfg_soilDry"] = cfgSoilDry;
-                doc["cfg_soilWet"] = cfgSoilWet;
+                doc["cfg_soilDry"]  = cfgSoilDry;
+                doc["cfg_soilWet"]  = cfgSoilWet;
                 doc["cfg_tempHigh"] = cfgTempHigh;
-                doc["cfg_pumpMax"] = cfgPumpMax;
+                doc["cfg_pumpMax"]  = cfgPumpMax;
                 doc["cfg_pumpCool"] = cfgPumpCool;
 
                 String json;

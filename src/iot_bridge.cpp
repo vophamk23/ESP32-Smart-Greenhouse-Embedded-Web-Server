@@ -10,23 +10,22 @@
 // KHỞI TẠO QUEUES & SEMAPHORES
 // ============================================================================
 QueueHandle_t xTelemetryQueue = nullptr;
-QueueHandle_t xRpcCommandQueue = nullptr;     //
-EventGroupHandle_t xWiFiEventGroup = nullptr; // Semaphore bảo vệ truy cập sensor data (gọi từ Task_SendTelemetry và các task đọc cảm biến)
-SemaphoreHandle_t g_sensorMutex = nullptr;    //
+QueueHandle_t xRpcCommandQueue = nullptr;
+EventGroupHandle_t xWiFiEventGroup = nullptr;
+SemaphoreHandle_t g_sensorMutex = nullptr;
 
 void iotBridge_init()
 {
     // Queue telemetry: depth=1 (chỉ cần gói mới nhất)
-    // Nếu queue đầy (CoreIoT chưa đọc kịp), Task_SendTelemetry sẽ overwrite
     xTelemetryQueue = xQueueCreate(1, sizeof(TelemetryPacket_t));
 
     // Queue RPC: depth=8 (buffer vài lệnh liên tiếp)
     xRpcCommandQueue = xQueueCreate(8, sizeof(RpcPacket_t));
 
-    // Semaphore WiFi ready: ban đầu chưa kết nối, Task_IoT sẽ block chờ signal
+    // Event group WiFi ready
     xWiFiEventGroup = xEventGroupCreate();
 
-    // Mutex bảo vệ truy cập sensor data (gọi từ Task_SendTelemetry và các task đọc cảm biến)
+    // Mutex bảo vệ truy cập sensor data
     g_sensorMutex = xSemaphoreCreateMutex();
 
     if (!xTelemetryQueue || !xRpcCommandQueue || !xWiFiEventGroup || !g_sensorMutex)
@@ -49,7 +48,7 @@ void iotBridge_sendTelemetry()
 
     TelemetryPacket_t pkt;
 
-    // Snapshot toàn bộ sensor data trong 1 lần lock
+    // Snapshot toàn bộ sensor data + AI data trong 1 lần lock
     SENSOR_LOCK();
     pkt.temperature = g_temperature;
     pkt.humidity = g_humidity;
@@ -68,6 +67,15 @@ void iotBridge_sendTelemetry()
     pkt.ledR = g_currentLEDColor.r;
     pkt.ledG = g_currentLEDColor.g;
     pkt.ledB = g_currentLEDColor.b;
+
+    // AI Insights
+    pkt.aiState = g_aiState;
+    pkt.aiConfidence = g_aiConfidence;
+    pkt.aiInferenceTimeUs = g_aiInferenceTimeUs;
+    pkt.aiAnomalyScore = g_aiAnomalyScore;
+    pkt.aiIsAnomaly = g_aiIsAnomaly;
+    pkt.aiOnlineAccuracy = g_aiOnlineAccuracy;
+    snprintf(pkt.aiAnomalyType, sizeof(pkt.aiAnomalyType), "%s", g_aiAnomalyType);
     SENSOR_UNLOCK();
 
     // Overwrite nếu queue đầy (không block) - giữ dữ liệu mới nhất
@@ -81,7 +89,6 @@ void iotBridge_sendTelemetry()
 
 // ============================================================================
 // XỬ LÝ LỆNH RPC TỪ CLOUD (gọi từ Task_AutoControl trong scheduler)
-// Chỉ thực thi khi ở chế độ phù hợp
 // ============================================================================
 void iotBridge_processRpcCommands()
 {
@@ -89,13 +96,11 @@ void iotBridge_processRpcCommands()
         return;
 
     RpcPacket_t pkt;
-    // Đọc hết tất cả lệnh pending (non-blocking)
     while (xQueueReceive(xRpcCommandQueue, &pkt, 0) == pdTRUE)
     {
         switch (pkt.command)
         {
         case RPC_PUMP_ON:
-            // Bật bơm: chỉ cho phép ở MANUAL để không xung đột autoControlPump()
             if (!g_autoMode)
             {
                 g_pumpManual = true;
@@ -109,36 +114,33 @@ void iotBridge_processRpcCommands()
             break;
 
         case RPC_PUMP_OFF:
-            // Tắt bơm: luôn cho phép dù AUTO hay MANUAL (emergency stop)
             if (g_pumpState)
             {
-                g_pumpManual = false; // clear manual flag để autoControl tiếp quản
+                g_pumpManual = false;
                 pumpOff();
                 Serial.println("[BRIDGE] RPC: Pump OFF");
             }
             break;
 
         case RPC_FAN_ON:
-            // Bật quạt: chỉ cho phép ở MANUAL để không xung đột autoControlFan()
             if (!g_autoMode)
             {
                 fanOn();
                 Serial.println("[BRIDGE] RPC: Fan ON");
             }
-            else
-            {
-                Serial.println("[BRIDGE] RPC: Fan ON ignored - AUTO mode");
-            }
             break;
 
         case RPC_FAN_OFF:
-            // Tắt quạt: luôn cho phép dù AUTO hay MANUAL (emergency stop)
-            fanOff();
-            Serial.println("[BRIDGE] RPC: Fan OFF");
+            if (g_fanState)
+            {
+                fanOff();
+                Serial.println("[BRIDGE] RPC: Fan OFF");
+            }
             break;
 
         case RPC_MODE_AUTO:
             g_autoMode = true;
+            g_pumpManual = false;
             Serial.println("[BRIDGE] RPC: Mode -> AUTO");
             break;
 

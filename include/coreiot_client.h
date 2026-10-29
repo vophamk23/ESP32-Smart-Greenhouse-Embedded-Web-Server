@@ -8,8 +8,8 @@
  *   - WiFi reconnect tự động
  */
 
-#ifndef COREIOT_GREENHOUSE_H
-#define COREIOT_GREENHOUSE_H
+#ifndef COREIOT_CLIENT_H
+#define COREIOT_CLIENT_H
 
 #include <Arduino.h>
 #include <WiFi.h>
@@ -42,4 +42,4 @@ void greenhouse_coreiot_task(void *pvParameters);
 void greenhouse_wifi_task(void *pvParameters);
 
 
-#endif // COREIOT_GREENHOUSE_H
+#endif // COREIOT_CLIENT_H

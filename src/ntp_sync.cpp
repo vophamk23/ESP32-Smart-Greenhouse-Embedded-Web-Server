@@ -95,7 +95,7 @@ NTPSyncResult syncRTCfromNTP(uint8_t maxRetries, uint32_t timeoutMs)
     Serial.printf("[NTP] ✓ Synced: %02d/%02d/%04d %02d:%02d:%02d (UTC+7)\n",
                   ntpTime.day(), ntpTime.month(), ntpTime.year(),
                   ntpTime.hour(), ntpTime.minute(), ntpTime.second());
-    Serial.printf("[NTP] ✓ Drift after write: %+ds\n", drift);
+    Serial.printf("[NTP] ✓ Drift after write: %+ld s\n", (long)drift);
 
     return NTPSyncResult::SUCCESS;
 }

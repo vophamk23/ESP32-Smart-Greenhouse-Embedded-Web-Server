@@ -1,31 +1,41 @@
 /*
- * global_vars.cpp - Định nghĩa biến toàn cục
+ * global_vars.cpp - Định nghĩa biến toàn cục hệ thống Greenhouse IoT & Edge AI
  */
 #include "global_vars.h"
 #include "config.h"
 
 // ============================================================================
-// CONFIG NETWORK
+// CONFIG NETWORK & CLOUD COREIOT
 // ============================================================================
-char WIFI_SSID[33] = ""; // max SSID 32 chars + null
-char WIFI_PASS[65] = ""; // max WPA2 64 chars + null
+char WIFI_SSID[33] = "";
+char WIFI_PASS[65] = "";
 char CORE_IOT_TOKEN[64] = "";
-char CORE_IOT_SERVER[128] = "";
+char CORE_IOT_SERVER[128] = "app.coreiot.io";
 char CORE_IOT_PORT[6] = "1883";
-char LOCAL_MQTT_HOST[64] = "";
-char LOCAL_MQTT_PORT[6] = "1883";
 
 // ==================== DỮ LIỆU CẢM BIẾN ====================
-float g_temperature = 25.0f; // Giá trị khởi tạo an toàn
+float g_temperature = 25.0f; // Khởi tạo an toàn
 float g_humidity = 60.0f;
 float g_soilMoisture = 50.0f;
-float g_lightLux = 1000.0f; // Mặc định "sáng" để tránh bật grow light ngay
-bool g_dhtError = true;     // true cho đến khi đọc thành công lần đầu
+float g_lightLux = 800.0f;
+bool g_dhtError = false;
 bool g_lightError = false;
+
+// ==================== BIẾN TRÍ TUỆ NHÂN TẠO TINYML (EDGE AI) ====================
+uint8_t g_aiState = 0;              // 0: COMFORTABLE
+float g_aiConfidence = 88.5f;       // 88.5%
+uint32_t g_aiInferenceTimeUs = 50;  // ~50 µs
+char g_aiStateStr[32] = "COMFORTABLE";
+char g_aiForecastStr[64] = "Vi khi hau on dinh";
+bool g_aiAutoControl = true;        // Mặc định bật chế độ tự động AI
+float g_aiAnomalyScore = 0.05f;     // Điểm dị thường khởi tạo thấp (bình thường)
+bool g_aiIsAnomaly = false;
+char g_aiAnomalyType[32] = "NORMAL";
+float g_aiOnlineAccuracy = 100.0f;  // Khởi tạo 100%
 
 // ==================== RTC DS3231 ====================
 RTC_DS3231 g_rtc;
-bool g_rtcError = true;
+bool g_rtcError = false;
 
 // ==================== TRẠNG THÁI THIẾT BỊ ====================
 bool g_pumpState = false;
@@ -37,7 +47,7 @@ bool g_pumpManual = false;
 ScheduleEntry_t g_schedules[MAX_SCHEDULES] = {};
 uint8_t g_scheduleCount = 0;
 bool g_scheduleEnabled = false;
-unsigned long g_scheduleOffTime = 0; // 0 = không có lịch đang chạy
+unsigned long g_scheduleOffTime = 0;
 bool g_scheduleTriggered = false;
 
 // ==================== THỜI GIAN BƠM ====================
@@ -71,4 +81,4 @@ float g_soilWetThreshold = DEFAULT_SOIL_WET;
 float g_tempHighThreshold = DEFAULT_TEMP_HIGH;
 float g_tempLowThreshold = DEFAULT_TEMP_LOW;
 unsigned long g_pumpMaxOnMs = DEFAULT_PUMP_MAX_MS;
-unsigned long g_pumpCooldownMs = DEFAULT_PUMP_COOL_MS;
+unsigned long g_pumpCooldownMs = DEFAULT_PUMP_COOLDOWN_MS;

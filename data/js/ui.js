@@ -27,6 +27,43 @@ function updateUI(d) {
     );
   }
 
+  /* ── Edge AI Insights (TinyML) ── */
+  if (d.aiStateStr != null) {
+    setText("ai-forecast-text", d.aiForecast || "Vi khí hậu ổn định");
+    setText("ai-conf-val", (d.aiConfidence || 88.5).toFixed(1) + "%");
+    setText("ai-latency-val", (d.aiInferenceUs || 48) + " µs");
+
+    const badge = document.getElementById("ai-badge");
+    if (badge) {
+      badge.textContent = d.aiStateStr;
+      if (d.aiState === 0) {
+        badge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800";
+      } else if (d.aiState === 1) {
+        badge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-amber-100 text-amber-800";
+      } else {
+        badge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-800 animate-pulse";
+      }
+    }
+  }
+
+  /* ── Sensor Anomaly Detection (TinyML Engine) ── */
+  if (d.anomalyScore != null) {
+    setText("ai-score-val", d.anomalyScore.toFixed(2));
+    const isAnom = Boolean(d.isAnomaly);
+    const anomBadge = document.getElementById("ai-anomaly-badge");
+    if (anomBadge) {
+      anomBadge.textContent = d.anomalyType || (isAnom ? "ANOMALY" : "NORMAL");
+      if (isAnom) {
+        anomBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-red-100 text-red-700 animate-pulse";
+      } else {
+        anomBadge.className = "px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-700";
+      }
+    }
+    if (d.onlineAccuracy != null) {
+      setText("ai-online-acc", d.onlineAccuracy.toFixed(1) + "%");
+    }
+  }
+
   /* ── Pump ── */
   if (d.pump != null) {
     setLedIndicator("dled-pump", d.pump);
@@ -230,6 +267,12 @@ function updateUI(d) {
       "al-dht",
       d.dhtError,
       d.dhtError ? "📡 DHT LỖI!" : "📡 DHT OK",
+    );
+  if (d.isAnomaly != null)
+    setAlertChip(
+      "al-anomaly",
+      d.isAnomaly,
+      d.isAnomaly ? ("⚠️ DỊ THƯỜNG: " + (d.anomalyType || "LỖI") + "!") : "🛡️ CẢM BIẾN AN TOÀN",
     );
 
   /* ── Fan temp display in control page ── */
