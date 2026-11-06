@@ -3,8 +3,6 @@
 <div align="center">
 
 ![ESP32-S3](https://img.shields.io/badge/Board-Yolo%3AUNO%20(ESP32--S3)-E7352C?style=for-the-badge&logo=espressif&logoColor=white)
-![TinyML](https://img.shields.io/badge/AI-TinyML%20On--Device-FF6F00?style=for-the-badge&logo=tensorflow&logoColor=white)
-![FreeRTOS](https://img.shields.io/badge/RTOS-FreeRTOS%20Dual--Core-00979D?style=for-the-badge&logo=cplusplus&logoColor=white)
 ![CoreIOT](https://img.shields.io/badge/Cloud-CoreIOT%20MQTT-0052CC?style=for-the-badge)
 ![LittleFS](https://img.shields.io/badge/Web%20Server-LittleFS%20Async-4A154B?style=for-the-badge)
 
