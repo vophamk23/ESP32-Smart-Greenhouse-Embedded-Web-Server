@@ -6,21 +6,10 @@
 ![CoreIOT](https://img.shields.io/badge/Cloud-CoreIOT%20MQTT-0052CC?style=for-the-badge)
 ![LittleFS](https://img.shields.io/badge/Web%20Server-LittleFS%20Async-4A154B?style=for-the-badge)
 
-**ĐỒ ÁN MÔN HỌC INTERNET OF THINGS (CO3061 / CO3062)**  
-**TRƯỜNG ĐẠI HỌC BÁCH KHOA - ĐHQG TP.HCM (HCMUT)**  
-**KHOA KHOA HỌC VÀ KỸ THUẬT MÁY TÍNH**
-
-**Giảng viên hướng dẫn:** TS. Lê Trọng Nhân  
-**Sinh viên thực hiện:** Phạm Công Võ — **MSSV:** 2313946  
-**GitHub ID:** `vophamk23`
-
----
-
 </div>
 
 Hệ thống **Nhà kính thông minh (Smart Greenhouse)** hoàn chỉnh chạy trên phần cứng **Yolo:UNO (ESP32-S3)**, kết hợp **Trí tuệ nhân tạo biên (Edge AI / TinyML)** suy luận on-chip phát hiện dị thường cảm biến với độ trễ micro-giây, máy chủ Web Server nhúng thời gian thực (WebSocket + LittleFS), và đồng bộ hai chiều lên nền tảng đám mây **CoreIOT Cloud**.
 
----
 
 ## 📋 Mục lục
 
