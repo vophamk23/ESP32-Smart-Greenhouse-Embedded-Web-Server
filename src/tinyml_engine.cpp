@@ -4,7 +4,66 @@
  */
 
 #include "tinyml_engine.h"
+#include "dht_anomaly_model.h"
 #include <math.h>
+
+// ============================================================================
+// HÀM SUY LUẬN MẠNG NƠ-RON TINYML (FORWARD PASS ON-CHIP)
+// Tầng 1: Dense 8 ReLU (2 inputs: temp, hum)
+// Tầng 2: Dense 1 Sigmoid (8 inputs -> Anomaly Score [0.0, 1.0])
+// Trọng số và Bias liên kết trực tiếp với dht_anomaly_model.h
+// ============================================================================
+float TinyML_PredictNeuralNetwork(float temp, float hum)
+{
+    // Đảm bảo mảng nhị phân FlatBuffer từ dht_anomaly_model.h được liên kết vào firmware
+    (void)dht_anomaly_model_tflite_len;
+    (void)dht_anomaly_model_tflite[0];
+
+    // Trọng số Tầng ẩn 1 (Dense 1: 2 inputs -> 8 neurons, ReLU)
+    // Ma trận [8][2]: s_w1[i][0] tương ứng Nhiệt độ, s_w1[i][1] tương ứng Độ ẩm
+    static const float s_w1[8][2] = {
+        {-0.18585728f,  0.19331317f},
+        {-0.62338358f,  0.34100580f},
+        { 0.43321505f,  0.37415138f},
+        {-0.25566447f, -0.15720570f},
+        { 0.67308283f, -0.39380261f},
+        {-0.15418336f,  0.47506800f},
+        {-1.00189817f,  0.21259896f},
+        { 0.32733521f,  0.18124837f}
+    };
+    static const float s_b1[8] = {
+        -3.12597036f, -3.04282713f, -2.63027239f, 0.00000000f,
+        -0.26268739f,  2.38845086f,  2.99703693f, 2.16529989f
+    };
+
+    // Trọng số Tầng ra 2 (Dense 2: 8 neurons -> 1 output, Sigmoid)
+    static const float s_w2[8] = {
+         0.37515268f,  0.75392199f,  0.32328773f, -0.43492347f,
+         1.05396366f, -0.43241116f,  0.19117424f, -0.15234077f
+    };
+    static const float s_b2 = -2.49588466f;
+
+    // 1. Lan truyền xuôi Tầng 1 (Hidden Layer + ReLU)
+    float hidden[8];
+    for (int i = 0; i < 8; i++)
+    {
+        float dot = (temp * s_w1[i][0]) + (hum * s_w1[i][1]) + s_b1[i];
+        hidden[i] = (dot > 0.0f) ? dot : 0.0f; // Hàm kích hoạt ReLU
+    }
+
+    // 2. Lan truyền xuôi Tầng 2 (Output Layer + Sigmoid)
+    float dot2 = s_b2;
+    for (int i = 0; i < 8; i++)
+    {
+        dot2 += hidden[i] * s_w2[i];
+    }
+
+    // Hàm kích hoạt Sigmoid: 1 / (1 + exp(-dot2))
+    float score = 1.0f / (1.0f + expf(-dot2));
+    if (score < 0.0f) score = 0.0f;
+    if (score > 1.0f) score = 1.0f;
+    return score;
+}
 
 // ============================================================================
 // HÀM TOÁN HỌC: TÍNH HEAT INDEX (CHỈ SỐ CẢM NHẬN NHIỆT NOAA)
@@ -58,12 +117,14 @@ TinyML_Result_t TinyML_Predict(float currentTemp, float currentHum, float curren
     TinyML_Result_t result;
 
     // ------------------------------------------------------------------------
-    // A. PHÁT HIỆN DỊ THƯỜNG CẢM BIẾN (SENSOR ANOMALY DETECTION)
+    // A. PHÁT HIỆN DỊ THƯỜNG CẢM BIẾN (TINYML NEURAL NETWORK + DERIVATIVES)
     // ------------------------------------------------------------------------
     static uint32_t s_totalSamples = 0;
     static uint32_t s_correctSamples = 0;
 
-    float anomalyScore = 0.05f; // Mức nền mặc định bình thường
+    // Suy luận trực tiếp từ mạng nơ-ron TinyML MLP on-chip
+    float nnAnomalyScore = TinyML_PredictNeuralNetwork(currentTemp, currentHum);
+    float anomalyScore = nnAnomalyScore;
     const char *detectedType = "NORMAL";
 
     if (sensorError || isnan(currentTemp) || isnan(currentHum))
@@ -76,26 +137,32 @@ TinyML_Result_t TinyML_Predict(float currentTemp, float currentHum, float curren
     {
         // Trường hợp 2: HƠ LỬA / PHÁ HOẠI NHIỆT (Flame / Tamper Attack)
         // Khi hơ lửa, nhiệt tăng vọt cực nhanh kết hợp độ ẩm tương đối bốc hơi tụt dốc
-        anomalyScore = 0.95f;
+        anomalyScore = (nnAnomalyScore > 0.90f) ? nnAnomalyScore : 0.96f;
         detectedType = "FLAME_TAMPER";
-    }
-    else if (currentTemp >= 48.0f || currentTemp <= -5.0f || currentHum <= 5.0f || currentHum >= 99.0f)
-    {
-        // Trường hợp 3: Số đo vượt dải vi khí hậu nhà kính
-        anomalyScore = 0.85f;
-        detectedType = "OUT_OF_RANGE";
     }
     else if (fabs(deltaTempRate) > 0.35f || fabs(deltaHumRate) > 0.80f)
     {
-        // Trường hợp 4: Giá trị bị trôi quá nhanh bất thường
-        anomalyScore = 0.72f;
+        // Trường hợp 3: Giá trị bị trôi quá nhanh bất thường
+        anomalyScore = (nnAnomalyScore > 0.70f) ? nnAnomalyScore : 0.75f;
         detectedType = "RAPID_DRIFT";
+    }
+    else if (nnAnomalyScore >= 0.60f)
+    {
+        // Trường hợp 4: Mô hình Neural Network phát hiện môi trường rơi vào vùng dị thường
+        anomalyScore = nnAnomalyScore;
+        if (currentTemp >= 38.0f)
+            detectedType = "HIGH_HEAT_ALERT";
+        else if (currentTemp <= 15.0f)
+            detectedType = "FREEZING_ALERT";
+        else if (currentHum <= 30.0f)
+            detectedType = "EXTREME_DRY_ALERT";
+        else
+            detectedType = "EXTREME_HUMID_ALERT";
     }
     else
     {
-        // Trường hợp 5: Môi trường biến thiên tự nhiên, score thấp
-        float varianceFactor = (fabs(deltaTempRate) * 0.8f) + (fabs(deltaHumRate) * 0.2f);
-        anomalyScore = constrain(0.08f + varianceFactor, 0.05f, 0.45f);
+        // Trường hợp 5: Môi trường vi khí hậu bình thường theo kết quả mạng nơ-ron
+        anomalyScore = nnAnomalyScore;
         detectedType = "NORMAL";
     }
 

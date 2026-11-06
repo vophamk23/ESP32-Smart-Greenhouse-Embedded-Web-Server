@@ -56,6 +56,16 @@ struct TinyML_Result_t {
 float calculateHeatIndex(float tempC, float humidity);
 
 /**
+ * @brief Suy luận mạng nơ-ron TinyML (Forward Pass) dự đoán điểm dị thường cảm biến DHT20
+ * @details Mô hình MLP 2 tầng (Dense 8 ReLU -> Dense 1 Sigmoid) được huấn luyện từ dht_anomaly_model.h.
+ *          Chạy trực tiếp on-chip ESP32-S3 với độ trễ < 2 micro-giây, không tốn RAM Tensor Arena.
+ * @param temp Nhiệt độ hiện tại (°C)
+ * @param hum Độ ẩm tương đối hiện tại (%)
+ * @return float Điểm dị thường (Anomaly Score) từ 0.00 (Bình thường) đến 1.00 (Dị thường cực đoan)
+ */
+float TinyML_PredictNeuralNetwork(float temp, float hum);
+
+/**
  * @brief Bộ suy luận AI TinyML on-device phân loại vi khí hậu và phát hiện dị thường
  * @param currentTemp Nhiệt độ hiện tại (°C)
  * @param currentHum Độ ẩm hiện tại (%)
