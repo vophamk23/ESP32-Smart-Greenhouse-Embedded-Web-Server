@@ -142,6 +142,23 @@ void loop()
         case 'S':
             printSensorData();
             break;
+        case 'j':
+        case 'J':
+        {
+            // Trả về gói JSON Telemetry cho IoT Gateway trên PC qua cổng Serial
+            SENSOR_LOCK();
+            Serial.printf("{\"temperature\":%.1f,\"humidity\":%.1f,\"soilMoisture\":%.1f,\"lightLux\":%.0f,\"pumpState\":%s,\"fanState\":%s,\"autoMode\":%s,\"aiStateStr\":\"%s\",\"anomalyScore\":%.2f,\"isAnomaly\":%s,\"anomalyType\":\"%s\"}\n",
+                          g_temperature, g_humidity, g_soilMoisture, g_lightLux,
+                          g_pumpState ? "true" : "false",
+                          g_fanState ? "true" : "false",
+                          g_autoMode ? "true" : "false",
+                          g_aiStateStr,
+                          g_aiAnomalyScore,
+                          g_aiIsAnomaly ? "true" : "false",
+                          g_aiAnomalyType);
+            SENSOR_UNLOCK();
+            break;
+        }
         case 'i':
         case 'I':
             Serial.printf("[IOT] WiFi: %s | IP: %s\n",

@@ -432,6 +432,15 @@ static void startWebServer()
         serializeJson(doc, json);
         req->send(200, "application/json", json); });
 
+    // 4b. REST endpoint: nhận lệnh điều khiển thiết bị từ IoT Gateway / Browser
+    s_server.on("/api/control", HTTP_POST, [](AsyncWebServerRequest *req) {}, nullptr,
+                [](AsyncWebServerRequest *req, uint8_t *data, size_t len, size_t index, size_t total) {
+        String body = "";
+        for (size_t i = 0; i < len; i++) body += (char)data[i];
+        handleBrowserMessage(body);
+        req->send(200, "application/json", "{\"status\":\"success\"}");
+    });
+
     // 5. Serve toàn bộ file tĩnh từ LittleFS
     s_server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
