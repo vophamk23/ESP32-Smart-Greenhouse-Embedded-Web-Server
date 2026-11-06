@@ -72,9 +72,27 @@ void initRTC()
 // ==================== ĐỌC THỜI GIAN RTC ====================
 DateTime getRTCTime()
 {
-    if (g_rtcError)
-        return DateTime((uint32_t)0);
-    return g_rtc.now();
+    if (!g_rtcError)
+    {
+        return g_rtc.now();
+    }
+
+    // Fallback thông minh: Đọc giờ từ đồng hồ phần cứng nội bộ của ESP32-S3 (đồng bộ qua WiFi NTP)
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo, 10))
+    {
+        return DateTime(
+            timeinfo.tm_year + 1900,
+            timeinfo.tm_mon + 1,
+            timeinfo.tm_mday,
+            timeinfo.tm_hour,
+            timeinfo.tm_min,
+            timeinfo.tm_sec);
+    }
+
+    // Nếu chưa có kết nối WiFi: dùng thời gian biên dịch + thời gian chip chạy millis()
+    uint32_t sec = millis() / 1000UL;
+    return DateTime(F(__DATE__), F(__TIME__)) + TimeSpan(sec);
 }
 
 // ==================== ĐỌC CẢM BIẾN NHIỆT ĐỘ & ĐỘ ẨM ====================

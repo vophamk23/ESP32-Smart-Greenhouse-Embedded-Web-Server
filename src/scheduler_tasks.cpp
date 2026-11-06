@@ -228,10 +228,13 @@ void Task_CheckSchedule(void)
     memcpy(tmp, g_schedules, sizeof(ScheduleEntry_t) * count);
     SENSOR_UNLOCK();
 
-    if (!enabled || count == 0 || g_pumpState || g_rtcError)
+    if (!enabled || count == 0 || g_pumpState)
         return;
 
     DateTime now = getRTCTime();
+    if (now.year() < 2024)
+        return; // Chưa có thời gian hợp lệ thì bỏ qua
+
     uint32_t currentMinute = now.hour() * 60 + now.minute();
     if (currentMinute == s_lastTriggeredMinute)
         return;

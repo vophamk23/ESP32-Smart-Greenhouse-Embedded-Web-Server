@@ -82,8 +82,10 @@ NTPSyncResult syncRTCfromNTP(uint8_t maxRetries, uint32_t timeoutMs)
 
     if (!g_rtc.begin())
     {
-        Serial.println("[NTP] ✗ RTC not found");
-        return NTPSyncResult::RTC_ERROR;
+        Serial.printf("[NTP] ✓ Synced ESP32 internal RTC: %02d/%02d/%04d %02d:%02d:%02d (UTC+7, no DS3231)\n",
+                      ntpTime.day(), ntpTime.month(), ntpTime.year(),
+                      ntpTime.hour(), ntpTime.minute(), ntpTime.second());
+        return NTPSyncResult::SUCCESS;
     }
 
     g_rtc.adjust(ntpTime);
