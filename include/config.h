@@ -20,22 +20,25 @@
 #if defined(CONFIG_IDF_TARGET_ESP32S3) || defined(ARDUINO_YOLO_UNO)
   // ── CẤU HÌNH DÀNH CHO KIT YOLO:UNO (ESP32-S3) ──
   // I2C Cổng ĐỎ Grove: Dùng chung cho DHT20 (0x38), LCD 1602 (0x21 / 0x27)
-  #define SDA_PIN             11
-  #define SCL_PIN             12
+  #define SDA_PIN             11          // Dây trắng trên các cổng Đỏ I2C1..I2C4
+  #define SCL_PIN             12          // Dây vàng trên các cổng Đỏ I2C1..I2C4
 
   #define NEO_PIN             45          // LED RGB NeoPixel on-board Yolo:UNO
   #define NEO_COUNT           1           // 1 hạt LED RGB tích hợp trên board
-  #define LED_PIN             48          // LED đơn on-board Yolo:UNO (GPIO 48)
+  #define LED_PIN             48          // LED đơn on-board Yolo:UNO (GPIO 48 / D13)
 
-  #define RELAY_PUMP_PIN      4           // Rơ-le điều khiển Bơm nước (Chân D4)
-  #define FAN_S1_PIN          5           // Điều khiển Quạt làm mát (Chân D5)
+  // Thiết bị chấp hành: Khớp đúng cổng Trắng Grove và cọc chân D trên Yolo:UNO
+  #define RELAY_PUMP_PIN      7           // Rơ-le Bơm: Chân D4 trên cổng Trắng D4-D3 (GPIO 7)
+  #define FAN_S1_PIN          8           // Quạt làm mát: Chân D5 trên cổng Trắng D6-D5 (GPIO 8)
 
-  #define LIGHT_SENSOR_PIN    2           // Cảm biến ánh sáng LDR (ADC1 kênh 1)
-  #define SOIL_MOISTURE_PIN   1           // Cảm biến độ ẩm đất (ADC1 kênh 0)
+  // Cảm biến Analog: Khớp đúng cổng Vàng Grove A1-A0 (ADC1 hoạt động tốt khi có WiFi)
+  #define SOIL_MOISTURE_PIN   1           // Cảm biến Độ ẩm đất: Chân A0 (GPIO 1 - ADC1_CH0)
+  #define LIGHT_SENSOR_PIN    2           // Cảm biến Quang trở LDR: Chân A1 (GPIO 2 - ADC1_CH1)
 
-  #define BTN_MODE_PIN        8           // Nút nhấn chuyển chế độ Auto / Manual
-  #define BTN_PUMP_PIN        9           // Nút bật/tắt bơm thủ công
-  #define BTN_FAN_PIN         10          // Nút bật/tắt quạt thủ công
+  // Nút bấm vật lý (Pullup nội bộ)
+  #define BTN_MODE_PIN        17          // Nút Mode: Chân D8 trên cổng Trắng D8-D7 (GPIO 17)
+  #define BTN_PUMP_PIN        18          // Nút Bơm: Chân D9 trên cổng Trắng D10-D9 (GPIO 18)
+  #define BTN_FAN_PIN         21          // Nút Quạt: Chân D10 trên cổng Trắng D10-D9 (GPIO 21)
 
   #define LCD_ADDRESS         0x21        // Địa chỉ I2C màn hình LCD trên Yolo:UNO
   #define LCD_ADDRESS_ALT     0x27        // Địa chỉ I2C dự phòng nếu dùng module rời
