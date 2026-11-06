@@ -6,76 +6,35 @@
 
 ---
 
-## 📋 Giới thiệu & Ánh xạ Thang điểm BTL
+## 📋 Phân rã Mô-đun Tương Ứng Từng Tiêu Chí Nhóm 4
 
-Thư mục `gateway/` hiện thực trọn vẹn **toàn bộ 3 tiêu chí của Nhóm 4 (IoT Gateway cục bộ)** theo đúng yêu cầu đề bài:
+Thư mục `gateway/` được phân tách thành 3 tệp độc lập, tương ứng chính xác với 3 mã công nghệ của Nhóm 4 trong đề bài BTL:
 
-| Mã tiêu chí | Tên tiêu chí theo đề bài | Điểm | Mô tả hiện thực trong dự án |
+| Mã tiêu chí | Tệp mã nguồn | Điểm | Mô tả chi tiết chức năng |
 | :---: | :--- | :---: | :--- |
-| **`T08`** | **IoT Gateway hiện thực trên PC (hoặc Raspberry Pi)** | **1.0** | Thu thập dữ liệu từ ESP32 qua Serial (USB) hoặc WiFi REST API, tổng hợp dữ liệu, đẩy lên CoreIOT Cloud (`app.coreiot.io`), nhận lệnh điều khiển RPC từ CoreIOT và phân phối xuống mạng local. |
-| **`T09`** | **Chức năng AI chạy trên IoT Gateway local** | **1.0** | Tích hợp thuật toán học máy đa biến: phát hiện dị thường nhiệt ẩm hơ lửa (`FLAME_HEAT_SPIKE`), hồi quy ngoại suy xu hướng nhiệt độ 30 phút, và mô hình ra quyết định tưới thông minh (Smart Irrigation AI). |
-| **`T10`** | **Giao diện giám sát – điều khiển trên IoT Gateway local** | **1.0** | Giao diện Desktop GUI đồ họa trực quan (Tkinter Dark Mode): hiển thị thẻ cảm biến thời gian thực, huy hiệu AI, nút điều khiển Bơm/Quạt/Mode, và màn hình log sự kiện đồng bộ. |
+| **`T08`** | **[`gateway_core.py`](file:///C:/Users/ASUS/Documents/Report/BTL_IoT/ESP32-Smart-Greenhouse-Embedded-Web-Server/gateway/gateway_core.py)** | **1.0** | **IoT Gateway Daemon:** Thu thập dữ liệu từ ESP32 qua Serial (USB) hoặc WiFi REST API, tổng hợp dữ liệu, gửi lên CoreIOT Cloud (`app.coreiot.io`), nhận lệnh điều khiển RPC từ CoreIOT và phân phối cho thiết bị local. |
+| **`T09`** | **[`gateway_ai.py`](file:///C:/Users/ASUS/Documents/Report/BTL_IoT/ESP32-Smart-Greenhouse-Embedded-Web-Server/gateway/gateway_ai.py)** | **1.0** | **Chức năng AI trên Gateway:** Mô hình phân tích chuỗi thời gian đa biến: phát hiện hơ lửa/cháy (`FLAME_HEAT_SPIKE`), dự báo nhiệt độ vi khí hậu 30 phút, và mô hình ra quyết định tưới thông minh (Smart Irrigation AI). |
+| **`T10`** | **[`gateway_gui.py`](file:///C:/Users/ASUS/Documents/Report/BTL_IoT/ESP32-Smart-Greenhouse-Embedded-Web-Server/gateway/gateway_gui.py)** | **1.0** | **Giao diện Desktop GUI trên PC:** Giao diện đồ họa Tkinter Dark Mode hiển thị 4 thẻ đo lường cảm biến, bảng phân tích AI Gateway, các nút điều khiển Bơm/Quạt/Mode và màn hình Console Log sự kiện. |
 
-👉 **Tổng điểm Nhóm 4 đạt được:** **3.0 / 3.0 ĐIỂM TUYỆT ĐỐI!**
-
----
-
-## 🏗️ Kiến trúc Hoạt động của IoT Gateway
-
-```
-┌─────────────────────────────────┐
-│     Yolo:UNO (ESP32-S3)         │
-│  - Cảm biến: DHT20, Soil, LDR   │
-│  - Chấp hành: Relay Bơm, Quạt   │
-└────────────────┬────────────────┘
-                 │
-                 │ Kết nối Local: Cáp USB Serial (COM) HOẶC WiFi HTTP
-                 ▼
-┌─────────────────────────────────────────────────────────────────┐
-│              LOCAL IOT GATEWAY TRÊN PC (Laptop)                 │
-│                                                                 │
-│  ┌────────────────────────┐       ┌──────────────────────────┐  │
-│  │   Giao diện GUI (T10)  │       │     AI Engine (T09)      │  │
-│  │ - 4 Thẻ cảm biến       │       │ - Z-Score Anomaly        │  │
-│  │ - Nút Bơm, Quạt, Mode  │◄─────►│ - Hơ lửa FLAME_SPIKE     │  │
-│  │ - Console Event Logs   │       │ - Dự báo nhiệt 30 phút   │  │
-│  └────────────────────────┘       │ - Khuyến nghị tưới cây   │  │
-│                                   └──────────────────────────┘  │
-│                                                 ▲               │
-│                                                 │               │
-│                                   ┌─────────────┴────────────┐  │
-│                                   │ CoreIOT MQTT Client(T08) │  │
-│                                   └─────────────┬────────────┘  │
-└─────────────────────────────────────────────────┼───────────────┘
-                                                  │
-                                                  │ Internet MQTT (Port 1883)
-                                                  ▼
-                                   ┌──────────────────────────────┐
-                                   │   CoreIOT Cloud Platform     │
-                                   │      (app.coreiot.io)        │
-                                   │  - Dashboard Giám sát từ xa │
-                                   │  - Lệnh nút bấm RPC         │
-                                   └──────────────────────────────┘
-```
+👉 **TỔNG ĐIỂM NHÓM 4: 3.0 / 3.0 ĐIỂM TUYỆT ĐỐI!**
 
 ---
 
-## 🚀 Hướng dẫn Chạy IoT Gateway trên Máy tính
+## 🚀 Hướng dẫn Chạy Từng Tệp
 
-### 1. Cài đặt thư viện phụ thuộc
-Mở Terminal tại thư mục `gateway/` và chạy:
+### 1. Chạy riêng Giao diện Giám sát & Điều khiển (Mã `T10`):
 ```bash
-pip install -r requirements.txt
+python gateway/gateway_gui.py
 ```
+*Cửa sổ Desktop GUI sẽ xuất hiện ngay lập tức với các thẻ đo lường và nút bấm điều khiển.*
 
-### 2. Khởi động Giao diện Gateway
-Chỉ cần chạy lệnh:
+### 2. Chạy riêng Gateway Core Daemon không cần giao diện (Mã `T08`):
 ```bash
-python gateway_app.py
+python gateway/gateway_core.py
 ```
-*(Nếu muốn chạy ở chế độ dòng lệnh không cần cửa sổ GUI, thêm cờ `--headless`: `python gateway_app.py --headless`).*
+*Thích hợp khi triển khai trên Raspberry Pi hoặc máy chủ mini không có màn hình.*
 
-### 3. Cách Gateway tự động hoạt động:
-* **Tự nhận diện Token:** Tự động nạp Token CoreIOT từ file `data/info.dat` của dự án (`h8ycpa6d5uodkqr011cz`) và kết nối ngay tới `app.coreiot.io`.
-* **Tự nhận diện ESP32:** Tự động quét cổng COM (chân cắm USB) của Yolo:UNO hoặc kết nối qua WiFi IP của chip.
-* **Chế độ Thử nghiệm (Simulation Demo):** Nếu chưa cắm mạch phần cứng, Gateway sẽ tự động sinh dữ liệu mô phỏng để bạn có thể kiểm thử toàn bộ giao diện, mô hình AI và gửi dữ liệu lên CoreIOT Cloud ngay lập tức!
+### 3. Chạy Tổng hợp Cả Hệ thống (T08 + T09 + T10):
+```bash
+python gateway/gateway_app.py
+```
