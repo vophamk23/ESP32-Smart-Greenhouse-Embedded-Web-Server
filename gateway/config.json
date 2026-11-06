@@ -1,0 +1,23 @@
+{
+  "coreiot": {
+    "server": "app.coreiot.io",
+    "port": 1883,
+    "token": "YOUR_COREIOT_DEVICE_TOKEN",
+    "telemetry_topic": "v1/devices/me/telemetry",
+    "rpc_request_topic": "v1/devices/me/rpc/request/+",
+    "rpc_response_topic": "v1/devices/me/rpc/response/"
+  },
+  "esp32_connection": {
+    "mode": "auto",
+    "serial_port": "AUTO",
+    "serial_baudrate": 115200,
+    "wifi_ip": "192.168.1.100",
+    "poll_interval_sec": 2.0
+  },
+  "gateway_info": {
+    "name": "HCMUT-Greenhouse-IoT-Gateway",
+    "version": "1.0.0",
+    "student_name": "Pham Cong Vo",
+    "student_id": "2313946"
+  }
+}

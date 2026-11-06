@@ -45,6 +45,7 @@ Hệ thống **Nhà kính thông minh (Smart Greenhouse)** hoàn chỉnh chạy 
 * **Phát hiện dị thường & Tấn công nhiệt (Sensor Anomaly Detection):** Nhận diện tức thời các kịch bản hơ lửa phá hoại cảm biến (`FLAME_TAMPER`), trôi số liệu (`RAPID_DRIFT`), quá nhiệt cực đoan (`HIGH_HEAT`), rét hại (`FREEZING`), khô hạn (`EXTREME_DRY`), ngập úng (`EXTREME_HUMID`).
 * **Kiến trúc 2 nhân (Dual-Core Separation):** Phân tách độc lập tuyệt đối giữa tác vụ mạng/cloud/web (Core 0 - FreeRTOS Tasks) và tác vụ điều khiển vi khí hậu thời gian thực (Core 1 - Deterministic Cooperative Scheduler).
 * **Đồng bộ Đám mây CoreIOT (app.coreiot.io):** Giao tiếp hai chiều qua giao thức MQTT: đẩy chuỗi Telemetry vi khí hậu & số liệu AI; nhận lệnh điều khiển RPC bật/tắt bơm, quạt, đổi chế độ Auto/Manual từ Dashboard Cloud.
+* **IoT Gateway Cục bộ trên PC (Nhóm 4 - T08, T09, T10):** Ứng dụng Desktop Gateway Python giao tiếp với ESP32 qua Serial USB / WiFi REST, tích hợp mô hình AI Gateway phân tích xu hướng vi khí hậu và tối ưu hóa tưới tiêu thông minh, đồng bộ 2 chiều với CoreIOT Cloud.
 * **Web Server nhúng hoàn chỉnh (LittleFS):** Phục vụ giao diện Web trực quan (Dashboard, Điều khiển thiết bị, Biểu đồ lịch sử, Lập lịch tưới nước, Cài đặt ngưỡng cảnh báo, Xem nhật ký Logs) lưu trữ trực tiếp trên bộ nhớ Flash 8MB của ESP32-S3, cập nhật Real-time qua WebSocket không cần reload trang.
 * **An toàn & Bền bỉ:** Giám sát máy bơm thông minh (Pump Watchdog 3 lớp chống cháy bơm), vùng trễ nhiệt ẩm (Hysteresis), bảo vệ truy cập cảm biến bằng FreeRTOS Mutex (`SENSOR_LOCK`).
 * **Hỗ trợ cập nhật OTA không dây (ElegantOTA):** Nâng cấp firmware hoặc giao diện Web qua trình duyệt tại endpoint `/update`.
@@ -184,6 +185,13 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 │   ├── train_dht_anomaly.ipynb        # Jupyter Notebook huấn luyện trên Google Colab
 │   ├── train_dht_anomaly.py           # Script Python sinh dữ liệu & xuất file C++
 │   └── dht_anomaly_model.h            # Bản sao lưu file trọng số mô hình
+│
+├── gateway/                           # IoT Gateway cục bộ trên PC (Nhóm 4 - T08, T09, T10)
+│   ├── gateway_app.py                 # Ứng dụng Desktop Gateway GUI & MQTT 2 chiều CoreIOT
+│   ├── gateway_ai.py                  # Mô hình AI Gateway: Z-Score Anomaly & Smart Irrigation
+│   ├── config.json                    # Cấu hình Gateway kết nối Serial, WiFi, CoreIOT Token
+│   ├── requirements.txt               # Thư viện: paho-mqtt, pyserial, requests, numpy
+│   └── README.md                      # Tài liệu hướng dẫn chi tiết Nhóm 4
 │
 ├── data/                              # Bộ nhớ flash LittleFS (Giao diện Web)
 │   ├── index.html                     # Giao diện đơn trang Dashboard chính
