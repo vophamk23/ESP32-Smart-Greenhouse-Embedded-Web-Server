@@ -1,4 +1,7 @@
 """
+# [T05] CONG CU THU THAP DU LIEU, HUAN LUYEN VA EXPORT RA MODEL TINYML
+# Yeu to cong nghe T05: Cong cu thu thap du lieu, huan luyen va export ra model TinyML
+#
 train_dht_anomaly.py - Huấn luyện Mô hình TinyML Phát hiện Dị thường Cảm biến DHT20 cho ESP32-S3
 Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
 Sinh viên: Phạm Công Võ (MSSV: 2313946)

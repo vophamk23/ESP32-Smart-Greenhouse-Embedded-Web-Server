@@ -1,11 +1,31 @@
 /*
- * main.cpp - Greenhouse IoT System & TinyML Edge AI (+ CoreIoT + WebServer)
- * 
- * Kiến trúc 2 nhân (Dual-Core):
- *   Core 0: greenhouse_wifi_task      (Priority 3)
- *           greenhouse_coreiot_task   (Priority 2)
- *           greenhouse_webserver_task (Priority 1)
- *   Core 1: Arduino loop() + Cooperative Scheduler (Điều phối cảm biến & AI)
+ * ============================================================================
+ * TRƯỜNG ĐẠI HỌC BÁCH KHOA - ĐHQG TP.HCM (HCMUT)
+ * KHOA KHOA HỌC VÀ KỸ THUẬT MÁY TÍNH
+ * BÁO CÁO BÀI TẬP LỚN MÔN HỌC INTERNET OF THINGS (CO3061 / CO3062)
+ *
+ * ĐỀ TÀI: HỆ THỐNG NHÀ KÍNH THÔNG MINH GIÁM SÁT MÔI TRƯỜNG VÀ TỰ ĐỘNG HÓA
+ *         TƯỚI TIÊU TÍCH HỢP TINYML VÀ IOT GATEWAY TRÊN ESP32-S3 (YOLO:UNO)
+ *
+ * GIẢNG VIÊN HƯỚNG DẪN: TS. Lê Trọng Nhân
+ * NHÓM THỰC HIỆN:
+ *   1. Trần Quang Vinh - MSSV: 2313932
+ *   2. Phạm Minh Đức   - MSSV: 2310797
+ *   3. Phạm Công Võ    - MSSV: 2313946 (GitHub: vophamk23)
+ *
+ * ÁNH XẠ CÁC YẾU TỐ CÔNG NGHỆ THỰC HIỆN:
+ *   [T04] Thông tin nội suy từ AI (TinyML chạy trên thiết bị ESP32-S3) -> tinyml_engine.cpp
+ *   [T05] Công cụ thu thập dữ liệu, huấn luyện & export model TinyML  -> tools/train_tinyml/
+ *   [T07] Webserver trên thiết bị (tự hiện thực - LittleFS SPA)       -> web_server.cpp
+ *   [T08] IoT Gateway trên PC (Serial/HTTP bridge -> CoreIOT MQTT)    -> gateway/gateway_core.py
+ *   [T09] Chức năng AI trên IoT Gateway local (Z-Score & Forecast)    -> gateway/gateway_ai.py
+ *   [T10] Giao diện Desktop GUI trên IoT Gateway local (Tkinter)     -> gateway/gateway_gui.py
+ *   [T11] CoreIOT Dashboard, Template & Device Profile               -> coreiot_client.cpp
+ *   [T12] RuleChain trên CoreIOT phát triển tính năng thông minh     -> coreiot_client.cpp
+ *   [T13] Cảnh báo Notification trên CoreIOT khi dữ liệu vượt ngưỡng -> coreiot_client.cpp
+ *   [T14] Cập nhật firmware OTA cho thiết bị (ElegantOTA / CoreIOT)   -> web_server.cpp
+ *   [N06] Custom Dashboard phát hiện (detect) & ghi nhận sự kiện CSV -> data/pages/ & data/js/
+ * ============================================================================
  */
 
 #include <Arduino.h>
@@ -66,10 +86,12 @@ void setup()
 
     // ===== 5. FREERTOS TASKS (Core 0) =====
     xTaskCreatePinnedToCore(
+        // [T11, T12, T13, T14] FreeRTOS CoreIOT Task (MQTT Telemetry, RuleChain, RPC, OTA)
         greenhouse_coreiot_task, "coreiot",
         8192, nullptr, 2, nullptr, 0);
 
     xTaskCreatePinnedToCore(
+        // [T07, T14, N06] FreeRTOS Web Server Task (LittleFS SPA, ElegantOTA, Event Log CSV)
         greenhouse_webserver_task, "webserver",
         8192, nullptr, 1, nullptr, 0);
 
@@ -80,7 +102,7 @@ void setup()
     // Đăng ký các tác vụ định kỳ vào Cooperative Scheduler
     SCH_Add_Task(Task_ReadAirSensors, 0, TASK_SENSOR_READ_TICKS);        // Đọc DHT20 & LDR mỗi 2s
     SCH_Add_Task(Task_ReadSoilSensor, 0, TASK_SOIL_READ_TICKS);          // Đọc độ ẩm đất mỗi 5s
-    SCH_Add_Task(Task_TinyML_Inference, 0, TASK_AI_INFERENCE_TICKS);     // Chạy suy luận AI TinyML mỗi 3s
+    SCH_Add_Task(Task_TinyML_Inference, 0, TASK_AI_INFERENCE_TICKS);     // [T04] Suy luan AI TinyML on-chip moi 3s     // Chạy suy luận AI TinyML mỗi 3s
     SCH_Add_Task(Task_CheckAlerts, 0, TASK_ALERT_CHECK_TICKS);           // Kiểm tra cảnh báo mỗi 1s
     SCH_Add_Task(Task_AutoControl, 0, TASK_AUTO_CONTROL_TICKS);          // Logic tự động (bơm + quạt) mỗi 1s
     SCH_Add_Task(Task_PumpWatchdog, 0, TASK_PUMP_WATCHDOG_TICKS);        // Giám sát bảo vệ bơm mỗi 1s
@@ -89,8 +111,8 @@ void setup()
     SCH_Add_Task(Task_AutoSwitchLCDPage, 0, TASK_LCD_PAGE_SWITCH_TICKS); // Tự động lật trang LCD mỗi 5s
     SCH_Add_Task(Task_Heartbeat, 0, TASK_HEARTBEAT_TICKS);               // In log trạng thái mỗi 5s
     SCH_Add_Task(Task_ScanButtons, 0, BTN_DEBOUNCE_TICKS);               // Quét nút bấm mỗi 50ms
-    SCH_Add_Task(Task_SendTelemetry, 0, TASK_TELEMETRY_TICKS);           // Gửi telemetry CoreIOT mỗi 3s
-    SCH_Add_Task(Task_ProcessRpc, 0, TASK_RPC_POLL_TICKS);               // Quét lệnh RPC mỗi 200ms
+    SCH_Add_Task(Task_SendTelemetry, 0, TASK_TELEMETRY_TICKS);           // [T11] Day Telemetry len CoreIOT Cloud moi 3s           // Gửi telemetry CoreIOT mỗi 3s
+    SCH_Add_Task(Task_ProcessRpc, 0, TASK_RPC_POLL_TICKS);               // [T11, T12] Xu ly lenh RPC tu CoreIOT               // Quét lệnh RPC mỗi 200ms
     SCH_Add_Task(Task_CheckSchedule, 0, TASK_SCHEDULE_CHECK_TICKS);      // Kiểm tra lịch hẹn mỗi 10s
 }
 
@@ -142,7 +164,7 @@ void loop()
         case 'S':
             printSensorData();
             break;
-        case 'j':
+        case 'j': // [T08] Tra ve goi JSON Telemetry cho Local IoT Gateway PC qua Serial
         case 'J':
         {
             // Trả về gói JSON Telemetry cho IoT Gateway trên PC qua cổng Serial

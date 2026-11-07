@@ -1,4 +1,9 @@
 """
+# TICH HOP NHOM 4: LOCAL IOT GATEWAY (T08, T09, T10)
+# - T08: Gateway Core (Serial/HTTP <-> CoreIOT MQTT)
+# - T09: Gateway AI Engine (Z-Score Anomaly & 30-min Forecast)
+# - T10: Gateway Desktop GUI (Tkinter Dark Mode)
+#
 gateway_app.py - Điểm khởi động Master IoT Gateway (Chạy đồng thời T08, T09, T10)
 Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
 Phân rã kiến trúc mô-đun chuẩn hóa:

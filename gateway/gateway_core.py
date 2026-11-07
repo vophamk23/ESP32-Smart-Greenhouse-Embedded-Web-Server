@@ -1,4 +1,8 @@
 """
+# [T08] IOT GATEWAY HIEN THUC TREN PC (HOAC RASPBERRY PI)
+# Yeu to cong nghe T08: Tong hop du lieu, gui len CoreIOT, nhan lenh dieu khien tu CoreIOT
+# va phan phoi cho cac thiet bi trong mang local
+#
 gateway_core.py - Core IoT Gateway Cục bộ trên PC / Raspberry Pi
 Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
 Mã yếu tố công nghệ: T08 (1.0 Điểm)

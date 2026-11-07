@@ -1,4 +1,7 @@
 /*
+ * [T04] TINYML INFERENCE ENGINE ON-CHIP (ESP32-S3)
+ * Yeu to cong nghe T04: Thong tin duoc noi suy tu AI (TinyML chay tren thiet bi)
+ * 
  * tinyml_engine.cpp - Hiện thực Bộ suy luận Trí tuệ Nhân tạo Biên (Edge AI / TinyML)
  * Chạy trực tiếp on-chip trên vi điều khiển ESP32-S3 (Yolo:UNO).
  */

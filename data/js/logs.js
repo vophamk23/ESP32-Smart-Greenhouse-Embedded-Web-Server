@@ -1,3 +1,8 @@
+/*
+ * [N06] HE THONG GHI NHAN SU KIEN (RECORD EVENT LOGGING) & XUAT FILE CSV
+ * Yeu to cong nghe N06: Ghi nhan lich su tuoi, thoi gian bat dau/ket thuc, thoi luong chay,
+ * ly do kich hoat (Auto Soil / Manual / Timer Schedule), ty le thanh cong, va export greenhouse_logs.csv
+ */
 /* ============================================================
    logs.js — Greenhouse IoT
    Ghi log các lần bơm nước.

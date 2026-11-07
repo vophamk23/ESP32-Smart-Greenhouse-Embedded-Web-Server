@@ -1,4 +1,7 @@
 """
+# [T09] CHUC NANG AI CHAY TREN IOT GATEWAY LOCAL
+# Yeu to cong nghe T09: AI phan tich du lieu, phat hien (detect Z-Score Anomaly) va gui ket qua len server
+#
 gateway_ai.py - Chức năng Trí tuệ Nhân tạo chạy trên IoT Gateway Cục bộ (PC / Raspberry Pi)
 Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
 Mã yếu tố công nghệ: T09 (1.0 Điểm)

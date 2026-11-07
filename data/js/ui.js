@@ -1,3 +1,8 @@
+/*
+ * [N06] GIAO DIEN DASHBOARD THIET KE RIENG - PHAT HIEN (DETECT) VA GHI NHAN (RECORD) SU KIEN
+ * Yeu to cong nghe N06: Custom Web Dashboard LittleFS SPA
+ * Quan ly giao dien, Realtime Chart, hien thi Anomaly Alert Badge (FLAME_TAMPER, RAPID_DRIFT, HIGH_HEAT)
+ */
 /* ============================================================
    ui.js — Greenhouse IoT
    updateUI(d) — called every WebSocket message.

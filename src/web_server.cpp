@@ -1,4 +1,8 @@
 /*
+ * [T07] WEBSERVER TREN THIET BI (TU HIEN THUC - HIEN THI, DIEU KHIEN LOCAL)
+ * [T14] CAP NHAT FIRMWARE OTA QUA WEB / ELEGANTOTA
+ * [N06] GIAO DIEN DASHBOARD THIET KE RIENG: PHAT HIEN (DETECT) VA GHI NHAN (RECORD) SU KIEN
+ *
  * webserver_greenhouse.cpp - WebServer + WebSocket Task cho Greenhouse IoT & Edge AI
  *
  * Chức năng:
@@ -445,6 +449,7 @@ static void startWebServer()
     s_server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
     // 6. ElegantOTA
+    // [T14] Khoi tao ElegantOTA phuc vu cap nhat firmware Over-The-Air tai endpoint /update
     ElegantOTA.begin(&s_server);
 
     s_server.begin();

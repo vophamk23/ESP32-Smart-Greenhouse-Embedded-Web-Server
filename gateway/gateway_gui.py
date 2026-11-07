@@ -1,4 +1,7 @@
 """
+# [T10] GIAO DIEN GIAM SAT - DIEU KHIEN TREN IOT GATEWAY LOCAL
+# Yeu to cong nghe T10: Giao dien giam sat - dieu khien tren IoT Gateway local (Tkinter Dark Mode)
+#
 gateway_gui.py - Giao diện Giám sát & Điều khiển Cục bộ trên IoT Gateway PC
 Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
 Mã yếu tố công nghệ: T10 (1.0 Điểm)

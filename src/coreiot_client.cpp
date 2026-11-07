@@ -1,4 +1,9 @@
 /*
+ * [T11] NEN TANG COREIOT: DEVICE PROFILE, TEMPLATE VA DASHBOARD
+ * [T12] SU DUNG RULECHAIN DE PHAT TRIEN TINH NANG THONG MINH
+ * [T13] GUI CANH BAO NOTIFICATION KHI DU LIEU VUOT NGUONG
+ * [T14] DONG BO VA CAP NHAT FIRMWARE OTA CHO THIET BI
+ *
  * coreiot_greenhouse.cpp - CoreIoT Cloud MQTT Platform cho Greenhouse IoT
  * Chạy trên Core 0 (FreeRTOS Task), kết nối trực tiếp app.coreiot.io:1883
  * 
