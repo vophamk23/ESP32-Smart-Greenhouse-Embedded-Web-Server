@@ -11,6 +11,11 @@
 #include <Wire.h>
 
 // ==================== ĐỐI TƯỢNG CẢM BIẾN ====================
+#if USE_MODBUS_RS485
+  static HardwareSerial s_rs485Serial(1); // Sử dụng UART1 phần cứng trên ESP32-S3
+  static ModbusMaster s_modbusNode;
+#endif
+
 #if USE_DHT20
   static DHT20 s_dht20;
 #else
@@ -21,11 +26,21 @@
 static const float SOIL_EMA_ALPHA = 0.2f;
 static float s_soilEMA = -1.0f;
 
-// ==================== KHỞI TẠO CẢM BIẾN ====================
+// ============================================================================
+// KHỞI TẠO TẤT CẢ CÁC CẢM BIẾN (I2C, ADC, MODBUS RS485)
+// ============================================================================
 void initSensors()
 {
-    // 1. Khởi tạo bus I2C cho DHT20 và LCD
+    // 1. Khởi tạo bus I2C nội bộ cho DHT20 (0x38), RTC DS3231 (0x68) và LCD 1602 (0x21/0x27)
     Wire.begin(SDA_PIN, SCL_PIN);
+
+#if USE_MODBUS_RS485
+    // 2. Khởi tạo UART1 phần cứng cho Cảm biến Công nghiệp Modbus RS485 (Yếu tố công nghệ T02)
+    s_rs485Serial.begin(RS485_BAUDRATE, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
+    s_modbusNode.begin(RS485_SLAVE_ID, s_rs485Serial);
+    Serial.printf("[SENSOR] Modbus RS485 initialized (RX=%d, TX=%d, Baud=%d, SlaveID=%d)\n",
+                  RS485_RX_PIN, RS485_TX_PIN, RS485_BAUDRATE, RS485_SLAVE_ID);
+#endif
 
 #if USE_DHT20
     s_dht20.begin();
@@ -35,12 +50,12 @@ void initSensors()
     Serial.printf("[SENSOR] DHT%d initialized on Pin GPIO%d\n", DHT_TYPE, DHT_PIN);
 #endif
 
-    // 2. Cảm biến ánh sáng LDR (ADC)
+    // 3. Cảm biến ánh sáng LDR: Cấu hình ADC 12-bit (dải 0 - 4095, suy hao ADC_11db = 0 - 3.3V)
     analogReadResolution(12);
     analogSetAttenuation(ADC_11db);
     Serial.printf("[SENSOR] Light ADC initialized (Pin GPIO%d, 12-bit)\n", LIGHT_SENSOR_PIN);
 
-    // 3. Cảm biến độ ẩm đất (ADC)
+    // 4. Cảm biến độ ẩm đất điện dung: Cấu hình ADC 12-bit kết hợp bộ lọc EMA (Alpha = 0.2)
     Serial.printf("[SENSOR] Soil ADC initialized (Pin GPIO%d, 12-bit)\n", SOIL_MOISTURE_PIN);
 }
 
@@ -95,51 +110,100 @@ DateTime getRTCTime()
     return DateTime(F(__DATE__), F(__TIME__)) + TimeSpan(sec);
 }
 
-// ==================== ĐỌC CẢM BIẾN NHIỆT ĐỘ & ĐỘ ẨM ====================
+// ============================================================================
+// HÀM ĐỌC CẢM BIẾN NHIỆT ĐỘ & ĐỘ ẨM KHÔNG KHÍ (TÍCH HỢP ĐA GIAO THỨC & FAIL-SAFE)
+// - Yếu tố công nghệ T02: Cảm biến Modbus RS485 công nghiệp (1.0 Điểm)
+// - Dự phòng song song: Cảm biến I2C DHT20 (0x38) / DHT11 (1-Wire)
+// - Đồng bộ liên nhân an toàn luồng: Khóa SemaphoreMutex SENSOR_LOCK()
+// ============================================================================
 void readDHT()
 {
-#if USE_DHT20
-    int status = s_dht20.read();
-    float temp = s_dht20.getTemperature();
-    float humi = s_dht20.getHumidity();
+    float temp = 0.0f;
+    float humi = 0.0f;
+    bool readSuccess = false;
 
-    // Fail-Safe logic kiểm tra tính hợp lệ của DHT20
-    if (status != 0 || isnan(temp) || isnan(humi) || (temp == 0.0f && humi == 0.0f))
+#if USE_MODBUS_RS485
+    // ------------------------------------------------------------------------
+    // [ƯU TIÊN 1] Đọc cảm biến công nghiệp Modbus RS485 (Yếu tố công nghệ T02)
+    // - Chuẩn giao thức: Modbus RTU qua bus vi sai RS485 (UART1: RX=GPIO44, TX=GPIO43)
+    // - Function Code: 03 (Read Holding Registers)
+    // - Địa chỉ bắt đầu: RS485_REG_HUMI (0), số lượng đọc: 2 thanh ghi 16-bit
+    // ------------------------------------------------------------------------
+    uint8_t result = s_modbusNode.readHoldingRegisters(RS485_REG_HUMI, 2);
+    if (result == s_modbusNode.ku8MBSuccess)
     {
-        g_dhtError = true;
-        Serial.printf("[SENSOR] DHT20 read FAILED (status=%d) - keeping last values\n", status);
+        // Thanh ghi 0: Độ ẩm tương đối (%RH) - Độ phân giải 0.1% (Ví dụ: 654 -> 65.4%RH)
+        humi = (uint16_t)s_modbusNode.getResponseBuffer(0) / 10.0f;
 
-        // Khôi phục tự động bus I2C nếu tuột dây và cắm lại
-        static uint8_t retryCount = 0;
-        if (++retryCount >= 3)
-        {
-            Wire.begin(SDA_PIN, SCL_PIN);
-            s_dht20.begin();
-            retryCount = 0;
-        }
-        return;
+        // Thanh ghi 1: Nhiệt độ không khí (°C) - Ép kiểu int16_t để xử lý cả nhiệt độ âm
+        temp = (int16_t)s_modbusNode.getResponseBuffer(1) / 10.0f;
+
+        readSuccess = true;
     }
-#else
-    float temp = s_dht.readTemperature();
-    float humi = s_dht.readHumidity();
-
-    if (isnan(temp) || isnan(humi))
+    else
     {
-        g_dhtError = true;
-        Serial.println("[SENSOR] DHT read FAILED - keeping last values");
-        return;
+        // Ghi log mã lỗi Modbus (0x02: Illegal Address, 0xE2: Timeout,...) và tự động kích hoạt Fail-Safe
+        Serial.printf("[SENSOR] Modbus RS485 read error (0x%02X) -> Tự động chuyển Fallback sang DHT20\n", result);
     }
 #endif
 
-    // Sanity check: loại bỏ giá trị vô lý
+    // ------------------------------------------------------------------------
+    // [ƯU TIÊN 2] Cơ chế phòng vệ tự động (Fail-Safe): Chuyển sang đọc cảm biến DHT20
+    // Kích hoạt khi: Cảm biến RS485 chưa kết nối, mất nguồn ngoài, hoặc tuột dây cáp
+    // ------------------------------------------------------------------------
+    if (!readSuccess)
+    {
+#if USE_DHT20
+        // Đọc cảm biến số DHT20 qua bus I2C nội bộ (Địa chỉ 0x38, SDA=11, SCL=12)
+        int status = s_dht20.read();
+        temp = s_dht20.getTemperature();
+        humi = s_dht20.getHumidity();
+
+        // Kiểm tra tính toàn vẹn tín hiệu: mã lỗi, giá trị NaN hoặc cụm [0.0, 0.0] do treo bus I2C
+        if (status != 0 || isnan(temp) || isnan(humi) || (temp == 0.0f && humi == 0.0f))
+        {
+            g_dhtError = true;
+            Serial.printf("[SENSOR] DHT20 read FAILED (status=%d) -> Giữ nguyên giá trị an toàn trước đó\n", status);
+
+            // Tự phục hồi bus I2C (I2C Bus Recovery) nếu bị treo tín hiệu
+            static uint8_t retryCount = 0;
+            if (++retryCount >= 3)
+            {
+                Wire.begin(SDA_PIN, SCL_PIN);
+                s_dht20.begin();
+                retryCount = 0;
+            }
+            return;
+        }
+#else
+        // Dự phòng cho cảm biến 1 dây DHT11 / DHT22
+        temp = s_dht.readTemperature();
+        humi = s_dht.readHumidity();
+
+        if (isnan(temp) || isnan(humi))
+        {
+            g_dhtError = true;
+            Serial.println("[SENSOR] DHT read FAILED -> Giữ nguyên giá trị an toàn trước đó");
+            return;
+        }
+#endif
+    }
+
+    // ------------------------------------------------------------------------
+    // [BƯỚC 3] Sanity Check (Kiểm tra miền vật lý hợp lệ):
+    // Loại bỏ các xung nhiễu điện từ do đóng/ngắt Relay động cơ máy bơm và quạt
+    // ------------------------------------------------------------------------
     if (temp < -20.0f || temp > 85.0f || humi < 0.0f || humi > 100.0f)
     {
         g_dhtError = true;
-        Serial.printf("[SENSOR] DHT out of range: T=%.1f H=%.1f\n", temp, humi);
+        Serial.printf("[SENSOR] Dữ liệu ngoài miền vật lý hợp lệ: T=%.1f°C, H=%.1f%% -> Bỏ qua mẫu đo\n", temp, humi);
         return;
     }
 
-    // Ghi dữ liệu vào biến toàn cục được bảo vệ bằng Semaphore Mutex
+    // ------------------------------------------------------------------------
+    // [BƯỚC 4] Cập nhật biến toàn cục bảo vệ bằng Khóa loại trừ tương hỗ (Mutex):
+    // Ngăn chặn race condition giữa Core 1 (Scheduler/TinyML) và Core 0 (WiFi/MQTT/Web)
+    // ------------------------------------------------------------------------
     SENSOR_LOCK();
     g_temperature = temp;
     g_humidity = humi;

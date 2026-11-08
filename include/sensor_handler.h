@@ -5,6 +5,10 @@
 #include <RTClib.h>
 #include "config.h"
 
+#if USE_MODBUS_RS485
+  #include <ModbusMaster.h>
+#endif
+
 #if USE_DHT20
   #include "DHT20.h"
 #else
@@ -16,7 +20,7 @@ void initSensors();
 void initRTC();
 
 // ==================== ĐỌC CẢM BIẾN ====================
-void readDHT();             // Đọc nhiệt độ & độ ẩm -> g_temperature, g_humidity
+void readDHT();             // Đọc nhiệt độ & độ ẩm -> g_temperature, g_humidity (tích hợp RS485 T02 & fallback DHT)
 void readLightSensor();     // Đọc quang trở ADC -> g_lightLux
 void readSoilMoisture();    // Đọc độ ẩm đất (ADC + EMA Filter) -> g_soilMoisture
 

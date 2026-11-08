@@ -1,5 +1,5 @@
 /*
- * app_tasks.cpp - Triển khai các task cho Cooperative Scheduler & Edge AI
+ * scheduler_tasks.cpp - Triển khai các task cho Cooperative Scheduler & Edge AI
  */
 
 #include "scheduler_tasks.h"
@@ -13,7 +13,7 @@
 #include "tinyml_engine.h"
 #include <WiFi.h>
 
-// Task 1: ĐỌC CẢM BIẾN KHÔNG KHÍ (DHT20 I2C + LDR)
+// Task 1: ĐỌC CẢM BIẾN KHÔNG KHÍ (Modbus RS485 / DHT20 fallback + LDR)
 void Task_ReadAirSensors(void)
 {
     readDHT();
@@ -121,9 +121,10 @@ void Task_TinyML_Inference(void)
         }
     }
 
-    // Nếu ở chế độ AUTO & cho phép AI tự động can thiệp
+    // Nếu ở chế độ AUTO & cho phép AI tự động can thiệp (Preemptive Actuation)
     if (g_autoMode && g_aiAutoControl)
     {
+        // Tự động bật quạt khi phát hiện nguy cơ nhiệt cao trước khi chạm ngưỡng tĩnh
         if (res.shouldTriggerFan && !g_fanState)
         {
             fanOn();
@@ -263,7 +264,7 @@ void Task_CheckSchedule(void)
 }
 
 // ============================================================
-// TASK: HEARTBEAT (5 giây) - in tóm tắt trạng thái hệ thống
+// TASK: HEARTBEAT (15 giây) - in tóm tắt trạng thái hệ thống
 // ============================================================
 void Task_Heartbeat(void)
 {

@@ -11,8 +11,18 @@
 // ============================================================================
 // LỰA CHỌN CẢM BIẾN NHIỆT ĐỘ - ĐỘ ẨM
 // ============================================================================
-#define USE_DHT20 1          // 1: Cảm biến I2C DHT20 (chuẩn phòng lab Bách Khoa)
-                             // 0: Cảm biến DHT11/DHT22 chân số 1 dây
+#define USE_DHT20           1         // 1: Cảm biến I2C DHT20, 0: Cảm biến DHT11/DHT22
+
+// Cấu hình Cảm biến Công nghiệp Modbus RS485 (Yếu tố công nghệ T02 - 1.0 Điểm)
+// Nếu đặt 1: Hệ thống tự động ưu tiên đọc nhiệt độ, độ ẩm qua Modbus RS485 (Holding Registers 0 & 1)
+// Nếu mất tín hiệu RS485: Hệ thống tự động kích hoạt cơ chế Fail-Safe chuyển về đọc DHT20
+#define USE_MODBUS_RS485    1         // 1: Bật Modbus RS485 (Mã T02), 0: Tắt
+#define RS485_RX_PIN        44        // Chân RX của ESP32 (nối TXD/RO của module MAX485)
+#define RS485_TX_PIN        43        // Chân TX của ESP32 (nối RXD/DI của module MAX485)
+#define RS485_BAUDRATE      9600      // Tốc độ Baud mặc định (9600 bps)
+#define RS485_SLAVE_ID      4         // Địa chỉ Slave ID của cảm biến (4)
+#define RS485_REG_HUMI      0         // Địa chỉ thanh ghi Độ ẩm (Function code 03)
+#define RS485_REG_TEMP      1         // Địa chỉ thanh ghi Nhiệt độ (Function code 03)
 
 // ============================================================================
 // ĐỊNH NGHĨA CHÂN NGOẠI VI (PINOUT)

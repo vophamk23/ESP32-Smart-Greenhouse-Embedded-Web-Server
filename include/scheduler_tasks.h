@@ -1,5 +1,5 @@
 /*
- * app_tasks.h - Task Definitions cho Greenhouse IoT & Edge AI
+ * scheduler_tasks.h - Khai báo các tác vụ cho Cooperative Scheduler & Edge AI
  */
 #ifndef SCHEDULER_TASKS_H
 #define SCHEDULER_TASKS_H
@@ -18,7 +18,7 @@
 #define TASK_AUTO_CONTROL_DELAY_MS     1000      // Chạy logic điều khiển mỗi 1 giây
 #define TASK_LED_UPDATE_DELAY_MS       500       // Cập nhật màu LED mỗi 500ms
 #define TASK_ALERT_CHECK_DELAY_MS      1000      // Kiểm tra cảnh báo mỗi 1 giây
-#define TASK_HEARTBEAT_DELAY_MS        5000      // Heartbeat Serial mỗi 5 giây
+#define TASK_HEARTBEAT_DELAY_MS        15000     // Heartbeat Serial in bảng trạng thái mỗi 15 giây
 #define TASK_PUMP_WATCHDOG_DELAY_MS    1000      // Giám sát bơm mỗi 1 giây
 #define BTN_DEBOUNCE_MS                50        // Debounce mỗi 50ms
 
@@ -44,7 +44,7 @@
 #define TASK_AI_INFERENCE_TICKS    (TASK_AI_INFERENCE_DELAY_MS / TIMER_TICK_MS)
 
 // ==================== TASK PROTOTYPES ====================
-void Task_ReadAirSensors(void);    // Đọc nhiệt độ, độ ẩm không khí (DHT20 I2C)
+void Task_ReadAirSensors(void);    // [T02] Đọc nhiệt độ, độ ẩm (Modbus RS485 / DHT20 fallback) & LDR
 void Task_ReadSoilSensor(void);    // Đọc độ ẩm đất
 void Task_UpdateLCD(void);         // Cập nhật hiển thị LCD
 void Task_AutoSwitchLCDPage(void); // Tự động chuyển trang LCD

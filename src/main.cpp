@@ -1,19 +1,21 @@
+// clang-format off
 /*
  * ============================================================================
  * TRƯỜNG ĐẠI HỌC BÁCH KHOA - ĐHQG TP.HCM (HCMUT)
  * KHOA KHOA HỌC VÀ KỸ THUẬT MÁY TÍNH
  * BÁO CÁO BÀI TẬP LỚN MÔN HỌC INTERNET OF THINGS (CO3061 / CO3062)
  *
- * ĐỀ TÀI: HỆ THỐNG NHÀ KÍNH THÔNG MINH GIÁM SÁT MÔI TRƯỜNG VÀ TỰ ĐỘNG HÓA
- *         TƯỚI TIÊU TÍCH HỢP TINYML VÀ IOT GATEWAY TRÊN ESP32-S3 (YOLO:UNO)
+ * ĐỀ TÀI: HỆ THỐNG IOT ĐA TẦNG GIÁM SÁT VI KHÍ HẬU VÀ ĐIỀU KHIỂN TỰ ĐỘNG
+ *         TÍCH HỢP TRÍ TUỆ NHÂN TẠO BIÊN (TINYML) TRÊN ESP32-S3 (YOLO:UNO)
  *
  * GIẢNG VIÊN HƯỚNG DẪN: TS. Lê Trọng Nhân
  * NHÓM THỰC HIỆN:
- *   1. Trần Quang Vinh - MSSV: 2313932
+ *   1. Trần Quang Vinh - MSSV: 2313932 (Nhóm trưởng)
  *   2. Phạm Minh Đức   - MSSV: 2310797
  *   3. Phạm Công Võ    - MSSV: 2313946 (GitHub: vophamk23)
  *
  * ÁNH XẠ CÁC YẾU TỐ CÔNG NGHỆ THỰC HIỆN:
+ *   [T02] Cảm biến sử dụng giao tiếp Modbus RS485 công nghiệp        -> sensor_handler.cpp
  *   [T04] Thông tin nội suy từ AI (TinyML chạy trên thiết bị ESP32-S3) -> tinyml_engine.cpp
  *   [T05] Công cụ thu thập dữ liệu, huấn luyện & export model TinyML  -> tools/train_tinyml/
  *   [T07] Webserver trên thiết bị (tự hiện thực - LittleFS SPA)       -> web_server.cpp
@@ -27,6 +29,7 @@
  *   [N06] Custom Dashboard phát hiện (detect) & ghi nhận sự kiện CSV -> data/pages/ & data/js/
  * ============================================================================
  */
+// clang-format on
 
 #include <Arduino.h>
 #include "config.h"
@@ -80,39 +83,35 @@ void setup()
     initWiFi();
 
     // Tạo task WiFi monitor trên Core 0
-    xTaskCreatePinnedToCore(
-        greenhouse_wifi_task, "wifi",
-        4096, nullptr, 3, nullptr, 0);
+    xTaskCreatePinnedToCore(greenhouse_wifi_task, "wifi", 4096, nullptr, 3, nullptr, 0);
 
     // ===== 5. FREERTOS TASKS (Core 0) =====
     xTaskCreatePinnedToCore(
         // [T11, T12, T13, T14] FreeRTOS CoreIOT Task (MQTT Telemetry, RuleChain, RPC, OTA)
-        greenhouse_coreiot_task, "coreiot",
-        8192, nullptr, 2, nullptr, 0);
+        greenhouse_coreiot_task, "coreiot", 8192, nullptr, 2, nullptr, 0);
 
     xTaskCreatePinnedToCore(
         // [T07, T14, N06] FreeRTOS Web Server Task (LittleFS SPA, ElegantOTA, Event Log CSV)
-        greenhouse_webserver_task, "webserver",
-        8192, nullptr, 1, nullptr, 0);
+        greenhouse_webserver_task, "webserver", 8192, nullptr, 1, nullptr, 0);
 
     // ===== 6. COOPERATIVE SCHEDULER (Core 1) =====
     SCH_Init();
     SCH_Init_Timer();
 
     // Đăng ký các tác vụ định kỳ vào Cooperative Scheduler
-    SCH_Add_Task(Task_ReadAirSensors, 0, TASK_SENSOR_READ_TICKS);        // Đọc DHT20 & LDR mỗi 2s
+    SCH_Add_Task(Task_ReadAirSensors, 0, TASK_SENSOR_READ_TICKS);        // [T02] Đọc Modbus RS485 / DHT20 & LDR mỗi 2s
     SCH_Add_Task(Task_ReadSoilSensor, 0, TASK_SOIL_READ_TICKS);          // Đọc độ ẩm đất mỗi 5s
-    SCH_Add_Task(Task_TinyML_Inference, 0, TASK_AI_INFERENCE_TICKS);     // [T04] Suy luan AI TinyML on-chip moi 3s     // Chạy suy luận AI TinyML mỗi 3s
+    SCH_Add_Task(Task_TinyML_Inference, 0, TASK_AI_INFERENCE_TICKS);     // [T04] Chạy suy luận AI TinyML on-chip mỗi 3s
     SCH_Add_Task(Task_CheckAlerts, 0, TASK_ALERT_CHECK_TICKS);           // Kiểm tra cảnh báo mỗi 1s
     SCH_Add_Task(Task_AutoControl, 0, TASK_AUTO_CONTROL_TICKS);          // Logic tự động (bơm + quạt) mỗi 1s
     SCH_Add_Task(Task_PumpWatchdog, 0, TASK_PUMP_WATCHDOG_TICKS);        // Giám sát bảo vệ bơm mỗi 1s
     SCH_Add_Task(Task_UpdateLEDStatus, 0, TASK_LED_UPDATE_TICKS);        // Cập nhật LED NeoPixel mỗi 500ms
     SCH_Add_Task(Task_UpdateLCD, 0, TASK_LCD_UPDATE_TICKS);              // Cập nhật LCD mỗi 500ms
     SCH_Add_Task(Task_AutoSwitchLCDPage, 0, TASK_LCD_PAGE_SWITCH_TICKS); // Tự động lật trang LCD mỗi 5s
-    SCH_Add_Task(Task_Heartbeat, 0, TASK_HEARTBEAT_TICKS);               // In log trạng thái mỗi 5s
+    SCH_Add_Task(Task_Heartbeat, 0, TASK_HEARTBEAT_TICKS);               // In log trạng thái mỗi 15s
     SCH_Add_Task(Task_ScanButtons, 0, BTN_DEBOUNCE_TICKS);               // Quét nút bấm mỗi 50ms
-    SCH_Add_Task(Task_SendTelemetry, 0, TASK_TELEMETRY_TICKS);           // [T11] Day Telemetry len CoreIOT Cloud moi 3s           // Gửi telemetry CoreIOT mỗi 3s
-    SCH_Add_Task(Task_ProcessRpc, 0, TASK_RPC_POLL_TICKS);               // [T11, T12] Xu ly lenh RPC tu CoreIOT               // Quét lệnh RPC mỗi 200ms
+    SCH_Add_Task(Task_SendTelemetry, 0, TASK_TELEMETRY_TICKS);           // [T11] Gửi telemetry CoreIOT mỗi 3s
+    SCH_Add_Task(Task_ProcessRpc, 0, TASK_RPC_POLL_TICKS);               // [T11, T12] Quét lệnh RPC mỗi 200ms
     SCH_Add_Task(Task_CheckSchedule, 0, TASK_SCHEDULE_CHECK_TICKS);      // Kiểm tra lịch hẹn mỗi 10s
 }
 
@@ -169,31 +168,26 @@ void loop()
         {
             // Trả về gói JSON Telemetry cho IoT Gateway trên PC qua cổng Serial
             SENSOR_LOCK();
-            Serial.printf("{\"temperature\":%.1f,\"humidity\":%.1f,\"soilMoisture\":%.1f,\"lightLux\":%.0f,\"pumpState\":%s,\"fanState\":%s,\"autoMode\":%s,\"aiStateStr\":\"%s\",\"anomalyScore\":%.2f,\"isAnomaly\":%s,\"anomalyType\":\"%s\"}\n",
-                          g_temperature, g_humidity, g_soilMoisture, g_lightLux,
-                          g_pumpState ? "true" : "false",
-                          g_fanState ? "true" : "false",
-                          g_autoMode ? "true" : "false",
-                          g_aiStateStr,
-                          g_aiAnomalyScore,
-                          g_aiIsAnomaly ? "true" : "false",
-                          g_aiAnomalyType);
+            Serial.printf("{\"temperature\":%.1f,\"humidity\":%.1f,\"soilMoisture\":%.1f,\"lightLux\":%.0f,"
+                          "\"pumpState\":%s,\"fanState\":%s,\"autoMode\":%s,\"aiStateStr\":\"%s\",\"anomalyScore\":%."
+                          "2f,\"isAnomaly\":%s,\"anomalyType\":\"%s\"}\n",
+                          g_temperature, g_humidity, g_soilMoisture, g_lightLux, g_pumpState ? "true" : "false",
+                          g_fanState ? "true" : "false", g_autoMode ? "true" : "false", g_aiStateStr, g_aiAnomalyScore,
+                          g_aiIsAnomaly ? "true" : "false", g_aiAnomalyType);
             SENSOR_UNLOCK();
             break;
         }
         case 'i':
         case 'I':
-            Serial.printf("[IOT] WiFi: %s | IP: %s\n",
-                          WiFi.status() == WL_CONNECTED ? "OK" : "DISCONNECTED",
+            Serial.printf("[IOT] WiFi: %s | IP: %s\n", WiFi.status() == WL_CONNECTED ? "OK" : "DISCONNECTED",
                           WiFi.localIP().toString().c_str());
-            Serial.printf("[IOT] CoreIOT Server: %s:%s | Token: %s\n",
-                          CORE_IOT_SERVER, CORE_IOT_PORT, CORE_IOT_TOKEN);
-            Serial.printf("[IOT] AI State: %s (%.1f%%, %luus)\n",
-                          g_aiStateStr, g_aiConfidence, (unsigned long)g_aiInferenceTimeUs);
+            Serial.printf("[IOT] CoreIOT Server: %s:%s | Token: %s\n", CORE_IOT_SERVER, CORE_IOT_PORT, CORE_IOT_TOKEN);
+            Serial.printf("[IOT] AI State: %s (%.1f%%, %luus)\n", g_aiStateStr, g_aiConfidence,
+                          (unsigned long)g_aiInferenceTimeUs);
             Serial.printf("[IOT] Free heap: %lu bytes\n", (unsigned long)ESP.getFreeHeap());
             break;
         case '?':
-            Serial.println("Commands: a=AutoToggle p=PumpToggle f=FanToggle n=NextPage s=Sensors i=IoTInfo");
+            Serial.println("Commands: a=AutoToggle p=PumpToggle f=FanToggle n=NextPage s=Sensors j=JSON i=IoTInfo");
             break;
         default:
             break;

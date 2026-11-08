@@ -30,6 +30,12 @@ except ImportError:
     REQUESTS_AVAILABLE = False
 
 try:
+    import minimalmodbus
+    MINIMALMODBUS_AVAILABLE = True
+except ImportError:
+    MINIMALMODBUS_AVAILABLE = False
+
+try:
     from gateway_ai import GatewayAIEngine
 except ImportError:
     from gateway.gateway_ai import GatewayAIEngine
@@ -112,6 +118,10 @@ class LocalIoTGatewayCore:
             "esp32_ip": "192.168.1.100",
             "serial_port": "AUTO",
             "serial_baud": 115200,
+            "modbus_enabled": False,
+            "modbus_port": "COM8",
+            "modbus_slave_id": 4,
+            "modbus_baud": 9600,
             "poll_interval": 2.0
         }
         # Thử đọc từ data/info.dat nếu có
@@ -254,7 +264,43 @@ class LocalIoTGatewayCore:
                 self.log(f"[SERIAL LOCAL] Không thể mở cổng {port}: {e}")
         return False
 
+    def poll_modbus_rs485(self):
+        """Đọc trực tiếp từ Cảm biến Nhiệt ẩm Modbus RS485 (Mã T02)."""
+        if not MINIMALMODBUS_AVAILABLE:
+            return False
+        try:
+            if not hasattr(self, "modbus_instrument") or self.modbus_instrument is None:
+                port = self.config.get("modbus_port", "COM8")
+                slave_id = int(self.config.get("modbus_slave_id", 4))
+                baud = int(self.config.get("modbus_baud", 9600))
+                self.modbus_instrument = minimalmodbus.Instrument(port, slave_id)
+                self.modbus_instrument.serial.baudrate = baud
+                self.modbus_instrument.serial.bytesize = 8
+                self.modbus_instrument.serial.parity = serial.PARITY_NONE
+                self.modbus_instrument.serial.stopbits = 1
+                self.modbus_instrument.serial.timeout = 1.0
+                self.modbus_instrument.mode = minimalmodbus.MODE_RTU
+                self.log(f"[MODBUS RS485] ✓ Đã mở kết nối cổng {port} (Slave ID: {slave_id}, Baud: {baud})")
+
+            # Đọc thanh ghi 0 (Độ ẩm) và thanh ghi 1 (Nhiệt độ) - Function Code 03
+            humidity_raw = self.modbus_instrument.read_register(0, number_of_decimals=0, functioncode=3)
+            temperature_raw = self.modbus_instrument.read_register(1, number_of_decimals=0, functioncode=3)
+
+            self.telemetry["humidity"] = round(humidity_raw / 10.0, 1)
+            self.telemetry["temperature"] = round(temperature_raw / 10.0, 1)
+            self.esp32_connected = True
+            return True
+        except Exception as e:
+            self.log(f"[MODBUS RS485 ERROR] {e}")
+            self.modbus_instrument = None
+            return False
+
     def poll_esp32(self):
+        # 0. Thử đọc trực tiếp qua Modbus RS485 nếu bật
+        if MINIMALMODBUS_AVAILABLE and self.config.get("modbus_enabled", False):
+            if self.poll_modbus_rs485():
+                return True
+
         # 1. Thử qua Serial
         if self.ser and self.ser.is_open:
             try:
