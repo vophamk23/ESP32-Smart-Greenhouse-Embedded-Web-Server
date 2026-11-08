@@ -11,7 +11,7 @@
 
 </div>
 
-Dự án nghiên cứu, thiết kế và hiện thực một **Hệ Thống IoT Đa Tầng (Multi-Tier IoT System)** toàn diện phục vụ giám sát vi khí hậu và điều khiển tự động theo **Kiến trúc phân tầng lai 3 tầng (Three-Tier Hybrid Edge–Fog–Cloud Architecture)**. Hệ thống tích hợp các công nghệ IoT tiên tiến:
+Hệ Thống IoT Đa Tầng (Multi-Tier IoT System) toàn diện phục vụ giám sát vi khí hậu và điều khiển tự động theo Kiến trúc phân tầng lai 3 tầng (Three-Tier Hybrid Edge–Fog–Cloud Architecture).
 
 - **Tầng Biên (Edge Computing):** Mạch vi điều khiển nhân kép **Yolo:UNO (ESP32-S3)** chạy bộ điều phối hợp tác thời gian thực kết hợp mạng nơ-ron **TinyML On-Chip** suy luận siêu tốc độ trễ micro-giây ($t_{\text{infer}} < 50\,\mu\text{s}$) phân loại 6 trạng thái vi khí hậu và phát hiện dị thường nhiệt ẩm (`FLAME_TAMPER`), đọc cảm biến nhiệt ẩm công nghiệp qua giao thức **Modbus RS485** (Holding Registers 0 & 1), máy chủ web nhúng **LittleFS Single Page Application** phục vụ giám sát và điều khiển local không cần Internet.
 - **Tầng Trạm (Fog Gateway):** Trạm **Local IoT Gateway** đa luồng bằng Python trên PC hỗ trợ thu thập dữ liệu kép (Serial/HTTP/RS485), phân tích AI chuỗi thời gian Z-Score, dự báo nhiệt độ 30 phút bằng hồi quy OLS và giao diện Desktop GUI Tkinter Dark Mode.
@@ -33,7 +33,6 @@ Dự án nghiên cứu, thiết kế và hiện thực một **Hệ Thống IoT 
 11. [Giao Diện LCD 1602 & Bảng Lệnh Console Serial](#11-giao-diện-lcd-1602--bảng-lệnh-console-serial)
 12. [Giấy Phép & Bản Quyền](#12-giấy-phép--bản-quyền)
 
----
 
 ## 1. Bảng Đánh Giá Yếu Tố Công Nghệ (Thang điểm BTL)
 
@@ -55,7 +54,6 @@ Dự án hiện thực đầy đủ **11 yếu tố công nghệ chuẩn (T)** v
 | **N06**  | **Giao diện Dashboard thiết kế riêng**, phát hiện & ghi nhận sự kiện      |  **1.0**   | Giao diện Emerald Orbit SPA trên LittleFS tích hợp thẻ **Anomaly Badge** thời gian thực, nhật ký sự kiện tưới tiêu và xuất báo cáo tập tin `.CSV`.                                         |   **ĐẠT**    |
 | **TỔNG** | **Tổng điểm tự đánh giá các yếu tố công nghệ**                            |  **12.5**  | **Đạt mức trần tối đa 8.0/8.0 điểm công nghệ + 1.0/1.0 điểm nâng cao**                                                                                                                     | **XUẤT SẮC** |
 
----
 
 ## 2. Kiến trúc Hệ thống Tổng thể
 
@@ -101,7 +99,7 @@ Hệ thống hoạt động theo mô hình 3 tầng phân cấp:
 └─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
----
+
 
 ## 3. Bộ Máy Trí Tuệ Nhân Tạo Phân Tán 2 Tầng (Dual-Tier AI)
 
@@ -140,7 +138,7 @@ T, RH, SM, Elux, Heat Index (HI)  │
   $$\beta_1 = \frac{\sum (t_i - \bar{t})(T_i - \bar{T})}{\sum (t_i - \bar{t})^2}, \qquad \hat{T}_{t+1800\text{s}} = T_t + 1800 \cdot \beta_1$$
 - **Chỉ số căng thẳng khô hạn (Drought Stress Index):** Tổng hợp trọng số $55\%$ từ độ thiếu hụt ẩm đất + $30\%$ từ nhiệt độ cao + $15\%$ từ không khí khô để đưa ra khuyến nghị thời gian tưới chính xác theo số giây.
 
----
+
 
 ## 4. Sơ đồ Ghép nối Phần cứng (Pinout Yolo:UNO)
 
@@ -158,7 +156,6 @@ Bo mạch sử dụng chuẩn chân cắm **Yolo:UNO (ESP32-S3)**:
 | **LED đơn on-board**    |       **GPIO 48 (D13)**        |          GPIO Output           |           Active HIGH           | Nhấp nháy chỉ thị nhịp tim hệ thống (_Heartbeat_)                                        |
 | **3 Nút nhấn tại chỗ**  |      **GPIO 17, 18, 21**       |           GPIO Input           |           Active LOW            | Nút bấm vật lý cấu hình `INPUT_PULLUP`: Đổi Mode, Bơm tay, Quạt tay                      |
 
----
 
 ## 5. Lớp Cảm Biến & Thuật toán Lọc số / Đồng bộ Thời gian
 
@@ -206,7 +203,7 @@ Hệ thống phân tách kiến trúc bất đối xứng (_Asymmetric Multiproc
 | **12** | `Task_ProcessRpc`        | **200 ms**  | Lấy lệnh RPC từ `xRpcCommandQueue` để điều khiển chấp hành ngay lập tức      |
 | **13** | `Task_CheckSchedule`     | **5 giây**  | Đối chiếu thời gian thực DS3231 với lịch hẹn tưới nước (Smart Weather Skip)  |
 
----
+
 
 ## 7. Máy Chủ Web Nhúng SPA & Hệ Thống REST API / WebSocket
 
@@ -304,7 +301,6 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 └── platformio.ini                          # Cấu hình PlatformIO môi trường bo mạch yolo_uno
 ```
 
----
 
 ## 10. Hướng Dẫn Cài Đặt & Nạp Chương Trình
 
@@ -352,7 +348,6 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
    pio device monitor --baud 115200
    ```
 
----
 
 ## 11. Giao Diện LCD 1602 & Bảng Lệnh Console Serial
 
@@ -375,7 +370,6 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 - **`S` / `s`**: In ngay lập tức bảng tóm tắt cảm biến & TinyML ra màn hình.
 - **`J` / `j`**: Xuất khung dữ liệu **JSON Telemetry** phục vụ trạm Gateway PC thu thập.
 
----
 
 ## 12. Giấy Phép & Bản Quyền
 
