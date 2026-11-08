@@ -1,4 +1,4 @@
-# 🌐 Hệ Thống IoT Đa Tầng Giám Môi Trường & Điều Khiển Tự Động Tích Hợp TinyML
+# 🌐 Hệ Thống IoT Đa Tầng Giám Sát Vi Khí Hậu & Điều Khiển Tự Động Tích Hợp TinyML
 
 ### Multi-Tier IoT Platform: Edge TinyML • Industrial Modbus RS485 • Embedded Web SPA • Fog Gateway AI • CoreIOT Cloud OTA
 
