@@ -20,7 +20,6 @@ Dự án nghiên cứu, thiết kế và hiện thực một **Hệ Thống IoT 
 - **Tầng Trạm (Fog Gateway):** Trạm **Local IoT Gateway** đa luồng bằng Python trên PC hỗ trợ thu thập dữ liệu kép (Serial/HTTP/RS485), phân tích AI chuỗi thời gian Z-Score, dự báo nhiệt độ 30 phút bằng hồi quy OLS và giao diện Desktop GUI Tkinter Dark Mode.
 - **Tầng Mây (Cloud Computing):** Nền tảng **CoreIOT Cloud (ThingsBoard)** quản lý thiết bị tập trung, giám sát Telemetry trực quan, chuỗi luật RuleChain thông minh, cảnh báo Notification tức thời và quản trị cập nhật Firmware OTA không dây.
 
----
 
 ## 📋 Mục lục
 
