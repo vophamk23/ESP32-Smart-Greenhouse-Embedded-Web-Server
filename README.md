@@ -1,7 +1,4 @@
 # 🌐 Hệ Thống IoT Đa Tầng Giám Sát Vi Khí Hậu & Điều Khiển Tự Động Tích Hợp TinyML
-
-### Multi-Tier IoT Platform: Edge TinyML • Industrial Modbus RS485 • Embedded Web SPA • Fog Gateway AI • CoreIOT Cloud OTA
-
 <div align="center">
 
 ![ESP32-S3](<https://img.shields.io/badge/Board-Yolo%3AUNO%20(ESP32--S3)-E7352C?style=for-the-badge&logo=espressif&logoColor=white>)
