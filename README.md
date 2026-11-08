@@ -80,7 +80,7 @@ Hệ thống hoạt động theo mô hình 3 tầng phân cấp:
 │                           │                                                 │                         │
 │                           └───────────► FreeRTOS SemaphoreMutex & xQueue ───┘                         │
 │                                         (Thread-Safe Inter-Core IPC)                                  │
-└───────────────────────────────────┬─────────────────────────────────────────┼─────────────────────────┘
+└──────────────────────────────────────────────────────────────────────────────────────────────────────┘
                                     │                                         │
                    Kênh USB CDC Serial / HTTP REST               Kênh MQTT v3.1.1 Dự phòng song song
                                     │                                         │
@@ -96,12 +96,12 @@ Hệ thống hoạt động theo mô hình 3 tầng phân cấp:
                      Giao thức MQTT v3.1.1 (QoS 1)                            │
                                     │                                         │
                                     ▼                                         ▼
-┌───────────────────────────────────────────────────────────────────────────────────────────────────────┐
-│                                TẦNG 3: NỀN TẢNG ĐÁM MÂY COREIOT CLOUD                                 │
-│                                                                                                       │
-│  • Quản lý & Hiển thị: Device Profile, RuleChain thông minh (T12), Dashboard giám sát từ xa (T11)    │
-│  • Cảnh báo & Tự động hóa: Notification Center (T13), Quản trị gói Firmware OTA tập trung (T14)       │
-└───────────────────────────────────────────────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────────────────────────────────────────┐
+│                                TẦNG 3: NỀN TẢNG ĐÁM MÂY COREIOT CLOUD                               │
+│                                                                                                     │
+│  • Quản lý & Hiển thị: Device Profile, RuleChain thông minh (T12), Dashboard giám sát từ xa (T11)   │
+│  • Cảnh báo & Tự động hóa: Notification Center (T13), Quản trị gói Firmware OTA tập trung (T14)     │
+└─────────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -112,11 +112,13 @@ Hệ thống kết hợp sức mạnh tính toán của vi điều khiển tại
 
 ```
                                   ┌───► [Nhánh 1: TinyML On-Chip (ESP32-S3)] ───► Nhãn Vi khí hậu Tức thời
-                                  │      MLP [5 -> 8 -> 3] + Autoencoder [3 -> 2 -> 3]     & Cảnh báo Cháy (tinfer < 50 us)
+                                  │                                               MLP [5 -> 8 -> 3] + Autoencoder [3 -> 2 -> 3]
+                                                                                   & Cảnh báo Cháy (tinfer < 50 us)
 [Dữ liệu Cảm biến Đa biến] ───────┤
 T, RH, SM, Elux, Heat Index (HI)  │
                                   └───► [Nhánh 2: Gateway AI (Python PC)] ──────► Dự báo Nhiệt độ OLS 30 phút
-                                         Cửa sổ trượt 30 mẫu, Z-Score & OLS               & Chỉ số Khô hạn (Drought Index)
+                                                                                  Cửa sổ trượt 30 mẫu, Z-Score & OLS
+                                                                                  & Chỉ số Khô hạn (Drought Index)
 ```
 
 ### Tầng 1: TinyML On-Chip trên ESP32-S3 (Mã T04, T05)
