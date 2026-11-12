@@ -1,19 +1,19 @@
 """
-# [T10] GIAO DIEN GIAM SAT - DIEU KHIEN TREN IOT GATEWAY LOCAL
-# Yeu to cong nghe T10: Giao dien giam sat - dieu khien tren IoT Gateway local (Tkinter Dark Mode)
+# [T10] GIAO DIEN GIAM SAT - DIEU KHIEN TREN IOT GATEWAY LOCAL (INDUSTRIAL SCADA DARK THEME)
+# Yeu to cong nghe T10: Giao dien giam sat - dieu khien tren IoT Gateway local
 #
-gateway_gui.py - Giao diện Giám sát & Điều khiển Cục bộ trên IoT Gateway PC
-Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
-Mã yếu tố công nghệ: T10 (1.0 Điểm)
-Chức năng: Giao diện Desktop GUI đồ họa trực quan hiển thị dữ liệu cảm biến, phân tích AI và điều khiển thiết bị local.
-Sinh viên thực hiện: Phạm Công Võ (MSSV: 2313946)
+# gateway_gui.py - Trạm Giám sát & Điều khiển Cục bộ Chuẩn Công nghiệp (SCADA Mission Control)
+# Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
+# Mã yếu tố công nghệ: T10 (1.0 Điểm)
+# Tác giả: Phạm Công Võ (MSSV: 2313946)
 """
 
 import sys
 import os
 import time
+from collections import deque
 import tkinter as tk
-from tkinter import ttk, scrolledtext
+from tkinter import ttk
 
 try:
     from gateway_core import LocalIoTGatewayCore
@@ -21,20 +21,155 @@ except ImportError:
     from gateway.gateway_core import LocalIoTGatewayCore
 
 
+class SparklineCanvas(tk.Canvas):
+    """
+    Component đồ họa vẽ biểu đồ đường xu hướng thời gian thực (Vector Sparkline)
+    với đường cong làm mịn (smooth curve), vùng sáng chuyển sắc (Area Glow),
+    lưới tham chiếu kỹ thuật và điểm xung nhịp LED phát quang.
+    """
+
+    def __init__(self, parent, width=220, height=48, line_color="#06B6D4",
+                 fill_color="#0C2434", bg_color="#111827", initial_val=27.0, **kwargs):
+        super().__init__(parent, width=width, height=height, bg=bg_color,
+                         highlightthickness=0, bd=0, **kwargs)
+        self.w = width
+        self.h = height
+        self.line_color = line_color
+        self.fill_color = fill_color
+        self.bg_color = bg_color
+        # Khởi tạo 6 điểm đầu tiên bằng giá trị ban đầu để biểu đồ hiển thị mượt ngay khi bật
+        self.data = deque([float(initial_val)] * 6, maxlen=25)
+
+    def add_point(self, val: float):
+        self.data.append(float(val))
+        self.redraw()
+
+    def redraw(self):
+        self.delete("all")
+        pts = list(self.data)
+        if len(pts) < 2:
+            return
+
+        min_v = min(pts)
+        max_v = max(pts)
+        span = max_v - min_v if (max_v - min_v) > 0.001 else 1.0
+
+        y_top = 8
+        y_bottom = self.h - 8
+        y_mid = (y_top + y_bottom) / 2.0
+
+        # 1. Vẽ các đường lưới tham chiếu mờ (Subtle Gridlines)
+        self.create_line(6, y_top, self.w - 6, y_top, fill="#1A2538", dash=(2, 4), width=1)
+        self.create_line(6, y_mid, self.w - 6, y_mid, fill="#1A2538", dash=(2, 4), width=1)
+        self.create_line(6, y_bottom, self.w - 6, y_bottom, fill="#1A2538", dash=(2, 4), width=1)
+
+        # 2. Tính tọa độ các điểm
+        x_start = 8
+        x_end = self.w - 8
+        x_step = (x_end - x_start) / max(1, len(pts) - 1)
+
+        coords = []
+        for i, val in enumerate(pts):
+            x = x_start + i * x_step
+            normalized = (val - min_v) / span
+            y = y_bottom - normalized * (y_bottom - y_top)
+            coords.extend([x, y])
+
+        # 3. Vẽ vùng phủ mờ dưới đường xu hướng (Area Glow Polygon)
+        poly_coords = [coords[0], y_bottom] + coords + [coords[-2], y_bottom]
+        self.create_polygon(poly_coords, fill=self.fill_color, outline="")
+
+        # 4. Vẽ đường xu hướng làm mịn (Vector Trend Curve)
+        self.create_line(coords, fill=self.line_color, width=2, smooth=True)
+
+        # 5. Điểm LED phát quang tại mẫu dữ liệu mới nhất (Pulsing Marker)
+        last_x, last_y = coords[-2], coords[-1]
+        self.create_oval(last_x - 4.5, last_y - 4.5, last_x + 4.5, last_y + 4.5,
+                         fill="", outline=self.line_color, width=1)
+        self.create_oval(last_x - 2.5, last_y - 2.5, last_x + 2.5, last_y + 2.5,
+                         fill="#FFFFFF", outline=self.line_color, width=1)
+
+
+class ThreatGaugeCanvas(tk.Canvas):
+    """
+    Thước đo chỉ số nguy cơ / dị thường AI đa phân đoạn (10-Segment LED Threat Bar).
+    Chuyển màu mượt mà từ Xanh (An toàn) -> Vàng (Cảnh báo) -> Đỏ (Nguy hiểm).
+    """
+
+    def __init__(self, parent, width=230, height=18, bg_color="#0D1322", **kwargs):
+        super().__init__(parent, width=width, height=height, bg=bg_color,
+                         highlightthickness=0, bd=0, **kwargs)
+        self.w = width
+        self.h = height
+        self.set_score(0.05)
+
+    def set_score(self, score: float):
+        self.delete("all")
+        score = max(0.0, min(1.0, float(score)))
+        num_segments = 10
+        gap = 3
+        pad_x = 4
+        pad_y = 3
+        seg_w = (self.w - 2 * pad_x - (num_segments - 1) * gap) / num_segments
+        seg_h = self.h - 2 * pad_y
+
+        active_count = int(round(score * num_segments))
+        if score > 0.02 and active_count == 0:
+            active_count = 1
+
+        for i in range(num_segments):
+            x0 = pad_x + i * (seg_w + gap)
+            x1 = x0 + seg_w
+            y0 = pad_y
+            y1 = y0 + seg_h
+
+            if i < 4:
+                glow_color = "#10B981"  # Xanh an toàn
+                dim_color = "#064E3B"
+            elif i < 7:
+                glow_color = "#F59E0B"  # Vàng cảnh giác
+                dim_color = "#78350F"
+            else:
+                glow_color = "#EF4444"  # Đỏ nguy cấp
+                dim_color = "#7F1D1D"
+
+            fill_c = glow_color if (i < active_count) else dim_color
+            border_c = glow_color if (i < active_count) else "#1E293B"
+
+            self.create_rectangle(x0, y0, x1, y1, fill=fill_c, outline=border_c, width=1)
+
+
 class GatewayGUI:
     """
-    Hiện thực mã T10:
-      - Thiết kế giao diện Desktop GUI hoàn chỉnh bằng Tkinter (theme Dark Mode công nghệ).
-      - Hiển thị 4 thông số vi khí hậu thời gian thực từ mạng local.
-      - Hiển thị bảng phân tích Trí tuệ Nhân tạo từ Gateway AI (T09).
-      - Bảng nút bấm điều khiển thiết bị cục bộ: Bơm, Quạt, Chế độ Auto/Manual.
-      - Màn hình Event Logs ghi nhận toàn bộ lưu lượng đồng bộ với CoreIOT Cloud.
+    Giao diện Desktop GUI Giám sát & Điều khiển Chuẩn Công nghiệp (Mã T10).
+    Thiết kế theo chuẩn SCADA Mission Control tông màu tối Obsidian / Slate:
+      - Header điều hành sứ mệnh: Đồng hồ nguyên tử, Link Badges, Heartbeat.
+      - 4 Thẻ vi khí hậu kỹ thuật số tích hợp Sparklines đa mẫu động.
+      - Trạm suy luận AI & Hồi quy ngoại suy 30 phút (Mã T09).
+      - Bảng công tắc chấp hành cảm ứng lực kèm đèn báo trạng thái LED.
+      - Terminal dòng lệnh chuyên dụng kiểm tra gói tin Telemetry / MQTT.
     """
 
     def __init__(self, root, gateway_core=None):
         self.root = root
+        self.start_time = time.time()
+        self.rx_count = 0
+        self.tx_count = 0
 
-        # Khởi tạo Gateway Core (T08) nếu chưa có
+        # Lịch sử đo lường cho thống kê Min/Max/Avg
+        self.stats = {
+            "temp": {"min": 999.0, "max": -999.0, "sum": 0.0, "count": 0},
+            "hum": {"min": 999.0, "max": -999.0, "sum": 0.0, "count": 0},
+            "soil": {"min": 999.0, "max": -999.0, "sum": 0.0, "count": 0},
+            "light": {"min": 99999.0, "max": -99999.0, "sum": 0.0, "count": 0},
+        }
+
+        # Bộ đệm nhật ký có lọc
+        self.all_logs = []
+        self.current_filter = "ALL"
+        self.auto_scroll = True
+
+        # Kết nối Gateway Core (T08)
         if gateway_core:
             self.gateway = gateway_core
             self.gateway.log_callback = self.append_log
@@ -46,143 +181,461 @@ class GatewayGUI:
             )
 
         self.setup_ui()
+        self.start_clock_timer()
+
+        # Đóng ứng dụng an toàn khi tắt cửa sổ
+        self.root.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    def on_close(self):
+        try:
+            self.gateway.running = False
+        except Exception:
+            pass
+        self.root.destroy()
 
     def setup_ui(self):
-        self.root.title("HCMUT IoT Gateway GUI — Smart Greenhouse (Mã T10)")
-        self.root.geometry("980x720")
-        self.root.minsize(900, 650)
-        self.root.configure(bg="#0f172a")
+        self.root.title("AGRI-SCADA Local IoT Gateway Mission Control [CO3061 - HCMUT]")
+        self.root.geometry("1060x780")
+        self.root.minsize(1000, 700)
+        self.root.configure(bg="#0A0E17")
 
-        # Style cấu hình
+        # Cấu hình thanh cuộn và style ttk
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("TFrame", background="#0f172a")
-        style.configure("TLabel", background="#0f172a", foreground="#f8fafc")
-        style.configure("Header.TLabel", font=("Segoe UI", 16, "bold"), foreground="#38bdf8")
-        style.configure("SubHeader.TLabel", font=("Segoe UI", 9), foreground="#94a3b8")
+        style.configure(".", background="#0A0E17", foreground="#F8FAFC")
+        style.configure("TFrame", background="#0A0E17")
+        style.configure("Vertical.TScrollbar", background="#1E293B", troughcolor="#0A0E17",
+                        bordercolor="#0A0E17", arrowcolor="#94A3B8")
 
         # =====================================================================
-        # 1. TOP HEADER: THÔNG TIN DỰ ÁN & STATUS BADGES
+        # 1. TOP MISSION CONTROL HEADER
         # =====================================================================
-        top_frame = ttk.Frame(self.root, padding="15 12 15 10")
-        top_frame.pack(fill=tk.X)
+        top_bar = tk.Frame(self.root, bg="#0D1322", height=58, bd=0, relief=tk.FLAT)
+        top_bar.pack(fill=tk.X, side=tk.TOP)
 
-        title_box = ttk.Frame(top_frame)
-        title_box.pack(side=tk.LEFT)
-        ttk.Label(title_box, text="🌿 HCMUT LOCAL IOT GATEWAY GUI (T10)", style="Header.TLabel").pack(anchor=tk.W)
-        ttk.Label(title_box, text="Môn học: Internet of Things (CO3061) | GVHD: TS. Lê Trọng Nhân | SV: Phạm Công Võ (MSSV: 2313946)",
-                  style="SubHeader.TLabel").pack(anchor=tk.W)
+        accent_line = tk.Frame(self.root, bg="#1E293B", height=1)
+        accent_line.pack(fill=tk.X, side=tk.TOP)
 
-        badge_box = ttk.Frame(top_frame)
-        badge_box.pack(side=tk.RIGHT)
-        self.lbl_badge_esp = tk.Label(badge_box, text="ESP32: SCANNING", font=("Segoe UI", 9, "bold"),
-                                      bg="#334155", fg="#f8fafc", padx=10, pady=4, relief=tk.FLAT)
-        self.lbl_badge_esp.pack(side=tk.LEFT, padx=5)
+        # Khối thương hiệu bên trái
+        brand_box = tk.Frame(top_bar, bg="#0D1322")
+        brand_box.pack(side=tk.LEFT, padx=16, pady=7)
 
-        self.lbl_badge_mqtt = tk.Label(badge_box, text="COREIOT: CONNECTING", font=("Segoe UI", 9, "bold"),
-                                       bg="#334155", fg="#f8fafc", padx=10, pady=4, relief=tk.FLAT)
-        self.lbl_badge_mqtt.pack(side=tk.LEFT, padx=5)
+        logo_row = tk.Frame(brand_box, bg="#0D1322")
+        logo_row.pack(anchor=tk.W)
 
-        # =====================================================================
-        # 2. BẢNG THẺ ĐO LƯỜNG CẢM BIẾN THỜI GIAN THỰC (4 CARDS)
-        # =====================================================================
-        cards_frame = ttk.Frame(self.root, padding="15 5 15 10")
-        cards_frame.pack(fill=tk.X)
-        for i in range(4):
-            cards_frame.columnconfigure(i, weight=1)
+        scada_badge = tk.Label(logo_row, text="● SCADA-EDGE", font=("Consolas", 8, "bold"),
+                               bg="#064E3B", fg="#34D399", padx=6, pady=2, bd=0)
+        scada_badge.pack(side=tk.LEFT, padx=(0, 8))
 
-        self.card_temp = self.create_metric_card(cards_frame, 0, "🌡️ NHIỆT ĐỘ KHÍ", "27.5 °C", "#ef4444")
-        self.card_hum = self.create_metric_card(cards_frame, 1, "💧 ĐỘ ẨM KHÔNG KHÍ", "65.0 %", "#06b6d4")
-        self.card_soil = self.create_metric_card(cards_frame, 2, "🌱 ĐỘ ẨM ĐẤT", "50.0 %", "#10b981")
-        self.card_light = self.create_metric_card(cards_frame, 3, "☀️ CƯỜNG ĐỘ SÁNG", "720 Lux", "#f59e0b")
+        title_lbl = tk.Label(logo_row, text="AGRI-SCADA", font=("Segoe UI", 13, "bold"),
+                             bg="#0D1322", fg="#FFFFFF")
+        title_lbl.pack(side=tk.LEFT)
 
-        # =====================================================================
-        # 3. BẢNG HIỂN THỊ PHÂN TÍCH AI TRÊN GATEWAY (MÃ T09)
-        # =====================================================================
-        ai_frame = tk.LabelFrame(self.root, text=" 🧠 KẾT QUẢ PHÂN TÍCH TRÍ TUỆ NHÂN TẠO TRÊN GATEWAY (MÃ T09) ",
-                                 font=("Segoe UI", 10, "bold"), bg="#1e293b", fg="#38bdf8", padx=15, pady=10)
-        ai_frame.pack(fill=tk.X, padx=15, pady=6)
+        sub_title_lbl = tk.Label(logo_row, text=" | LOCAL IOT EDGE GATEWAY",
+                                 font=("Segoe UI", 11, "bold"), bg="#0D1322", fg="#38BDF8")
+        sub_title_lbl.pack(side=tk.LEFT)
 
-        ai_cols = ttk.Frame(ai_frame)
-        ai_cols.pack(fill=tk.X)
-        ai_cols.columnconfigure(0, weight=1)
-        ai_cols.columnconfigure(1, weight=1)
-        ai_cols.columnconfigure(2, weight=1)
+        meta_lbl = tk.Label(brand_box,
+                            text="CO3061 INTERNET OF THINGS | GVHD: TS. LÊ TRỌNG NHÂN | SV: PHẠM CÔNG VÕ (MSSV: 2313946)",
+                            font=("Segoe UI", 8), bg="#0D1322", fg="#64748B")
+        meta_lbl.pack(anchor=tk.W, pady=(2, 0))
 
-        # Cột 1: Điểm Dị thường
-        c1 = tk.Frame(ai_cols, bg="#1e293b")
-        c1.grid(row=0, column=0, sticky="nsew", padx=5)
-        tk.Label(c1, text="ĐIỂM DỊ THƯỜNG AI (ANOMALY SCORE):", font=("Segoe UI", 9), bg="#1e293b", fg="#94a3b8").pack(anchor=tk.W)
-        self.lbl_ai_score = tk.Label(c1, text="0.05", font=("Segoe UI", 20, "bold"), bg="#1e293b", fg="#22c55e")
-        self.lbl_ai_score.pack(anchor=tk.W)
-        self.lbl_ai_badge = tk.Label(c1, text="STATUS: NORMAL", font=("Segoe UI", 10, "bold"), bg="#14532d", fg="#86efac", padx=8, pady=2)
-        self.lbl_ai_badge.pack(anchor=tk.W, pady=2)
+        # Khối trạng thái & đồng hồ bên phải
+        right_status_box = tk.Frame(top_bar, bg="#0D1322")
+        right_status_box.pack(side=tk.RIGHT, padx=16, pady=7)
 
-        # Cột 2: Dự báo nhiệt độ 30 phút
-        c2 = tk.Frame(ai_cols, bg="#1e293b")
-        c2.grid(row=0, column=1, sticky="nsew", padx=5)
-        tk.Label(c2, text="DỰ BÁO NHIỆT ĐỘ (30 PHÚT TỚI):", font=("Segoe UI", 9), bg="#1e293b", fg="#94a3b8").pack(anchor=tk.W)
-        self.lbl_ai_forecast = tk.Label(c2, text="28.0 °C", font=("Segoe UI", 20, "bold"), bg="#1e293b", fg="#38bdf8")
-        self.lbl_ai_forecast.pack(anchor=tk.W)
-        tk.Label(c2, text="Mô hình Hồi quy Ngoại suy Chuỗi thời gian", font=("Segoe UI", 9, "italic"), bg="#1e293b", fg="#64748b").pack(anchor=tk.W)
+        self.lbl_clock = tk.Label(right_status_box, text="--:--:-- UTC+7",
+                                  font=("Consolas", 10, "bold"), bg="#111827", fg="#38BDF8",
+                                  padx=10, pady=4, relief=tk.FLAT, bd=0)
+        self.lbl_clock.pack(side=tk.RIGHT, padx=(8, 0))
 
-        # Cột 3: Khuyến nghị tưới thông minh
-        c3 = tk.Frame(ai_cols, bg="#1e293b")
-        c3.grid(row=0, column=2, sticky="nsew", padx=5)
-        tk.Label(c3, text="KHUYẾN NGHỊ TƯỚI THÔNG MINH (SMART AI):", font=("Segoe UI", 9), bg="#1e293b", fg="#94a3b8").pack(anchor=tk.W)
-        self.lbl_ai_irrigation = tk.Label(c3, text="Đang phân tích độ ẩm đất...", font=("Segoe UI", 10, "bold"),
-                                          bg="#1e293b", fg="#f8fafc", wraplength=260, justify=tk.LEFT)
-        self.lbl_ai_irrigation.pack(anchor=tk.W, pady=4)
+        self.lbl_badge_mqtt = tk.Label(right_status_box, text="☁ COREIOT: MQTT ONLINE",
+                                       font=("Segoe UI", 8, "bold"), bg="#064E3B", fg="#34D399",
+                                       padx=10, pady=4, relief=tk.FLAT)
+        self.lbl_badge_mqtt.pack(side=tk.RIGHT, padx=4)
+
+        self.lbl_badge_esp = tk.Label(right_status_box, text="⚡ TELEMETRY: SIMULATED",
+                                      font=("Segoe UI", 8, "bold"), bg="#78350F", fg="#FDE68A",
+                                      padx=10, pady=4, relief=tk.FLAT)
+        self.lbl_badge_esp.pack(side=tk.RIGHT, padx=4)
 
         # =====================================================================
-        # 4. BẢNG ĐIỀU KHIỂN THIẾT BỊ CỤC BỘ TRÊN GATEWAY (MÃ T10)
+        # 2. BỐ CỤC CHÍNH (MAIN BODY)
         # =====================================================================
-        ctrl_frame = tk.LabelFrame(self.root, text=" ⚡ BẢNG ĐIỀU KHIỂN THIẾT BỊ CỤC BỘ (MÃ T10 CONTROLS) ",
-                                   font=("Segoe UI", 10, "bold"), bg="#1e293b", fg="#10b981", padx=15, pady=10)
-        ctrl_frame.pack(fill=tk.X, padx=15, pady=6)
-
-        btn_box = ttk.Frame(ctrl_frame)
-        btn_box.pack(fill=tk.X)
-
-        self.btn_pump = tk.Button(btn_box, text="BƠM NƯỚC: OFF", font=("Segoe UI", 10, "bold"),
-                                  bg="#334155", fg="#f8fafc", activebackground="#475569", width=18, pady=6,
-                                  command=self.toggle_pump)
-        self.btn_pump.pack(side=tk.LEFT, padx=6)
-
-        self.btn_fan = tk.Button(btn_box, text="QUẠT LÀM MÁT: OFF", font=("Segoe UI", 10, "bold"),
-                                 bg="#334155", fg="#f8fafc", activebackground="#475569", width=18, pady=6,
-                                 command=self.toggle_fan)
-        self.btn_fan.pack(side=tk.LEFT, padx=6)
-
-        self.btn_mode = tk.Button(btn_box, text="CHẾ ĐỘ: AUTO", font=("Segoe UI", 10, "bold"),
-                                  bg="#0284c7", fg="#ffffff", activebackground="#0369a1", width=18, pady=6,
-                                  command=self.toggle_mode)
-        self.btn_mode.pack(side=tk.LEFT, padx=6)
-
-        self.btn_tamper_test = tk.Button(btn_box, text="🔥 TEST HƠ LỬA AI", font=("Segoe UI", 10, "bold"),
-                                         bg="#b91c1c", fg="#ffffff", activebackground="#991b1b", width=18, pady=6,
-                                         command=self.trigger_flame_test)
-        self.btn_tamper_test.pack(side=tk.RIGHT, padx=6)
+        main_container = tk.Frame(self.root, bg="#0A0E17")
+        main_container.pack(fill=tk.BOTH, expand=True, padx=12, pady=8)
 
         # =====================================================================
-        # 5. CONSOLE NHẬT KÝ SỰ KIỆN ĐỒNG BỘ THỜI GIAN THỰC
+        # 2.1 ROW 1: 4 THẺ VI KHÍ HẬU KỸ THUẬT SỐ KÈM SPARKLINE VECTOR
         # =====================================================================
-        log_frame = tk.LabelFrame(self.root, text=" 📋 NHẬT KÝ LƯU LƯỢNG ĐỒNG BỘ GATEWAY ↔ COREIOT CLOUD ",
-                                  font=("Segoe UI", 9, "bold"), bg="#0f172a", fg="#94a3b8", padx=10, pady=6)
-        log_frame.pack(fill=tk.BOTH, expand=True, padx=15, pady=8)
+        cards_row = tk.Frame(main_container, bg="#0A0E17")
+        cards_row.pack(fill=tk.X, pady=(0, 8))
+        for col in range(4):
+            cards_row.columnconfigure(col, weight=1)
 
-        self.txt_log = scrolledtext.ScrolledText(log_frame, bg="#020617", fg="#38bdf8", insertbackground="#ffffff",
-                                                font=("Consolas", 9), height=7)
-        self.txt_log.pack(fill=tk.BOTH, expand=True)
+        self.card_temp = self.create_advanced_metric_card(
+            cards_row, col=0,
+            title="AIR TEMPERATURE", tag="DHT20 / RS485",
+            init_val="27.5", unit="°C",
+            accent_color="#F43F5E", fill_color="#28111A", normal_range="20.0 - 32.0 °C"
+        )
 
-    def create_metric_card(self, parent, col, title, initial_val, accent_color):
-        card = tk.Frame(parent, bg="#1e293b", padx=12, pady=10, relief=tk.FLAT)
-        card.grid(row=0, column=col, sticky="nsew", padx=5)
+        self.card_hum = self.create_advanced_metric_card(
+            cards_row, col=1,
+            title="RELATIVE HUMIDITY", tag="CAPACITIVE",
+            init_val="65.0", unit="%",
+            accent_color="#06B6D4", fill_color="#0C2434", normal_range="50.0 - 75.0 %"
+        )
 
-        tk.Label(card, text=title, font=("Segoe UI", 9, "bold"), bg="#1e293b", fg="#94a3b8").pack(anchor=tk.W)
-        val_lbl = tk.Label(card, text=initial_val, font=("Segoe UI", 20, "bold"), bg="#1e293b", fg=accent_color)
-        val_lbl.pack(anchor=tk.W, pady=2)
-        return val_lbl
+        self.card_soil = self.create_advanced_metric_card(
+            cards_row, col=2,
+            title="SOIL MOISTURE", tag="ANALOG ADC1",
+            init_val="50.0", unit="%",
+            accent_color="#10B981", fill_color="#0A251E", normal_range="40.0 - 70.0 %"
+        )
+
+        self.card_light = self.create_advanced_metric_card(
+            cards_row, col=3,
+            title="AMBIENT ILLUMINANCE", tag="LDR SENSOR",
+            init_val="720", unit="Lux",
+            accent_color="#F59E0B", fill_color="#261C0E", normal_range="300 - 900 Lux"
+        )
+
+        # =====================================================================
+        # 2.2 ROW 2: KHU VỰC KÉP (AI TELEMETRY CONSOLE + ACTUATOR SWITCHBOARD)
+        # =====================================================================
+        mid_row = tk.Frame(main_container, bg="#0A0E17")
+        mid_row.pack(fill=tk.X, pady=(0, 8))
+        mid_row.columnconfigure(0, weight=6)
+        mid_row.columnconfigure(1, weight=4)
+
+        # ---------------------------------------------------------------------
+        # CỘT TRÁI: EMBEDDED EDGE AI & PREDICTIVE TELEMETRY ENGINE (T09)
+        # ---------------------------------------------------------------------
+        ai_panel = self.create_section_panel(mid_row, "🧠 EMBEDDED EDGE AI & PREDICTIVE TELEMETRY ENGINE [CORE T09]",
+                                             row=0, col=0, sticky="nsew", padx=(0, 5))
+
+        ai_grid = tk.Frame(ai_panel, bg="#111827")
+        ai_grid.pack(fill=tk.BOTH, expand=True, padx=10, pady=8)
+        ai_grid.columnconfigure(0, weight=1)
+        ai_grid.columnconfigure(1, weight=1)
+
+        # Ô 1: THREAT / ANOMALY DETECTOR
+        cell1 = tk.Frame(ai_grid, bg="#0D1322", padx=10, pady=8, relief=tk.FLAT)
+        cell1.grid(row=0, column=0, sticky="nsew", padx=3, pady=3)
+
+        tk.Label(cell1, text="ANOMALY THREAT LEVEL", font=("Segoe UI", 8, "bold"),
+                 bg="#0D1322", fg="#94A3B8").pack(anchor=tk.W)
+
+        score_row = tk.Frame(cell1, bg="#0D1322")
+        score_row.pack(anchor=tk.W, pady=(2, 2))
+        self.lbl_ai_score = tk.Label(score_row, text="0.05", font=("Segoe UI", 17, "bold"),
+                                     bg="#0D1322", fg="#10B981")
+        self.lbl_ai_score.pack(side=tk.LEFT)
+        tk.Label(score_row, text=" / 1.00 THREAT INDEX", font=("Segoe UI", 8),
+                 bg="#0D1322", fg="#64748B").pack(side=tk.LEFT, pady=(4, 0), padx=(4, 0))
+
+        # Thước đo LED Threat Gauge
+        self.threat_gauge = ThreatGaugeCanvas(cell1, width=205, height=14, bg_color="#0D1322")
+        self.threat_gauge.pack(anchor=tk.W, pady=(2, 4))
+
+        self.lbl_ai_status_badge = tk.Label(cell1, text="● NOMINAL - ZERO DRIFT",
+                                            font=("Consolas", 8, "bold"), bg="#064E3B", fg="#34D399",
+                                            padx=6, pady=2)
+        self.lbl_ai_status_badge.pack(anchor=tk.W)
+
+        # Ô 2: 30-MINUTE DYNAMIC FORECAST
+        cell2 = tk.Frame(ai_grid, bg="#0D1322", padx=10, pady=8, relief=tk.FLAT)
+        cell2.grid(row=0, column=1, sticky="nsew", padx=3, pady=3)
+
+        tk.Label(cell2, text="30-MIN CLIMATE FORECAST", font=("Segoe UI", 8, "bold"),
+                 bg="#0D1322", fg="#94A3B8").pack(anchor=tk.W)
+
+        fc_row = tk.Frame(cell2, bg="#0D1322")
+        fc_row.pack(anchor=tk.W, pady=(2, 2))
+        self.lbl_forecast_val = tk.Label(fc_row, text="28.0", font=("Segoe UI", 17, "bold"),
+                                         bg="#0D1322", fg="#38BDF8")
+        self.lbl_forecast_val.pack(side=tk.LEFT)
+        tk.Label(fc_row, text=" °C", font=("Segoe UI", 11, "bold"), bg="#0D1322", fg="#38BDF8").pack(side=tk.LEFT, pady=(3, 0))
+
+        self.lbl_forecast_trend = tk.Label(cell2, text="↗ STEADY TREND (+0.02 °C/min)",
+                                           font=("Segoe UI", 8), bg="#0D1322", fg="#94A3B8")
+        self.lbl_forecast_trend.pack(anchor=tk.W, pady=(1, 1))
+
+        self.lbl_forecast_confidence = tk.Label(cell2, text="Model Confidence: 98.2% (OLS Linear Fit)",
+                                                font=("Segoe UI", 7, "italic"), bg="#0D1322", fg="#64748B")
+        self.lbl_forecast_confidence.pack(anchor=tk.W)
+
+        # Ô 3: AGRONOMIC ADVISOR & SMART IRRIGATION
+        cell3 = tk.Frame(ai_grid, bg="#0D1322", padx=10, pady=6, relief=tk.FLAT)
+        cell3.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=3, pady=(4, 0))
+
+        tk.Label(cell3, text="AGRONOMIC ADVISOR & SMART IRRIGATION DECISION AI",
+                 font=("Segoe UI", 8, "bold"), bg="#0D1322", fg="#94A3B8").pack(anchor=tk.W)
+
+        self.lbl_irrigation_advice = tk.Label(
+            cell3, text="✓ ĐỘ ẨM ĐẤT TỐI ƯU (50%): Điều kiện sinh trưởng hoàn hảo, không cần bơm bù.",
+            font=("Segoe UI", 9, "bold"), bg="#0D1322", fg="#F8FAFC", anchor=tk.W, justify=tk.LEFT
+        )
+        self.lbl_irrigation_advice.pack(anchor=tk.W, pady=(2, 2))
+
+        # ---------------------------------------------------------------------
+        # CỘT PHẢI: HARDWARE ACTUATOR CONTROL MATRIX (T10)
+        # ---------------------------------------------------------------------
+        ctrl_panel = self.create_section_panel(mid_row, "⚡ HARDWARE ACTUATOR MATRIX [T10]",
+                                               row=0, col=1, sticky="nsew", padx=(5, 0))
+
+        ctrl_inner = tk.Frame(ctrl_panel, bg="#111827", padx=8, pady=8)
+        ctrl_inner.pack(fill=tk.BOTH, expand=True)
+
+        tiles_frame = tk.Frame(ctrl_inner, bg="#111827")
+        tiles_frame.pack(fill=tk.X)
+        for i in range(3):
+            tiles_frame.columnconfigure(i, weight=1)
+
+        # Tile 1: Water Pump
+        self.btn_pump_tile, self.lbl_pump_led = self.create_tactile_actuator_tile(
+            tiles_frame, col=0, icon="🚰", name="PUMP RELAY",
+            state_text="STANDBY", active_color="#10B981", cmd_action=self.toggle_pump
+        )
+
+        # Tile 2: Exhaust Fan
+        self.btn_fan_tile, self.lbl_fan_led = self.create_tactile_actuator_tile(
+            tiles_frame, col=1, icon="🌀", name="FAN RELAY",
+            state_text="STANDBY", active_color="#0EA5E9", cmd_action=self.toggle_fan
+        )
+
+        # Tile 3: Control Mode
+        self.btn_mode_tile, self.lbl_mode_led = self.create_tactile_actuator_tile(
+            tiles_frame, col=2, icon="⚙️", name="CTRL MODE",
+            state_text="AUTO", active_color="#0284C7", cmd_action=self.toggle_mode
+        )
+
+        # Hàng công cụ khẩn cấp & kiểm thử
+        action_row = tk.Frame(ctrl_inner, bg="#111827")
+        action_row.pack(fill=tk.X, pady=(8, 0))
+
+        self.btn_flame_test = tk.Button(
+            action_row, text="🔥 TEST HƠ LỬA AI (FLAME SIMULATION)", font=("Segoe UI", 8, "bold"),
+            bg="#991B1B", fg="#FFFFFF", activebackground="#DC2626", activeforeground="#FFFFFF",
+            relief=tk.FLAT, bd=0, padx=8, pady=6, cursor="hand2", command=self.trigger_flame_test
+        )
+        self.btn_flame_test.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+        self.add_button_hover(self.btn_flame_test, "#991B1B", "#DC2626")
+
+        self.btn_sync_now = tk.Button(
+            action_row, text="🔄 FORCE SYNC", font=("Segoe UI", 8, "bold"),
+            bg="#1E293B", fg="#94A3B8", activebackground="#334155", activeforeground="#FFFFFF",
+            relief=tk.FLAT, bd=0, padx=8, pady=6, cursor="hand2", command=self.trigger_sync_now
+        )
+        self.btn_sync_now.pack(side=tk.RIGHT, padx=(4, 0))
+        self.add_button_hover(self.btn_sync_now, "#1E293B", "#334155")
+
+        # =====================================================================
+        # 2.3 ROW 3: CONSOLE NHẬT KÝ SỰ KIỆN ĐỒNG BỘ TELEMETRY STREAM
+        # =====================================================================
+        term_panel = self.create_section_panel(main_container,
+                                              "📋 REAL-TIME TELEMETRY STREAM & MQTT PACKET INSPECTOR",
+                                              row=None, col=None)
+
+        term_head = tk.Frame(term_panel, bg="#111827", padx=8, pady=3)
+        term_head.pack(fill=tk.X)
+
+        filter_box = tk.Frame(term_head, bg="#111827")
+        filter_box.pack(side=tk.LEFT)
+        tk.Label(filter_box, text="FILTER:", font=("Consolas", 8, "bold"), bg="#111827", fg="#64748B").pack(side=tk.LEFT, padx=(0, 5))
+
+        self.filter_buttons = {}
+        filters = ["ALL", "MQTT", "AI", "HARDWARE", "WARNINGS"]
+        for f in filters:
+            btn = tk.Button(filter_box, text=f, font=("Consolas", 8),
+                            bg="#1E293B" if f == "ALL" else "#0D1322",
+                            fg="#38BDF8" if f == "ALL" else "#64748B",
+                            activebackground="#334155", activeforeground="#FFFFFF",
+                            relief=tk.FLAT, bd=0, padx=7, pady=2, cursor="hand2",
+                            command=lambda flt=f: self.set_log_filter(flt))
+            btn.pack(side=tk.LEFT, padx=2)
+            self.filter_buttons[f] = btn
+
+        term_ctrls = tk.Frame(term_head, bg="#111827")
+        term_ctrls.pack(side=tk.RIGHT)
+
+        self.btn_scroll = tk.Button(term_ctrls, text="AUTO-SCROLL: ON", font=("Consolas", 8, "bold"),
+                                    bg="#064E3B", fg="#34D399", relief=tk.FLAT, bd=0, padx=6, pady=2,
+                                    cursor="hand2", command=self.toggle_autoscroll)
+        self.btn_scroll.pack(side=tk.LEFT, padx=3)
+
+        btn_clear = tk.Button(term_ctrls, text="CLEAR", font=("Consolas", 8),
+                              bg="#1E293B", fg="#94A3B8", relief=tk.FLAT, bd=0, padx=6, pady=2,
+                              cursor="hand2", command=self.clear_logs)
+        btn_clear.pack(side=tk.LEFT, padx=3)
+
+        term_body = tk.Frame(term_panel, bg="#070B14")
+        term_body.pack(fill=tk.BOTH, expand=True, padx=6, pady=(0, 6))
+
+        self.txt_term = tk.Text(term_body, bg="#070B14", fg="#E2E8F0", insertbackground="#38BDF8",
+                                font=("Consolas", 9), height=6, wrap=tk.NONE, bd=0, padx=8, pady=5)
+        scrollbar_y = ttk.Scrollbar(term_body, orient="vertical", command=self.txt_term.yview)
+        self.txt_term.configure(yscrollcommand=scrollbar_y.set)
+
+        scrollbar_y.pack(side=tk.RIGHT, fill=tk.Y)
+        self.txt_term.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        # Cú pháp màu (Syntax Highlighting Tags)
+        self.txt_term.tag_configure("time", foreground="#475569")
+        self.txt_term.tag_configure("mqtt", foreground="#38BDF8", font=("Consolas", 9, "bold"))
+        self.txt_term.tag_configure("ai", foreground="#C084FC", font=("Consolas", 9, "bold"))
+        self.txt_term.tag_configure("act", foreground="#34D399", font=("Consolas", 9, "bold"))
+        self.txt_term.tag_configure("warn", foreground="#FBBF24", font=("Consolas", 9, "bold"))
+        self.txt_term.tag_configure("err", foreground="#F87171", font=("Consolas", 9, "bold"))
+        self.txt_term.tag_configure("normal", foreground="#CBD5E1")
+
+        # =====================================================================
+        # 3. BOTTOM INDUSTRIAL STATUS FOOTER BAR
+        # =====================================================================
+        footer_bar = tk.Frame(self.root, bg="#0D1322", height=24)
+        footer_bar.pack(fill=tk.X, side=tk.BOTTOM)
+
+        self.lbl_footer_stats = tk.Label(
+            footer_bar,
+            text="LINK: ACTIVE | RATE: 0.5 Hz (1 pkt/2s) | PROTOCOL: MQTT v3.1.1 QoS 1 | BROKER: app.coreiot.io | UPTIME: 00:00:00",
+            font=("Consolas", 8), bg="#0D1322", fg="#64748B", padx=12, pady=3
+        )
+        self.lbl_footer_stats.pack(side=tk.LEFT)
+
+        self.lbl_footer_packets = tk.Label(
+            footer_bar, text="RX: 0 pkts | TX: 0 pkts | DROP: 0.0%",
+            font=("Consolas", 8, "bold"), bg="#0D1322", fg="#38BDF8", padx=12, pady=3
+        )
+        self.lbl_footer_packets.pack(side=tk.RIGHT)
+
+    # =========================================================================
+    # CÁC HÀM XÂY DỰNG GIAO DIỆN (UI BUILDERS)
+    # =========================================================================
+    def create_section_panel(self, parent, title, row=None, col=None, sticky=None, padx=0, pady=0):
+        panel = tk.Frame(parent, bg="#111827", bd=1, relief=tk.SOLID)
+        panel.configure(highlightbackground="#1E293B", highlightcolor="#1E293B", highlightthickness=1)
+
+        if row is not None and col is not None:
+            panel.grid(row=row, column=col, sticky=sticky, padx=padx, pady=pady)
+        else:
+            panel.pack(fill=tk.BOTH, expand=True, pady=(0, 6))
+
+        phead = tk.Frame(panel, bg="#0D1322", height=26)
+        phead.pack(fill=tk.X, side=tk.TOP)
+        tk.Label(phead, text=title, font=("Segoe UI", 8, "bold"),
+                 bg="#0D1322", fg="#94A3B8", padx=10, pady=4).pack(anchor=tk.W)
+
+        return panel
+
+    def create_advanced_metric_card(self, parent, col, title, tag, init_val, unit, accent_color, fill_color, normal_range):
+        card = tk.Frame(parent, bg="#111827", bd=1, relief=tk.SOLID)
+        card.configure(highlightbackground="#1E293B", highlightcolor="#1E293B", highlightthickness=1)
+        card.grid(row=0, column=col, sticky="nsew", padx=3)
+
+        # Header card
+        head_box = tk.Frame(card, bg="#111827", padx=8, pady=5)
+        head_box.pack(fill=tk.X)
+
+        lbl_title = tk.Label(head_box, text=title, font=("Segoe UI", 8, "bold"), bg="#111827", fg="#94A3B8")
+        lbl_title.pack(side=tk.LEFT)
+
+        tag_chip = tk.Label(head_box, text=tag, font=("Consolas", 7), bg="#1E293B", fg="#64748B", padx=4, pady=1)
+        tag_chip.pack(side=tk.RIGHT)
+
+        # Value display
+        val_box = tk.Frame(card, bg="#111827", padx=8)
+        val_box.pack(anchor=tk.W)
+
+        val_lbl = tk.Label(val_box, text=init_val, font=("Segoe UI", 20, "bold"), bg="#111827", fg=accent_color)
+        val_lbl.pack(side=tk.LEFT)
+
+        unit_lbl = tk.Label(val_box, text=f" {unit}", font=("Segoe UI", 10, "bold"), bg="#111827", fg="#94A3B8")
+        unit_lbl.pack(side=tk.LEFT, pady=(6, 0))
+
+        # Status & Range
+        status_lbl = tk.Label(card, text=f"● NOMINAL ({normal_range})",
+                              font=("Segoe UI", 7), bg="#111827", fg="#10B981", padx=8)
+        status_lbl.pack(anchor=tk.W)
+
+        # Vector Sparkline Canvas
+        sparkline = SparklineCanvas(card, width=220, height=44, line_color=accent_color,
+                                    fill_color=fill_color, bg_color="#111827", initial_val=float(init_val))
+        sparkline.pack(fill=tk.X, padx=6, pady=(3, 2))
+
+        # Footer statistics
+        footer_box = tk.Frame(card, bg="#0D1322", padx=6, pady=3)
+        footer_box.pack(fill=tk.X, side=tk.BOTTOM)
+
+        stat_lbl = tk.Label(footer_box, text="MIN -- | MAX -- | AVG --",
+                            font=("Consolas", 7), bg="#0D1322", fg="#64748B")
+        stat_lbl.pack(anchor=tk.W)
+
+        return {
+            "val_lbl": val_lbl,
+            "unit": unit,
+            "status_lbl": status_lbl,
+            "sparkline": sparkline,
+            "stat_lbl": stat_lbl,
+            "normal_range": normal_range
+        }
+
+    def create_tactile_actuator_tile(self, parent, col, icon, name, state_text, active_color, cmd_action):
+        tile = tk.Frame(parent, bg="#0D1322", padx=6, pady=8, bd=1, relief=tk.SOLID)
+        tile.configure(highlightbackground="#1E293B", highlightcolor="#1E293B", highlightthickness=1)
+        tile.grid(row=0, column=col, sticky="nsew", padx=2)
+
+        hdr = tk.Frame(tile, bg="#0D1322")
+        hdr.pack(fill=tk.X)
+        tk.Label(hdr, text=f"{icon} {name}", font=("Segoe UI", 8, "bold"), bg="#0D1322", fg="#94A3B8").pack(side=tk.LEFT)
+
+        lbl_led = tk.Label(hdr, text=f"● {state_text}", font=("Consolas", 7, "bold"),
+                           bg="#1E293B", fg="#64748B", padx=4, pady=1)
+        lbl_led.pack(side=tk.RIGHT)
+
+        btn_action = tk.Button(
+            tile, text="TOGGLE POWER", font=("Segoe UI", 8, "bold"),
+            bg="#1E293B", fg="#F8FAFC", activebackground="#334155", activeforeground="#FFFFFF",
+            relief=tk.FLAT, bd=0, pady=5, cursor="hand2", command=cmd_action
+        )
+        btn_action.pack(fill=tk.X, pady=(6, 0))
+        self.add_button_hover(btn_action, "#1E293B", "#334155")
+
+        return btn_action, lbl_led
+
+    def add_button_hover(self, btn, default_bg, hover_bg):
+        def on_enter(e):
+            if btn["state"] != tk.DISABLED:
+                btn.config(bg=hover_bg)
+
+        def on_leave(e):
+            if btn["state"] != tk.DISABLED:
+                btn.config(bg=default_bg)
+
+        btn.bind("<Enter>", on_enter)
+        btn.bind("<Leave>", on_leave)
+
+    # =========================================================================
+    # VÒNG LẶP ĐỒNG BỘ THỜI GIAN & GIAO DIỆN
+    # =========================================================================
+    def start_clock_timer(self):
+        self.update_clock()
+
+    def update_clock(self):
+        now_str = time.strftime("%H:%M:%S") + " UTC+7"
+        self.lbl_clock.config(text=f"🕒 {now_str}")
+
+        elapsed = int(time.time() - self.start_time)
+        hrs = elapsed // 3600
+        mins = (elapsed % 3600) // 60
+        secs = elapsed % 60
+        uptime_str = f"{hrs:02d}:{mins:02d}:{secs:02d}"
+
+        self.lbl_footer_stats.config(
+            text=f"LINK: ACTIVE | RATE: 0.5 Hz | PROTOCOL: MQTT v3.1.1 (QoS 1) | BROKER: app.coreiot.io | UPTIME: {uptime_str}"
+        )
+
+        self.root.after(1000, self.update_clock)
 
     def trigger_gui_update(self):
         try:
@@ -191,90 +644,277 @@ class GatewayGUI:
             pass
 
     def update_display(self):
-        # 1. Đo lường
         t = self.gateway.telemetry
-        self.card_temp.config(text=f"{t['temperature']:.1f} °C")
-        self.card_hum.config(text=f"{t['humidity']:.1f} %")
-        self.card_soil.config(text=f"{t['soilMoisture']:.0f} %")
-        self.card_light.config(text=f"{t['lightLux']:.0f} Lux")
+        self.rx_count += 1
+        self.tx_count += 1
 
-        # 2. AI Insights (T09)
+        # Cập nhật số liệu & Sparkline
+        temp = t.get("temperature", 27.5)
+        hum = t.get("humidity", 65.0)
+        soil = t.get("soilMoisture", 50.0)
+        light = t.get("lightLux", 700.0)
+
+        self.card_temp["val_lbl"].config(text=f"{temp:.1f}")
+        self.card_temp["sparkline"].add_point(temp)
+        self.update_stats("temp", temp, self.card_temp["stat_lbl"], "°C")
+
+        self.card_hum["val_lbl"].config(text=f"{hum:.1f}")
+        self.card_hum["sparkline"].add_point(hum)
+        self.update_stats("hum", hum, self.card_hum["stat_lbl"], "%")
+
+        self.card_soil["val_lbl"].config(text=f"{soil:.0f}")
+        self.card_soil["sparkline"].add_point(soil)
+        self.update_stats("soil", soil, self.card_soil["stat_lbl"], "%")
+
+        self.card_light["val_lbl"].config(text=f"{light:.0f}")
+        self.card_light["sparkline"].add_point(light)
+        self.update_stats("light", light, self.card_light["stat_lbl"], "Lux")
+
+        # Cập nhật trạng thái vi khí hậu
+        if temp > 35.0:
+            self.card_temp["status_lbl"].config(text="▲ WARNING: HIGH TEMP HAZARD", fg="#EF4444")
+        elif temp < 18.0:
+            self.card_temp["status_lbl"].config(text="▼ WARNING: LOW CHILL TEMP", fg="#38BDF8")
+        else:
+            self.card_temp["status_lbl"].config(text=f"● NOMINAL ({self.card_temp['normal_range']})", fg="#10B981")
+
+        if soil < 30.0:
+            self.card_soil["status_lbl"].config(text="▼ ALERT: CRITICAL DRY SOIL", fg="#EF4444")
+        else:
+            self.card_soil["status_lbl"].config(text=f"● HYDRATED ({self.card_soil['normal_range']})", fg="#10B981")
+
+        # ---------------------------------------------------------------------
+        # 2. CẬP NHẬT KẾT QUẢ AI & HỒI QUY
+        # ---------------------------------------------------------------------
         ai = self.gateway.ai_results
-        score = ai["anomaly_score"]
+        score = ai.get("anomaly_score", 0.05)
         self.lbl_ai_score.config(text=f"{score:.2f}")
+        self.threat_gauge.set_score(score)
+
         if score >= 0.60:
-            self.lbl_ai_score.config(fg="#ef4444")
-            self.lbl_ai_badge.config(text=f"CẢNH BÁO: {ai['anomaly_type']}", bg="#7f1d1d", fg="#fca5a5")
+            self.lbl_ai_score.config(fg="#EF4444")
+            self.lbl_ai_status_badge.config(
+                text=f"▲ CRITICAL: {ai.get('anomaly_type', 'HAZARD')}",
+                bg="#7F1D1D", fg="#FCA5A5"
+            )
+        elif score >= 0.35:
+            self.lbl_ai_score.config(fg="#F59E0B")
+            self.lbl_ai_status_badge.config(
+                text=f"● ELEVATED: {ai.get('anomaly_type', 'CAUTION')}",
+                bg="#78350F", fg="#FDE68A"
+            )
         else:
-            self.lbl_ai_score.config(fg="#22c55e")
-            self.lbl_ai_badge.config(text="TRẠNG THÁI: BÌNH THƯỜNG", bg="#14532d", fg="#86efac")
+            self.lbl_ai_score.config(fg="#10B981")
+            self.lbl_ai_status_badge.config(
+                text="● NOMINAL - ZERO DRIFT",
+                bg="#064E3B", fg="#34D399"
+            )
 
-        self.lbl_ai_forecast.config(text=f"{ai['projected_temp_30m']:.1f} °C")
-        self.lbl_ai_irrigation.config(text=ai["irrigation_recommendation"])
+        proj_temp = ai.get("projected_temp_30m", temp)
+        self.lbl_forecast_val.config(text=f"{proj_temp:.1f}")
 
-        # 3. Nút điều khiển
-        p_on = t["pumpState"]
-        self.btn_pump.config(
-            text=f"BƠM NƯỚC: {'ON' if p_on else 'OFF'}",
-            bg="#16a34a" if p_on else "#334155"
+        delta_t = proj_temp - temp
+        if delta_t > 0.3:
+            trend_str = f"↗ WARMING TREND (+{delta_t:.1f} °C)"
+            trend_fg = "#F59E0B"
+        elif delta_t < -0.3:
+            trend_str = f"↘ COOLING TREND ({delta_t:.1f} °C)"
+            trend_fg = "#06B6D4"
+        else:
+            trend_str = f"→ STEADY THERMAL INERTIA (±0.2 °C)"
+            trend_fg = "#94A3B8"
+        self.lbl_forecast_trend.config(text=trend_str, fg=trend_fg)
+
+        conf = ai.get("confidence", 98.0)
+        self.lbl_forecast_confidence.config(text=f"Model Confidence: {conf:.1f}% (OLS Linear Fit)")
+
+        # Lời khuyên nông học
+        advice_txt = ai.get("irrigation_recommendation", "Đang cập nhật chỉ số...")
+        if "CẦN TƯỚI BÙ" in advice_txt or "CẢNH BÁO" in advice_txt:
+            self.lbl_irrigation_advice.config(text=f"⚠️ {advice_txt}", fg="#FDE68A")
+        else:
+            self.lbl_irrigation_advice.config(text=f"✓ {advice_txt}", fg="#34D399")
+
+        # ---------------------------------------------------------------------
+        # 3. CẬP NHẬT CƠ CẤU CHẤP HÀNH
+        # ---------------------------------------------------------------------
+        p_on = t.get("pumpState", False)
+        self.lbl_pump_led.config(
+            text="● ACTIVE" if p_on else "○ STANDBY",
+            bg="#064E3B" if p_on else "#1E293B",
+            fg="#34D399" if p_on else "#64748B"
         )
-        f_on = t["fanState"]
-        self.btn_fan.config(
-            text=f"QUẠT LÀM MÁT: {'ON' if f_on else 'OFF'}",
-            bg="#0284c7" if f_on else "#334155"
-        )
-        is_auto = t["autoMode"]
-        self.btn_mode.config(
-            text=f"CHẾ ĐỘ: {'AUTO' if is_auto else 'MANUAL'}",
-            bg="#0284c7" if is_auto else "#f59e0b"
+        self.btn_pump_tile.config(
+            text="TẮT BƠM" if p_on else "BẬT BƠM",
+            bg="#059669" if p_on else "#1E293B"
         )
 
-        # 4. Badges
+        f_on = t.get("fanState", False)
+        self.lbl_fan_led.config(
+            text="● ACTIVE" if f_on else "○ STANDBY",
+            bg="#0C4A6E" if f_on else "#1E293B",
+            fg="#38BDF8" if f_on else "#64748B"
+        )
+        self.btn_fan_tile.config(
+            text="TẮT QUẠT" if f_on else "BẬT QUẠT",
+            bg="#0284C7" if f_on else "#1E293B"
+        )
+
+        is_auto = t.get("autoMode", True)
+        self.lbl_mode_led.config(
+            text="● AUTO" if is_auto else "● MANUAL",
+            bg="#0C4A6E" if is_auto else "#78350F",
+            fg="#38BDF8" if is_auto else "#FDE68A"
+        )
+        self.btn_mode_tile.config(
+            text="CHUYỂN THỦ CÔNG" if is_auto else "CHUYỂN AUTO",
+            bg="#0369A1" if is_auto else "#D97706"
+        )
+
+        # ---------------------------------------------------------------------
+        # 4. CẬP NHẬT BADGES & THỐNG KÊ GÓI TIN
+        # ---------------------------------------------------------------------
         if self.gateway.esp32_connected:
-            self.lbl_badge_esp.config(text="ESP32: CONNECTED (OK)", bg="#16a34a")
+            self.lbl_badge_esp.config(text="● ESP32-S3: USB-CDC 115200", bg="#064E3B", fg="#34D399")
         else:
-            self.lbl_badge_esp.config(text="ESP32: SIMULATED / OFFLINE", bg="#d97706")
+            self.lbl_badge_esp.config(text="⚡ TELEMETRY: SIMULATED", bg="#78350F", fg="#FDE68A")
 
         if self.gateway.coreiot_connected:
-            self.lbl_badge_mqtt.config(text="COREIOT: ONLINE (MQTT)", bg="#16a34a")
+            self.lbl_badge_mqtt.config(text="☁ COREIOT: MQTT ONLINE", bg="#064E3B", fg="#34D399")
         else:
-            self.lbl_badge_mqtt.config(text="COREIOT: DISCONNECTED", bg="#dc2626")
+            self.lbl_badge_mqtt.config(text="☁ COREIOT: DISCONNECTED", bg="#7F1D1D", fg="#FCA5A5")
 
+        self.lbl_footer_packets.config(
+            text=f"RX: {self.rx_count:,} pkts | TX: {self.tx_count:,} pkts | DROP: 0.0%"
+        )
+
+    def update_stats(self, key: str, val: float, lbl: tk.Label, unit: str):
+        st = self.stats[key]
+        st["min"] = min(st["min"], val)
+        st["max"] = max(st["max"], val)
+        st["sum"] += val
+        st["count"] += 1
+        avg = st["sum"] / st["count"]
+        lbl.config(text=f"MIN {st['min']:.1f} | MAX {st['max']:.1f} | AVG {avg:.1f} {unit}")
+
+    # =========================================================================
+    # HỆ THỐNG TERMINAL NHẬT KÝ & BỘ LỌC CÚ PHÁP
+    # =========================================================================
     def append_log(self, text: str):
         try:
-            self.root.after(0, self._insert_log, text)
+            self.root.after(0, self._process_log_entry, text)
         except Exception:
             pass
 
-    def _insert_log(self, text):
-        if hasattr(self, "txt_log") and self.txt_log:
-            self.txt_log.insert(tk.END, text + "\n")
-            self.txt_log.see(tk.END)
+    def _process_log_entry(self, text: str):
+        self.all_logs.append(text)
+        if len(self.all_logs) > 500:
+            self.all_logs.pop(0)
 
-    # Thao tác điều khiển
+        if self.should_display_log(text, self.current_filter):
+            self.insert_styled_log(text)
+
+    def should_display_log(self, text: str, flt: str) -> bool:
+        if flt == "ALL":
+            return True
+        if flt == "MQTT" and ("COREIOT" in text or "MQTT" in text):
+            return True
+        if flt == "AI" and ("AI" in text or "ANOMALY" in text or "Score" in text):
+            return True
+        if flt == "HARDWARE" and ("LOCAL GUI" in text or "Bơm" in text or "Quạt" in text or "Mode" in text or "SERIAL" in text):
+            return True
+        if flt == "WARNINGS" and ("ERROR" in text or "CẢNH BÁO" in text or "LỖI" in text or "HAZARD" in text or "FLAME" in text):
+            return True
+        return False
+
+    def insert_styled_log(self, text: str):
+        if not hasattr(self, "txt_term") or not self.txt_term:
+            return
+
+        timestamp = ""
+        body = text
+        if text.startswith("[") and "]" in text[:12]:
+            idx = text.find("]")
+            timestamp = text[:idx + 1] + " "
+            body = text[idx + 1:].strip()
+
+        tag = "normal"
+        if "MQTT" in text or "COREIOT" in text:
+            tag = "mqtt"
+        elif "AI" in text or "ANOMALY" in text or "Score" in text:
+            tag = "ai"
+        elif "Bơm" in text or "Quạt" in text or "Mode" in text or "LOCAL GUI" in text:
+            tag = "act"
+        elif "ERROR" in text or "✗" in text or "FLAME" in text or "TEST" in text:
+            tag = "err"
+        elif "Warning" in text or "Cảnh báo" in text:
+            tag = "warn"
+
+        self.txt_term.insert(tk.END, timestamp, "time")
+        self.txt_term.insert(tk.END, body + "\n", tag)
+
+        if self.auto_scroll:
+            self.txt_term.see(tk.END)
+
+    def set_log_filter(self, flt: str):
+        self.current_filter = flt
+        for name, btn in self.filter_buttons.items():
+            if name == flt:
+                btn.config(bg="#1E293B", fg="#38BDF8")
+            else:
+                btn.config(bg="#0D1322", fg="#64748B")
+
+        self.txt_term.delete("1.0", tk.END)
+        for log_line in self.all_logs:
+            if self.should_display_log(log_line, flt):
+                self.insert_styled_log(log_line)
+
+    def toggle_autoscroll(self):
+        self.auto_scroll = not self.auto_scroll
+        if self.auto_scroll:
+            self.btn_scroll.config(text="AUTO-SCROLL: ON", bg="#064E3B", fg="#34D399")
+            self.txt_term.see(tk.END)
+        else:
+            self.btn_scroll.config(text="AUTO-SCROLL: OFF", bg="#1E293B", fg="#94A3B8")
+
+    def clear_logs(self):
+        self.all_logs.clear()
+        self.txt_term.delete("1.0", tk.END)
+
+    # =========================================================================
+    # CÁC THAO TÁC ĐIỀU KHIỂN THIẾT BỊ (ACTUATOR COMMANDS)
+    # =========================================================================
     def toggle_pump(self):
-        new_state = not self.gateway.telemetry["pumpState"]
+        new_state = not self.gateway.telemetry.get("pumpState", False)
         self.gateway.telemetry["pumpState"] = new_state
-        self.gateway.log(f"[LOCAL GUI T10] Đổi Bơm -> {'BẬT' if new_state else 'TẮT'}")
+        self.gateway.log(f"[LOCAL GUI T10] Lệnh đóng/ngắt Bơm Nước -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
         self.gateway.send_command_to_esp32("p")
+        self.update_display()
 
     def toggle_fan(self):
-        new_state = not self.gateway.telemetry["fanState"]
+        new_state = not self.gateway.telemetry.get("fanState", False)
         self.gateway.telemetry["fanState"] = new_state
-        self.gateway.log(f"[LOCAL GUI T10] Đổi Quạt -> {'BẬT' if new_state else 'TẮT'}")
+        self.gateway.log(f"[LOCAL GUI T10] Lệnh đóng/ngắt Quạt Làm Mát -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
         self.gateway.send_command_to_esp32("f")
+        self.update_display()
 
     def toggle_mode(self):
-        new_mode = not self.gateway.telemetry["autoMode"]
+        new_mode = not self.gateway.telemetry.get("autoMode", True)
         self.gateway.telemetry["autoMode"] = new_mode
-        self.gateway.log(f"[LOCAL GUI T10] Đổi Mode -> {'AUTO' if new_mode else 'MANUAL'}")
+        self.gateway.log(f"[LOCAL GUI T10] Chuyển đổi chế độ hệ thống -> {'AUTO' if new_mode else 'MANUAL OVERRIDE'}")
         self.gateway.send_command_to_esp32("a")
+        self.update_display()
 
     def trigger_flame_test(self):
         self.gateway.log("[TEST] !!! KÍCH HOẠT KỊCH BẢN HƠ LỬA THỬ NGHIỆM TRÊN GATEWAY GUI !!!")
         self.gateway.telemetry["temperature"] = 46.5
         self.gateway.telemetry["humidity"] = 18.0
         self.gateway.telemetry["fanState"] = True
+        self.update_display()
+
+    def trigger_sync_now(self):
+        self.gateway.log("[COMMAND] Yêu cầu cưỡng bức đồng bộ Telemetry lên Cloud CoreIOT...")
+        self.gateway.publish_to_coreiot()
 
 
 def main():

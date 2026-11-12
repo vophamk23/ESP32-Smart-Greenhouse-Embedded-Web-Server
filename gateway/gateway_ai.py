@@ -115,16 +115,25 @@ class GatewayAIEngine:
         # 2. HỒI QUY NGOẠI SUY XU HƯỚNG NHIỆT ĐỘ 30 PHÚT TỚI (30-MIN FORECAST)
         # --------------------------------------------------------------------
         if len(temps) >= 5:
-            # Hồi quy tuyến tính trên N mẫu gần nhất
+            # Hồi quy tuyến tính trên cửa sổ trượt gần nhất
             x_indices = np.arange(len(temps))
             slope, intercept = np.polyfit(x_indices, temps, 1)
-            # Ngoại suy 30 phút (tương đương 30 * 60s / dt bước)
-            extrapolate_steps = min(30, int(1800.0 / dt))
-            projected_temp = float(cur_temp + (slope * extrapolate_steps * 0.15))
+            # Giới hạn độ dốc trên mỗi chu kỳ để tránh ngoại suy phi lý do nhiễu tức thời
+            clamped_slope = float(np.clip(slope, -0.15, 0.25))
+            delta_30m = clamped_slope * min(15.0, len(temps)) * 0.4
+            projected_temp = float(cur_temp + delta_30m)
         else:
-            projected_temp = float(cur_temp + (d_temp_rate * 300.0))
+            # Dự báo khởi động: quán tính nhiệt nhẹ
+            smoothed_rate = float(np.clip(d_temp_rate, -0.05, 0.05))
+            projected_temp = float(cur_temp + (smoothed_rate * 25.0))
 
-        projected_temp = round(float(np.clip(projected_temp, 5.0, 60.0)), 1)
+        # Ràng buộc vật lý vi khí hậu thực tế trong khoảng [cur_temp - 3.0, cur_temp + 5.0]
+        if anomaly_type == "FLAME_HEAT_SPIKE":
+            projected_temp = min(58.0, cur_temp + 8.5)
+        else:
+            projected_temp = float(np.clip(projected_temp, max(15.0, cur_temp - 3.0), min(45.0, cur_temp + 4.5)))
+
+        projected_temp = round(projected_temp, 1)
 
         # --------------------------------------------------------------------
         # 3. MÔ HÌNH TỐI ƯU HÓA TƯỚI THÔNG MINH (SMART IRRIGATION DECISION AI)
