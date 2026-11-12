@@ -194,7 +194,7 @@ class GatewayGUI:
         self.root.destroy()
 
     def setup_ui(self):
-        self.root.title("AGRI-SCADA Local IoT Gateway Mission Control [CO3061 - HCMUT]")
+        self.root.title("AGRI-SCADA Local IoT Gateway Mission Control")
         self.root.geometry("1060x780")
         self.root.minsize(1000, 700)
         self.root.configure(bg="#0A0E17")
@@ -216,9 +216,9 @@ class GatewayGUI:
         accent_line = tk.Frame(self.root, bg="#1E293B", height=1)
         accent_line.pack(fill=tk.X, side=tk.TOP)
 
-        # Khối thương hiệu bên trái
+        # Khối thương hiệu bên trái (đã tinh giản tiêu đề chuẩn SCADA công nghiệp)
         brand_box = tk.Frame(top_bar, bg="#0D1322")
-        brand_box.pack(side=tk.LEFT, padx=16, pady=7)
+        brand_box.pack(side=tk.LEFT, padx=16, pady=10)
 
         logo_row = tk.Frame(brand_box, bg="#0D1322")
         logo_row.pack(anchor=tk.W)
@@ -234,11 +234,6 @@ class GatewayGUI:
         sub_title_lbl = tk.Label(logo_row, text=" | LOCAL IOT EDGE GATEWAY",
                                  font=("Segoe UI", 11, "bold"), bg="#0D1322", fg="#38BDF8")
         sub_title_lbl.pack(side=tk.LEFT)
-
-        meta_lbl = tk.Label(brand_box,
-                            text="CO3061 INTERNET OF THINGS | GVHD: TS. LÊ TRỌNG NHÂN | SV: PHẠM CÔNG VÕ (MSSV: 2313946)",
-                            font=("Segoe UI", 8), bg="#0D1322", fg="#64748B")
-        meta_lbl.pack(anchor=tk.W, pady=(2, 0))
 
         # Khối trạng thái & đồng hồ bên phải
         right_status_box = tk.Frame(top_bar, bg="#0D1322")
@@ -306,13 +301,13 @@ class GatewayGUI:
         # =====================================================================
         mid_row = tk.Frame(main_container, bg="#0A0E17")
         mid_row.pack(fill=tk.X, pady=(0, 8))
-        mid_row.columnconfigure(0, weight=6)
-        mid_row.columnconfigure(1, weight=4)
+        mid_row.columnconfigure(0, weight=6, uniform="mid_cols")
+        mid_row.columnconfigure(1, weight=4, uniform="mid_cols")
 
         # ---------------------------------------------------------------------
-        # CỘT TRÁI: EMBEDDED EDGE AI & PREDICTIVE TELEMETRY ENGINE (T09)
+        # CỘT TRÁI: EMBEDDED EDGE AI & PREDICTIVE TELEMETRY ENGINE
         # ---------------------------------------------------------------------
-        ai_panel = self.create_section_panel(mid_row, "🧠 EMBEDDED EDGE AI & PREDICTIVE TELEMETRY ENGINE [CORE T09]",
+        ai_panel = self.create_section_panel(mid_row, "🧠 EMBEDDED EDGE AI & PREDICTIVE TELEMETRY ENGINE",
                                              row=0, col=0, sticky="nsew", padx=(0, 5))
 
         ai_grid = tk.Frame(ai_panel, bg="#111827")
@@ -380,9 +375,9 @@ class GatewayGUI:
         self.lbl_irrigation_advice.pack(anchor=tk.W, pady=(2, 2))
 
         # ---------------------------------------------------------------------
-        # CỘT PHẢI: HARDWARE ACTUATOR CONTROL MATRIX (T10)
+        # CỘT PHẢI: HARDWARE ACTUATOR CONTROL MATRIX (LOCKED GEOMETRY)
         # ---------------------------------------------------------------------
-        ctrl_panel = self.create_section_panel(mid_row, "⚡ HARDWARE ACTUATOR MATRIX [T10]",
+        ctrl_panel = self.create_section_panel(mid_row, "⚡ HARDWARE ACTUATOR MATRIX",
                                                row=0, col=1, sticky="nsew", padx=(5, 0))
 
         ctrl_inner = tk.Frame(ctrl_panel, bg="#111827", padx=8, pady=8)
@@ -391,7 +386,7 @@ class GatewayGUI:
         tiles_frame = tk.Frame(ctrl_inner, bg="#111827")
         tiles_frame.pack(fill=tk.X)
         for i in range(3):
-            tiles_frame.columnconfigure(i, weight=1)
+            tiles_frame.columnconfigure(i, weight=1, uniform="act_tile")
 
         # Tile 1: Water Pump
         self.btn_pump_tile, self.lbl_pump_led = self.create_tactile_actuator_tile(
@@ -411,24 +406,26 @@ class GatewayGUI:
             state_text="AUTO", active_color="#0284C7", cmd_action=self.toggle_mode
         )
 
-        # Hàng công cụ khẩn cấp & kiểm thử
+        # Hàng công cụ khẩn cấp & kiểm thử (cố định tỷ lệ khung viền chống nhíp)
         action_row = tk.Frame(ctrl_inner, bg="#111827")
         action_row.pack(fill=tk.X, pady=(8, 0))
+        action_row.columnconfigure(0, weight=7, uniform="act_row")
+        action_row.columnconfigure(1, weight=3, uniform="act_row")
 
         self.btn_flame_test = tk.Button(
             action_row, text="🔥 TEST HƠ LỬA AI (FLAME SIMULATION)", font=("Segoe UI", 8, "bold"),
             bg="#991B1B", fg="#FFFFFF", activebackground="#DC2626", activeforeground="#FFFFFF",
-            relief=tk.FLAT, bd=0, padx=8, pady=6, cursor="hand2", command=self.trigger_flame_test
+            relief=tk.FLAT, bd=0, padx=6, pady=6, cursor="hand2", command=self.trigger_flame_test
         )
-        self.btn_flame_test.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(0, 4))
+        self.btn_flame_test.grid(row=0, column=0, sticky="nsew", padx=(0, 2))
         self.add_button_hover(self.btn_flame_test, "#991B1B", "#DC2626")
 
         self.btn_sync_now = tk.Button(
             action_row, text="🔄 FORCE SYNC", font=("Segoe UI", 8, "bold"),
             bg="#1E293B", fg="#94A3B8", activebackground="#334155", activeforeground="#FFFFFF",
-            relief=tk.FLAT, bd=0, padx=8, pady=6, cursor="hand2", command=self.trigger_sync_now
+            relief=tk.FLAT, bd=0, padx=6, pady=6, cursor="hand2", command=self.trigger_sync_now
         )
-        self.btn_sync_now.pack(side=tk.RIGHT, padx=(4, 0))
+        self.btn_sync_now.grid(row=0, column=1, sticky="nsew", padx=(2, 0))
         self.add_button_hover(self.btn_sync_now, "#1E293B", "#334155")
 
         # =====================================================================
@@ -589,8 +586,9 @@ class GatewayGUI:
         hdr.pack(fill=tk.X)
         tk.Label(hdr, text=f"{icon} {name}", font=("Segoe UI", 8, "bold"), bg="#0D1322", fg="#94A3B8").pack(side=tk.LEFT)
 
+        # Cố định width=9 và căn giữa để nhãn LED không bao giờ co giãn/nhíp khung khi đổi trạng thái
         lbl_led = tk.Label(hdr, text=f"● {state_text}", font=("Consolas", 7, "bold"),
-                           bg="#1E293B", fg="#64748B", padx=4, pady=1)
+                           bg="#1E293B", fg="#64748B", width=9, anchor=tk.CENTER, padx=2, pady=1)
         lbl_led.pack(side=tk.RIGHT)
 
         btn_action = tk.Button(
@@ -604,13 +602,16 @@ class GatewayGUI:
         return btn_action, lbl_led
 
     def add_button_hover(self, btn, default_bg, hover_bg):
+        btn.custom_bg = default_bg
+        btn.hover_bg = hover_bg
+
         def on_enter(e):
             if btn["state"] != tk.DISABLED:
-                btn.config(bg=hover_bg)
+                btn.config(bg=getattr(btn, "hover_bg", hover_bg))
 
         def on_leave(e):
             if btn["state"] != tk.DISABLED:
-                btn.config(bg=default_bg)
+                btn.config(bg=getattr(btn, "custom_bg", default_bg))
 
         btn.bind("<Enter>", on_enter)
         btn.bind("<Leave>", on_leave)
@@ -744,9 +745,13 @@ class GatewayGUI:
             bg="#064E3B" if p_on else "#1E293B",
             fg="#34D399" if p_on else "#64748B"
         )
+        p_bg = "#059669" if p_on else "#1E293B"
+        p_hover = "#10B981" if p_on else "#334155"
+        self.btn_pump_tile.custom_bg = p_bg
+        self.btn_pump_tile.hover_bg = p_hover
         self.btn_pump_tile.config(
             text="TẮT BƠM" if p_on else "BẬT BƠM",
-            bg="#059669" if p_on else "#1E293B"
+            bg=p_bg
         )
 
         f_on = t.get("fanState", False)
@@ -755,9 +760,13 @@ class GatewayGUI:
             bg="#0C4A6E" if f_on else "#1E293B",
             fg="#38BDF8" if f_on else "#64748B"
         )
+        f_bg = "#0284C7" if f_on else "#1E293B"
+        f_hover = "#38BDF8" if f_on else "#334155"
+        self.btn_fan_tile.custom_bg = f_bg
+        self.btn_fan_tile.hover_bg = f_hover
         self.btn_fan_tile.config(
             text="TẮT QUẠT" if f_on else "BẬT QUẠT",
-            bg="#0284C7" if f_on else "#1E293B"
+            bg=f_bg
         )
 
         is_auto = t.get("autoMode", True)
@@ -766,9 +775,13 @@ class GatewayGUI:
             bg="#0C4A6E" if is_auto else "#78350F",
             fg="#38BDF8" if is_auto else "#FDE68A"
         )
+        m_bg = "#0369A1" if is_auto else "#D97706"
+        m_hover = "#0284C7" if is_auto else "#F59E0B"
+        self.btn_mode_tile.custom_bg = m_bg
+        self.btn_mode_tile.hover_bg = m_hover
         self.btn_mode_tile.config(
             text="CHUYỂN THỦ CÔNG" if is_auto else "CHUYỂN AUTO",
-            bg="#0369A1" if is_auto else "#D97706"
+            bg=m_bg
         )
 
         # ---------------------------------------------------------------------
@@ -821,7 +834,7 @@ class GatewayGUI:
             return True
         if flt == "AI" and ("AI" in text or "ANOMALY" in text or "Score" in text):
             return True
-        if flt == "HARDWARE" and ("LOCAL GUI" in text or "Bơm" in text or "Quạt" in text or "Mode" in text or "SERIAL" in text):
+        if flt == "HARDWARE" and ("ACTUATOR" in text or "CONTROL" in text or "Bơm" in text or "Quạt" in text or "Mode" in text or "SERIAL" in text):
             return True
         if flt == "WARNINGS" and ("ERROR" in text or "CẢNH BÁO" in text or "LỖI" in text or "HAZARD" in text or "FLAME" in text):
             return True
@@ -887,21 +900,21 @@ class GatewayGUI:
     def toggle_pump(self):
         new_state = not self.gateway.telemetry.get("pumpState", False)
         self.gateway.telemetry["pumpState"] = new_state
-        self.gateway.log(f"[LOCAL GUI T10] Lệnh đóng/ngắt Bơm Nước -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
+        self.gateway.log(f"[ACTUATOR] Lệnh đóng/ngắt Bơm Nước -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
         self.gateway.send_command_to_esp32("p")
         self.update_display()
 
     def toggle_fan(self):
         new_state = not self.gateway.telemetry.get("fanState", False)
         self.gateway.telemetry["fanState"] = new_state
-        self.gateway.log(f"[LOCAL GUI T10] Lệnh đóng/ngắt Quạt Làm Mát -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
+        self.gateway.log(f"[ACTUATOR] Lệnh đóng/ngắt Quạt Làm Mát -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
         self.gateway.send_command_to_esp32("f")
         self.update_display()
 
     def toggle_mode(self):
         new_mode = not self.gateway.telemetry.get("autoMode", True)
         self.gateway.telemetry["autoMode"] = new_mode
-        self.gateway.log(f"[LOCAL GUI T10] Chuyển đổi chế độ hệ thống -> {'AUTO' if new_mode else 'MANUAL OVERRIDE'}")
+        self.gateway.log(f"[CONTROL] Chuyển đổi chế độ hệ thống -> {'AUTO' if new_mode else 'MANUAL OVERRIDE'}")
         self.gateway.send_command_to_esp32("a")
         self.update_display()
 
