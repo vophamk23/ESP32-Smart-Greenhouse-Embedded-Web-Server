@@ -1,15 +1,11 @@
 /*
- * [T07] WEBSERVER TREN THIET BI (TU HIEN THUC - HIEN THI, DIEU KHIEN LOCAL)
- * [T14] CAP NHAT FIRMWARE OTA QUA WEB / ELEGANTOTA
- * [N06] GIAO DIEN DASHBOARD THIET KE RIENG: PHAT HIEN (DETECT) VA GHI NHAN (RECORD) SU KIEN
- *
- * webserver_greenhouse.cpp - WebServer + WebSocket Task cho Greenhouse IoT & Edge AI
+ * web_server.cpp - Async WebServer + WebSocket + ElegantOTA cho Cleanroom Bio-Chamber & Edge AI
  *
  * Chức năng:
- *   - Serve web UI từ LittleFS (/index.html, /script.js, /styles.css)
- *   - WebSocket /ws: đẩy telemetry real-time mỗi 1s kèm AI insights
- *   - Nhận lệnh điều khiển từ browser qua WebSocket → xRpcCommandQueue
- *   - ElegantOTA: cập nhật firmware qua browser
+ *   - Serve Web UI SPA từ LittleFS (/index.html, /js/, /css/, /pages/)
+ *   - WebSocket /ws: đẩy telemetry real-time kèm AI insights
+ *   - Nhận lệnh điều khiển từ browser qua WebSocket / REST API → xRpcCommandQueue
+ *   - ElegantOTA: cập nhật firmware qua browser tại /update
  */
 
 #include "web_server.h"
@@ -385,7 +381,7 @@ static void startWebServer()
         serializeJson(doc, json);
         req->send(200, "application/json", json); });
 
-    // 3. REST endpoint: lấy danh sách lịch tưới
+    // 3. REST endpoint: lấy danh sách lịch phun sương chu kỳ
     s_server.on("/api/schedules", HTTP_GET, [](AsyncWebServerRequest *req)
                 {
         bool enabled;
@@ -449,7 +445,7 @@ static void startWebServer()
     s_server.serveStatic("/", LittleFS, "/").setDefaultFile("index.html");
 
     // 6. ElegantOTA
-    // [T14] Khoi tao ElegantOTA phuc vu cap nhat firmware Over-The-Air tai endpoint /update
+    // Khởi tạo ElegantOTA phục vụ cập nhật firmware Over-The-Air tại endpoint /update
     ElegantOTA.begin(&s_server);
 
     s_server.begin();
@@ -460,7 +456,7 @@ static void startWebServer()
 // ============================================================================
 // WEBSERVER TASK (Core 0)
 // ============================================================================
-void greenhouse_webserver_task(void *pvParameters)
+void webserver_task(void *pvParameters)
 {
     if (xWiFiEventGroup != nullptr)
         xEventGroupWaitBits(xWiFiEventGroup,

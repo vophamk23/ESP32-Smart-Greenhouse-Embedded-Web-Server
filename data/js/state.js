@@ -1,6 +1,6 @@
 /* ============================================================
-   state.js — Greenhouse IoT
-   Single source of truth. Khớp 100% với webserver_greenhouse.cpp
+   state.js — Cleanroom Bio-Chamber Edge-AI Web UI
+   Single source of truth. Khớp 100% với web_server.cpp
    WS JSON fields: temperature, humidity, soilMoisture, lightLux,
    pump, fan, autoMode, alertTemp, alertHumidity, alertSoil,
    alertLight, pumpCount, totalPumpTimeSec, dhtError,
@@ -83,17 +83,17 @@ window.State = {
       name: "Cảm biến Ánh sáng",
       online: true,
     },
-    { id: "SM-200-D", type: "sensor_soil", name: "Cảm biến Đất", online: true },
+    { id: "SM-200-D", type: "sensor_soil", name: "Cảm biến Ẩm giá thể", online: true },
     {
       id: "WP-992-X",
       type: "actuator_pump",
-      name: "Máy bơm nước",
+      name: "Bơm phun sương",
       online: true,
     },
     {
       id: "FN-812-C",
       type: "actuator_fan",
-      name: "Hệ thống Quạt",
+      name: "Quạt đối lưu buồng sạch",
       online: true,
     },
     { id: "DS-011-L", type: "display_lcd", name: "Màn hình LCD", online: true },

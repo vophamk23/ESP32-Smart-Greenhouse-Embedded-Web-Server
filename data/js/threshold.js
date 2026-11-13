@@ -1,6 +1,6 @@
 /* ============================================================
-   threshold.js — Greenhouse IoT
-   Ngưỡng tưới — UI đồng bộ với State.threshold
+   threshold.js — Cleanroom Bio-Chamber Edge-AI Web UI
+   Ngưỡng bù ẩm giá thể — UI đồng bộ với State.threshold
    Khi Save → gửi qua WebSocket để ESP32 cập nhật
 ============================================================ */
 "use strict";
@@ -26,11 +26,11 @@ function updateThresholdDisplay() {
   const prev = document.getElementById("threshPreview");
   if (prev) {
     prev.innerHTML = `
-      <span class="text-primary font-bold">Khô &lt; ${dry}%</span> → Bật bơm &nbsp;|&nbsp;
-      <span class="text-primary font-bold">Ướt &gt; ${wet}%</span> → Tắt bơm &nbsp;|&nbsp;
-      Max bơm: <strong>${pMax}s</strong> &nbsp;|&nbsp;
+      <span class="text-primary font-bold">Khô &lt; ${dry}%</span> → Bật phun sương &nbsp;|&nbsp;
+      <span class="text-primary font-bold">Bão hòa &gt; ${wet}%</span> → Tắt phun sương &nbsp;|&nbsp;
+      Max phun: <strong>${pMax}s</strong> &nbsp;|&nbsp;
       Nghỉ: <strong>${pCool}s</strong> &nbsp;|&nbsp;
-      Quạt bật khi T ≥ <strong>${tHigh}°C</strong>
+      Quạt đối lưu bật khi T ≥ <strong>${tHigh}°C</strong>
     `;
   }
 }
@@ -96,7 +96,7 @@ function saveThreshold() {
     pumpCool: pCool,
   });
 
-  showToast("✓ Đã lưu ngưỡng tưới.");
+  showToast("✓ Đã lưu ngưỡng bù ẩm.");
 }
 
 function resetThreshold() {

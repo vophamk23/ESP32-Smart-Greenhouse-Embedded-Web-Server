@@ -1,5 +1,5 @@
 /*
- * lcd_display.cpp - LCD 16x2 I2C 4 trang thông tin nhà kính & Edge AI
+ * lcd_display.cpp - LCD 16x2 I2C 4 trang thông tin Cleanroom Bio-Chamber & Edge AI
  */
 
 #include "lcd_display.h"
@@ -114,7 +114,7 @@ void displayPage_TempHumidity()
     }
     else
     {
-        snprintf(buf, sizeof(buf), "FAN:%-3s PUMP:%-3s",
+        snprintf(buf, sizeof(buf), "FAN:%-3s MIST:%-3s",
                  g_fanState ? "ON" : "OFF",
                  g_pumpState ? "ON" : "OFF");
         lcdPrint16(0, 1, buf);
@@ -122,16 +122,16 @@ void displayPage_TempHumidity()
 }
 
 // ============================================================================
-// TRANG 1: ĐỘ ẨM ĐẤT & ÁNH SÁNG
+// TRANG 1: ĐỘ ẨM GIÁ THỂ & ÁNH SÁNG CHU KỲ SINH HỌC
 // ============================================================================
 void displayPage_SoilLight()
 {
     char buf[17];
 
-    // Row 0: Đất
+    // Row 0: Độ ẩm giá thể / phôi nuôi cấy
     s_lcd.setCursor(0, 0);
     s_lcd.write(ICON_DROP);
-    snprintf(buf, sizeof(buf), " Soil: %3.0f%%   ", g_soilMoisture);
+    snprintf(buf, sizeof(buf), " Sub : %3.0f%%   ", g_soilMoisture);
     lcdPrint16(1, 0, buf);
 
     // Row 1: Ánh sáng
@@ -148,7 +148,7 @@ void displayPage_DeviceStatus()
 {
     char buf[32];
 
-    snprintf(buf, sizeof(buf), "Fan:%-3s Pump:%-3s",
+    snprintf(buf, sizeof(buf), "Fan:%-3s Mist:%-3s",
              g_fanState ? "ON" : "OFF",
              g_pumpState ? "ON" : "OFF");
     lcdPrint16(0, 0, buf);

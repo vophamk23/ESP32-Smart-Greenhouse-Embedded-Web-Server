@@ -1,5 +1,5 @@
 /* ============================================================
-   helpers.js — Greenhouse IoT
+   helpers.js — Cleanroom Bio-Chamber Edge-AI Web UI
    Utility functions: toast, modal, time, format
 ============================================================ */
 "use strict";
@@ -53,8 +53,8 @@ function navigate(page) {
     charts: "Phân tích cảm biến",
     logs: "Nhật ký hoạt động",
     control: "Điều khiển thiết bị",
-    threshold: "Ngưỡng tưới & Logic",
-    schedule: "Lịch tưới",
+    threshold: "Ngưỡng bù ẩm & Logic",
+    schedule: "Lịch phun sương",
     smartlogic: "Smart Logic",
     devices: "Quản lý thiết bị",
     notify: "Cấu hình thông báo",

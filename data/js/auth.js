@@ -1,5 +1,5 @@
 /* ============================================================
-   auth.js — Greenhouse IoT
+   auth.js — Cleanroom Bio-Chamber Edge-AI Web UI
    Client-side auth (demo). Credentials stored in State.accounts.
 ============================================================ */
 "use strict";

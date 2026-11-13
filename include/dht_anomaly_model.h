@@ -1,6 +1,6 @@
 /*
  * dht_anomaly_model.h - TinyML DHT20 Anomaly Detection Model
- * Tự động sinh từ mô hình Keras / Google Colab (MSSV 2313946)
+ * Tự động sinh từ pipeline TensorFlow/Keras (Edge AI Bio-Chamber)
  * Kích thước: 1836 bytes
  */
 

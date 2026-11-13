@@ -1,7 +1,7 @@
 /* ============================================================
-   smartlogic.js — Greenhouse IoT
-   Smart Logic: tích hợp OpenWeather API
-   Nếu xác suất mưa > ngưỡng → bỏ qua chu kỳ tưới
+   smartlogic.js — Cleanroom Bio-Chamber Edge-AI Web UI
+   Smart Logic: tích hợp OpenWeather API đồng bộ khí hậu nạp khí sạch
+   Nếu độ ẩm ngoại vi / xác suất mưa > ngưỡng → tạm hoãn phun sương bù ẩm
 ============================================================ */
 "use strict";
 
@@ -79,7 +79,7 @@ function renderWeatherPreview(data) {
   el.innerHTML = `
     <div class="grid grid-cols-2 gap-4 mb-4">
       <div class="bg-white rounded-2xl p-4 shadow-sm">
-        <p class="text-xs font-bold text-on-surface-variant uppercase mb-1">Xác suất mưa (24h)</p>
+        <p class="text-xs font-bold text-on-surface-variant uppercase mb-1">Xác suất mưa / ẩm ngoại vi (24h)</p>
         <p class="font-serif text-2xl ${maxRain >= rainThresh ? "text-error" : "text-primary"}">${maxRain.toFixed(0)}%</p>
       </div>
       <div class="bg-white rounded-2xl p-4 shadow-sm">
@@ -88,26 +88,26 @@ function renderWeatherPreview(data) {
       </div>
     </div>
     <div class="p-3 rounded-xl ${willSkip ? "bg-error/10 text-error border border-error/20" : "bg-primary/5 text-primary border border-primary/20"} text-sm font-bold">
-      ${willSkip ? "⚠ Dự báo mưa vượt ngưỡng → Bỏ qua chu kỳ tưới tiếp theo." : "✓ Không có mưa → Thực hiện tưới theo lịch."}
+      ${willSkip ? "⚠ Độ ẩm / mưa ngoại vi cao → Hoãn phun sương tránh đọng sương." : "✓ Khí trời ngoại vi ổn định → Duy trì chu kỳ phun sương."}
     </div>
     <p class="text-xs text-on-surface-variant/50 mt-2">📍 ${data.city?.name || "?"} — Cập nhật: ${new Date().toLocaleTimeString("vi-VN")}</p>
   `;
 
   if (willSkip)
     addSmartLog(
-      "⚠ Mưa " +
+      "⚠ Độ ẩm ngoại vi " +
         maxRain.toFixed(0) +
         "% ≥ ngưỡng " +
         rainThresh +
-        "% → Chu kỳ tưới sẽ bị bỏ qua.",
+        "% → Hoãn phun sương chu kỳ.",
     );
   else
     addSmartLog(
-      "✓ Mưa " +
+      "✓ Ẩm ngoại vi " +
         maxRain.toFixed(0) +
         "% < ngưỡng " +
         rainThresh +
-        "% → Tưới bình thường.",
+        "% → Phun sương bình thường.",
     );
 }
 

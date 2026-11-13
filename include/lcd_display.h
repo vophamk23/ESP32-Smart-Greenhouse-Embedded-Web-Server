@@ -12,14 +12,14 @@ LiquidCrystal_I2C* getLCD();
 /*
  * Trang 0: Nhiệt độ & Độ ẩm không khí
  *   Dòng 1: T:25.3C  H:65.2%
- *   Dòng 2: [PUMP:ON] [FAN:OFF]
+ *   Dòng 2: [MIST:ON] [FAN:OFF]
  *
- * Trang 1: Độ ẩm đất & Ánh sáng
- *   Dòng 1: Soil:45.2%  LUX:
+ * Trang 1: Độ ẩm giá thể & Ánh sáng
+ *   Dòng 1: Sub : 45%  LUX:
  *   Dòng 2: 1250 lux [LED:ON]
  *
  * Trang 2: Trạng thái thiết bị
- *   Dòng 1: PUMP:ON  FAN:OFF
+ *   Dòng 1: Fan:OFF Mist:ON
  *   Dòng 2: LED:GRN  MODE:AUTO
  *
  * Trang 3: Cảnh báo / Thống kê

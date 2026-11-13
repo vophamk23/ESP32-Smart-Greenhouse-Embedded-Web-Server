@@ -1,5 +1,5 @@
 /* ============================================================
-   notify.js — Greenhouse IoT
+   notify.js — Cleanroom Bio-Chamber Edge-AI Web UI
    Cấu hình thông báo: Telegram Bot + Email SMTP
    Lưu config cục bộ, test kết nối qua fetch
 ============================================================ */
@@ -50,7 +50,7 @@ function testTelegram() {
   }
   showToast("Đang kiểm tra kết nối Telegram...");
   const msg =
-    "🌿 Greenhouse IoT — Kiểm tra kết nối thành công!\n⏰ " +
+    "🧬 BioChamber Edge-AI — Kiểm tra kết nối thành công!\n⏰ " +
     new Date().toLocaleString("vi-VN");
   const url = `https://api.telegram.org/bot${token}/sendMessage`;
   fetch(url, {

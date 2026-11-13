@@ -1,5 +1,5 @@
 /* ============================================================
-   control.js — Greenhouse IoT
+   control.js — Cleanroom Bio-Chamber Edge-AI Web UI
    Điều khiển thiết bị qua WebSocket → ESP32 RPC queue
    Commands: setPump, setFan, setMode
 ============================================================ */
@@ -14,7 +14,7 @@ function ctrlDevice(device, action) {
   if (device === "pump") sendWS({ cmd: "setPump", value: on });
   if (device === "fan") sendWS({ cmd: "setFan", value: on });
   showToast(
-    (device === "pump" ? "Máy bơm" : "Quạt") + " → " + (on ? "BẬT" : "TẮT"),
+    (device === "pump" ? "Bơm phun sương" : "Quạt đối lưu") + " → " + (on ? "BẬT" : "TẮT"),
   );
 }
 
@@ -49,11 +49,11 @@ function setFanSpeed(speed) {
     if (bar) bar.style.width = "50%";
     if (midBtn) midBtn.className = activeClass;
     if (highBtn) highBtn.className = inactiveClass;
-    showToast("Quạt → Tốc độ VỪA");
+    showToast("Quạt đối lưu → Tốc độ VỪA");
   } else {
     if (bar) bar.style.width = "100%";
     if (midBtn) midBtn.className = inactiveClass;
     if (highBtn) highBtn.className = activeClass;
-    showToast("Quạt → Tốc độ CAO");
+    showToast("Quạt đối lưu → Tốc độ CAO");
   }
 }

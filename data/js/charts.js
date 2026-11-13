@@ -1,6 +1,6 @@
 /* ============================================================
-   charts.js — Greenhouse IoT
-   Chart.js: sensor history + pump activity bar chart
+   charts.js — Cleanroom Bio-Chamber Edge-AI Web UI
+   Chart.js: sensor history + mist pump activity bar chart
 ============================================================ */
 "use strict";
 
@@ -43,7 +43,7 @@ function initCharts() {
           borderDash: [5, 3],
         },
         {
-          label: "Độ ẩm đất (%)",
+          label: "Độ ẩm giá thể (%)",
           data: State.history.soil,
           borderColor: "#674bb5",
           backgroundColor: "rgba(103,75,181,0.06)",
@@ -87,7 +87,7 @@ function initCharts() {
       labels: State.history.labels,
       datasets: [
         {
-          label: "Bơm",
+          label: "Phun sương",
           data: State.history.pump,
           backgroundColor: "rgba(255,255,255,0.5)",
           borderColor: "rgba(255,255,255,0.8)",
@@ -197,10 +197,10 @@ function addChartLogRow(d) {
   });
 
   const khuVuc = {
-    "TEMP-001": "Nhà kính A-1",
-    "HUM-002": "Nhà kính A-1",
-    "SOIL-003": "Khu vực trồng",
-    "LIGHT-004": "Mái che",
+    "TEMP-001": "Buồng sạch Bio-01",
+    "HUM-002": "Buồng sạch Bio-01",
+    "SOIL-003": "Khay giá thể",
+    "LIGHT-004": "Đèn chu kỳ",
   };
 
   const newRows = [];
@@ -235,7 +235,7 @@ function addChartLogRow(d) {
     newRows.push({
       time: now,
       sensor: "SOIL-003",
-      chi: "Độ ẩm đất",
+      chi: "Độ ẩm giá thể",
       val: d.soilMoisture.toFixed(0) + "%",
       color: alert ? "text-error" : "text-tertiary",
       badge: alert ? "bg-error/10 text-error" : "bg-primary/10 text-primary",

@@ -1,11 +1,7 @@
 """
-# [T09] CHUC NANG AI CHAY TREN IOT GATEWAY LOCAL
-# Yeu to cong nghe T09: AI phan tich du lieu, phat hien (detect Z-Score Anomaly) va gui ket qua len server
+# Cleanroom Bio-Chamber Edge-AI — Fog Predictive Analytics Engine
 #
-gateway_ai.py - Chức năng Trí tuệ Nhân tạo chạy trên IoT Gateway Cục bộ (PC / Raspberry Pi)
-Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
-Mã yếu tố công nghệ: T09 (1.0 Điểm)
-Tác giả: Phạm Công Võ (MSSV: 2313946)
+# gateway_ai.py - Bộ phân tích AI đa biến & dự báo vi khí hậu trên Fog IoT Gateway
 """
 
 import numpy as np
@@ -15,11 +11,11 @@ from collections import deque
 
 class GatewayAIEngine:
     """
-    Bộ phân tích dữ liệu vi khí hậu và phát hiện dị thường chạy trực tiếp trên IoT Gateway PC.
+    Bộ phân tích dữ liệu vi khí hậu phòng sạch và phát hiện dị thường chạy trên Fog IoT Gateway.
     Tích hợp 3 mô hình học máy & suy luận thống kê:
       1. Multi-variate Anomaly Detection (Z-Score + Tốc độ biến thiên đạo hàm).
-      2. Mô hình Hồi quy Ngoại suy Xu hướng Nhiệt độ 30 phút tới.
-      3. Thuật toán Ra quyết định Tưới tiêu Nông nghiệp Thông minh (Smart Irrigation AI).
+      2. Mô hình Hồi quy Ngoại suy Xu hướng Nhiệt độ 30 phút tới (OLS Linear Regression).
+      3. Thuật toán Ra quyết định Phun sương & Bù ẩm Giá thể Phòng sạch (Smart Mist AI).
     """
 
     def __init__(self, window_size: int = 20):
@@ -29,7 +25,7 @@ class GatewayAIEngine:
         self.history_soil = deque(maxlen=window_size)
         self.history_timestamps = deque(maxlen=window_size)
 
-        # Baseline tham chiếu vi khí hậu nhà kính nhiệt đới
+        # Baseline tham chiếu vi khí hậu phòng sạch nuôi cấy vi tảo / nấm công nghiệp (Bio-Chamber)
         self.baseline_temp_mean = 27.5
         self.baseline_temp_std = 3.5
         self.baseline_hum_mean = 65.0
@@ -136,24 +132,24 @@ class GatewayAIEngine:
         projected_temp = round(projected_temp, 1)
 
         # --------------------------------------------------------------------
-        # 3. MÔ HÌNH TỐI ƯU HÓA TƯỚI THÔNG MINH (SMART IRRIGATION DECISION AI)
+        # 3. MÔ HÌNH TỐI ƯU HÓA PHUN SƯƠNG TẠO ẨM BUỒNG SẠCH (SMART MIST AI)
         # --------------------------------------------------------------------
         rec_duration = 0
         if cur_soil < 30.0:
-            # Thiếu nước: Tính thời gian bơm bù theo độ khô và nhiệt độ môi trường
-            deficit = 60.0 - cur_soil  # Mục tiêu đưa đất về 60%
+            # Thiếu ẩm giá thể: Tính thời gian phun sương bù theo độ khô phôi và nhiệt độ buồng sạch
+            deficit = 60.0 - cur_soil  # Mục tiêu đưa độ ẩm giá thể về 60%
             heat_multiplier = 1.0 + max(0.0, (cur_temp - 30.0) * 0.05)
             rec_duration = int(np.clip(deficit * 1.5 * heat_multiplier, 15, 120))
-            recommendation = f"CẦN TƯỚI BÙ: Bật bơm {rec_duration} giây (Đất khô {cur_soil:.0f}%)"
+            recommendation = f"CẦN PHUN SƯƠNG: Bật bơm {rec_duration} giây (Độ ẩm giá thể thấp {cur_soil:.0f}%)"
         elif cur_soil < 45.0 and cur_temp > 34.0:
             rec_duration = 30
-            recommendation = f"CẢNH BÁO SỐC NHIỆT: Tưới giữ ẩm nhẹ {rec_duration} giây"
+            recommendation = f"CẢNH BÁO SỐC NHIỆT BUỒNG SẠCH: Phun sương làm mát nhẹ {rec_duration} giây"
         elif cur_soil > 75.0:
             rec_duration = 0
-            recommendation = f"ĐẤT THỪA ẨM ({cur_soil:.0f}%): Ngưng tưới hoàn toàn"
+            recommendation = f"GIÁ THỂ BÃO HÒA ẨM ({cur_soil:.0f}%): Ngưng phun sương hoàn toàn"
         else:
             rec_duration = 0
-            recommendation = "ĐỘ ẨM ĐẤT TỐI ƯU: Không cần tưới nước"
+            recommendation = "ĐỘ ẨM GIÁ THỂ TỐI ƯU: Không cần phun sương tạo ẩm"
 
         return {
             "anomaly_score": round(anomaly_score, 2),

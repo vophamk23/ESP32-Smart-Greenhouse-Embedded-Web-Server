@@ -5,6 +5,6 @@
 #include <WiFi.h>
 
 void initWiFi();
-void greenhouse_wifi_task(void *pvParameters);
+void wifi_task(void *pvParameters);
 
 #endif // WIFI_MANAGER_H

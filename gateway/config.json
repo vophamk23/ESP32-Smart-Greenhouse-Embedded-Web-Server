@@ -15,7 +15,7 @@
     "poll_interval_sec": 2.0
   },
   "gateway_info": {
-    "name": "HCMUT-Greenhouse-IoT-Gateway",
+    "name": "BIOCHAMBER-EDGE-AI-GATEWAY",
     "version": "1.0.0",
     "student_name": "Pham Cong Vo",
     "student_id": "2313946"

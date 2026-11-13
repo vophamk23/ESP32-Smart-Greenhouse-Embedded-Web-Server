@@ -1,5 +1,5 @@
 <!-- pages/control.html — Điều khiển thiết bị
-  Use case: Bật/tắt thủ công máy bơm và quạt -->
+  Use case: Bật/tắt thủ công bơm phun sương và quạt đối lưu -->
 
 <!-- ═══════ CONTROL ═══════ -->
 <div id="page-control" class="page p-8 max-w-6xl mx-auto">
@@ -14,8 +14,8 @@
         Điều khiển thiết bị
       </h3>
       <p class="text-on-surface-variant mt-3 text-lg max-w-xl">
-        Ghi đè các chuỗi tự động để can thiệp môi trường chính xác trong Phân
-        khu phía Bắc.
+        Ghi đè các chuỗi tự động để can thiệp vi khí hậu chính xác trong Buồng
+        sạch Bio-Chamber.
       </p>
     </div>
     <div
@@ -59,7 +59,7 @@
         class="absolute right-0 top-0 w-1/2 h-full opacity-10 pointer-events-none group-hover:opacity-20 transition-opacity"
       >
         <img
-          alt="Hệ thống máy bơm nước"
+          alt="Hệ thống phun sương tạo ẩm"
           class="w-full h-full object-cover"
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuCJoLQ2MFZnV7o0VxCZbeYUNW0BPUasD-BFWG8X9zm8vVOeXHOkhZOUElhDu_irvpSkP3_whT24zk3V7fwiCxD6ah-cD9ECrSljBTK1t4UMQujeOTLRBngDfSSZSfO6UH0klxdBbvlJwvA_U2VgHk5Piiu5OYzSaxmAY-IhBW7AmIrXM9loF1n29gK4AFQ8pN69ReZv9ja0Jm34VXqpnXF2hUo73Eefmh9mDJMjCf-MfhtIg0M0vWAkXKktHYbOM0g4-o0UVFNyzAk"
         />
@@ -72,9 +72,9 @@
               class="bg-primary/10 text-primary px-3 py-1 rounded-full text-xs font-bold tracking-wider"
               >STANDBY</span
             >
-            <h4 class="font-serif text-3xl mt-4">Máy bơm nước</h4>
+            <h4 class="font-serif text-3xl mt-4">Bơm phun sương</h4>
             <p class="text-on-surface-variant/70 font-medium">
-              Relay Pump — GPIO 17
+              Relay Mist Pump — GPIO 7 (D4)
             </p>
           </div>
           <div
@@ -101,7 +101,7 @@
             <p
               class="text-xs text-on-surface-variant uppercase tracking-widest mb-1"
             >
-              Số lần bơm
+              Số lần phun sương
             </p>
             <span id="pump-count-ctrl" class="text-xl font-bold">0</span>
           </div>
@@ -109,7 +109,7 @@
             <p
               class="text-xs text-on-surface-variant uppercase tracking-widest mb-1"
             >
-              Thời gian bơm (phiên)
+              Thời lượng phun (phiên)
             </p>
             <span id="pump-session-time" class="text-xl font-bold">--</span>
           </div>
@@ -150,7 +150,7 @@
       <!-- Ảnh quạt phủ toàn card -->
       <div class="absolute inset-0 pointer-events-none">
         <img
-          alt="Quạt làm mát"
+          alt="Quạt đối lưu phòng sạch"
           class="w-full h-full object-cover opacity-40"
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuB6TIs0KKFMn6k69I3rdN79dug_vlUucvNe6-7JUeI-1XcPA6ueuCRCiztXaVeYpbcGPDxLECC67HFh88Ob7XabmoAK9XmeeDCxdngunRghm9fsuUr0QDOJYtTv41xwJzmBsd1WU5FGulHLzgExNIU5raofPt-8Xyjxol7igf9xs1OuLcKKgM_Fp6gXKpKLyAJ9Y1djJQGqFF7EO7hQsOjz6g0EZRZOdJpXh8hQNdeU1yD9nbI8RR5R93ITFmLEVositYnyEDcryl8"
         />
@@ -167,9 +167,9 @@
             class="bg-secondary/10 text-secondary px-3 py-1 rounded-full text-xs font-bold tracking-wider"
             >CHẾ ĐỘ CHỜ</span
           >
-          <h4 class="font-serif text-3xl mt-4">Quạt làm mát</h4>
+          <h4 class="font-serif text-3xl mt-4">Quạt đối lưu buồng sạch</h4>
           <p class="text-on-surface-variant/70 font-medium">
-            Fan Yolo S1 — GPIO 25
+            Cleanroom Fan — GPIO 8 (D5)
           </p>
         </div>
         <div

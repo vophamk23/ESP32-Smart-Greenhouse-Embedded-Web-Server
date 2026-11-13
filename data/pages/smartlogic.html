@@ -1,13 +1,13 @@
 <!-- pages/smartlogic.html — Smart Logic
-  Use case: Tích hợp OpenWeather API để bỏ qua tưới khi trời mưa -->
+  Use case: Tích hợp OpenWeather API đồng bộ khí hậu nạp khí sạch -->
 <!-- ═══════ SMART LOGIC ═══════ -->
           <div id="page-smartlogic" class="page p-6 md:p-8 max-w-7xl mx-auto">
             <div class="mb-8">
               <h3 class="font-serif text-4xl text-on-surface">
-                Smart Logic — Tưới thông minh
+                Smart Logic — Bù ẩm thông minh
               </h3>
               <p class="text-on-surface-variant mt-1">
-                Tối ưu hóa chu kỳ tưới dựa trên dự báo thời tiết OpenWeather.
+                Tối ưu hóa chu kỳ phun sương theo độ ẩm ngoại vi từ dự báo OpenWeather.
               </p>
             </div>
 
@@ -59,7 +59,7 @@
                     <div>
                       <div class="flex justify-between items-center mb-2">
                         <label class="text-sm font-bold text-on-surface-variant"
-                          >Ngưỡng xác suất mưa</label
+                          >Ngưỡng ẩm / mưa ngoại vi (HVAC Skip)</label
                         >
                         <span
                           id="rainThreshVal"
@@ -82,7 +82,7 @@
                       <div
                         class="flex justify-between mt-1 text-[10px] text-on-surface-variant/50 font-bold uppercase"
                       >
-                        <span>Luôn tưới</span><span>Chỉ khi hạn hán</span>
+                        <span>Luôn bù ẩm</span><span>Hoãn khi ẩm cao</span>
                       </div>
                     </div>
                     <div class="flex gap-3 pt-2">
@@ -117,8 +117,8 @@
                     </h4>
                   </div>
                   <p class="text-sm text-on-tertiary-container leading-relaxed">
-                    Dựa trên ngưỡng mưa và dự báo địa phương, hệ thống sẽ tự
-                    động bỏ qua chu kỳ tưới khi xác suất mưa vượt ngưỡng.
+                    Dựa trên độ ẩm khí quyển và dự báo địa phương, hệ thống tự
+                    động hoãn chu kỳ phun sương để tránh đọng sương bão hòa trong buồng sạch.
                   </p>
                 </div>
               </section>

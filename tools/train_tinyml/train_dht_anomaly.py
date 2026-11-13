@@ -1,10 +1,8 @@
 """
-# [T05] CONG CU THU THAP DU LIEU, HUAN LUYEN VA EXPORT RA MODEL TINYML
-# Yeu to cong nghe T05: Cong cu thu thap du lieu, huan luyen va export ra model TinyML
+# Cleanroom Bio-Chamber Edge-AI — TinyML Model Training & C Header Export Pipeline
 #
-train_dht_anomaly.py - Huấn luyện Mô hình TinyML Phát hiện Dị thường Cảm biến DHT20 cho ESP32-S3
-Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
-Sinh viên: Phạm Công Võ (MSSV: 2313946)
+# train_dht_anomaly.py - Huấn luyện mô hình MLP Phát hiện Dị thường Vi khí hậu (DHT20/RS485)
+# và xuất trọng số nhúng thành C++ header (dht_anomaly_model.h) cho ESP32-S3.
 """
 
 import numpy as np
@@ -22,7 +20,7 @@ print(f"NumPy Version: {np.__version__}")
 np.random.seed(42)
 N_SAMPLES = 10000
 
-# Dữ liệu Bình thường (NORMAL: 55%) - Khí hậu nhà kính lý tưởng
+# Dữ liệu Bình thường (NORMAL: 55%) - Vi khí hậu phòng sạch Bio-Chamber lý tưởng
 n_norm = int(N_SAMPLES * 0.55)
 temp_norm = np.random.uniform(20.0, 34.0, n_norm) + np.random.normal(0, 0.4, n_norm)
 hum_norm = np.random.uniform(45.0, 80.0, n_norm) + np.random.normal(0, 0.8, n_norm)
@@ -40,7 +38,7 @@ hum_hot = np.random.uniform(10.0, 65.0, n_part)
 temp_cold = np.random.uniform(0.0, 15.5, n_part)
 hum_cold = np.random.uniform(40.0, 95.0, n_part)
 
-# Kịch bản C: Khô hạn / Đất cháy
+# Kịch bản C: Mất ẩm buồng sạch / Khô giá thể nghiêm trọng
 temp_dry = np.random.uniform(22.0, 36.0, n_part)
 hum_dry = np.random.uniform(5.0, 34.0, n_part)
 
@@ -125,7 +123,7 @@ print(f"\nKích thước file TFLite: {len(tflite_model)} bytes (~{len(tflite_mo
 # ============================================================================
 header_filename = "dht_anomaly_model.h"
 c_str = f"/*\n * {header_filename} - TinyML DHT20 Anomaly Detection Model\n"
-c_str += f" * Tự động sinh từ mô hình Keras / Google Colab (MSSV: 2313946)\n"
+c_str += f" * Tự động sinh từ pipeline TensorFlow/Keras (Edge AI Bio-Chamber)\n"
 c_str += f" * Kích thước: {len(tflite_model)} bytes\n */\n\n"
 c_str += "#ifndef DHT_ANOMALY_MODEL_H\n#define DHT_ANOMALY_MODEL_H\n\n"
 c_str += "#include <Arduino.h>\n\n"

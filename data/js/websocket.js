@@ -1,6 +1,6 @@
 /* ============================================================
-   websocket.js — Greenhouse IoT
-   Kết nối WebSocket 2 chiều với ESP32 (webserver_greenhouse.cpp)
+   websocket.js — Cleanroom Bio-Chamber Edge-AI Web UI
+   Kết nối WebSocket 2 chiều với ESP32-S3 (web_server.cpp)
 
    NHẬN:  JSON chứa toàn bộ trạng thái cảm biến + thiết bị (mỗi 1s)
    GỬI:   { cmd: "setPump"|"setFan"|"setMode", value: ... }
@@ -64,22 +64,22 @@ function connectWS() {
       updateUI(d); // Cập nhật tất cả các DOM element
       pushChartPoint(d); // Thêm điểm dữ liệu mới vào biểu đồ (charts.js)
 
-      // ── Sync slider ngưỡng tưới từ cfg_* do ESP32 gửi về ──
+      // ── Sync slider ngưỡng bù ẩm từ cfg_* do ESP32 gửi về ──
       // Chỉ chạy 1 lần hiệu quả khi có thay đổi (hàm tự kiểm tra)
       syncThresholdFromESP32(d);
 
-      // ── Theo dõi trạng thái bơm để tự ghi nhật ký hoạt động ──
+      // ── Theo dõi trạng thái bơm phun sương để tự ghi nhật ký hoạt động ──
 
-      // Trường hợp: bơm vừa BẬT (trước đó đang tắt)
+      // Trường hợp: bơm phun sương vừa BẬT (trước đó đang tắt)
       if (d.pump && !State.data._pumpWasOn) {
-        State.data._pumpWasOn = true; // Đánh dấu bơm đang chạy
+        State.data._pumpWasOn = true; // Đánh dấu đang phun sương
         State.data._pumpSessionStart = Date.now(); // Ghi thời điểm bắt đầu
         startPumpLog(d); // Tạo dòng nhật ký mới
       }
 
-      // Trường hợp: bơm vừa TẮT (trước đó đang bật)
+      // Trường hợp: bơm phun sương vừa TẮT (trước đó đang bật)
       if (!d.pump && State.data._pumpWasOn) {
-        State.data._pumpWasOn = false; // Đánh dấu bơm đã dừng
+        State.data._pumpWasOn = false; // Đánh dấu đã dừng
         State.data._pumpSessionStart = null; // Xóa thời điểm bắt đầu
         endPumpLog(); // Ghi thời lượng vào nhật ký
       }

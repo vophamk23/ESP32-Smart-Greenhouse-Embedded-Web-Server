@@ -3,12 +3,12 @@
 #include "config_manager.h" // WIFI_SSID, WIFI_PASS (đọc từ /info.dat trên LittleFS)
 #include "ntp_sync.h"
 /* ============================================================
-   wifi_greenhouse.cpp
-   Quản lý toàn bộ kết nối WiFi cho hệ thống Greenhouse IoT.
+   wifi_manager.cpp
+   Quản lý kết nối WiFi (AP+STA) cho hệ thống Cleanroom Bio-Chamber Edge-AI.
 
    Gồm 2 phần:
-     1. initWiFi()              — Gọi từ setup(), kết nối lần đầu
-     2. greenhouse_wifi_task()  — FreeRTOS task Core 0, tự reconnect
+     1. initWiFi()   — Gọi từ setup(), kết nối lần đầu
+     2. wifi_task()  — FreeRTOS task Core 0, tự reconnect
 ============================================================ */
 
 // ============================================================================
@@ -17,12 +17,12 @@
 void initWiFi()
 {
     // ── Bật đồng thời cả 2 mode: AP + STA ──
-    // AP (Access Point): ESP32 phát WiFi riêng "Greenhouse-AP"
+    // AP (Access Point): ESP32 phát WiFi cấu hình cục bộ "BioChamber-AP"
     //   → dùng để cấu hình lần đầu hoặc khi mất mạng
-    // STA (Station): ESP32 kết nối vào router nhà
-    //   → dùng để truy cập internet, MQTT, WebSocket từ xa
+    // STA (Station): ESP32 kết nối vào router mạng LAN
+    //   → dùng để truy cập cloud MQTT, WebSocket từ xa
     WiFi.mode(WIFI_AP_STA);
-    WiFi.softAP("Greenhouse-AP", "12345678");
+    WiFi.softAP("BioChamber-AP", "12345678");
     Serial.printf("[WiFi] AP started: 192.168.4.1\n");
 
     // ── Kiểm tra đã có config STA chưa ──
@@ -66,7 +66,7 @@ void initWiFi()
 // ============================================================================
 // WIFI MONITOR TASK (Core 0)
 // ============================================================================
-void greenhouse_wifi_task(void *pvParameters)
+void wifi_task(void *pvParameters)
 {
     Serial.println("[WiFi] Monitor task started");
 
@@ -84,7 +84,7 @@ void greenhouse_wifi_task(void *pvParameters)
             // Reset WiFi về AP+STA và bật lại AP trước
             // (AP có thể bị tắt khi mất kết nối trên một số firmware)
             WiFi.mode(WIFI_AP_STA);
-            WiFi.softAP("Greenhouse-AP", "12345678");
+            WiFi.softAP("BioChamber-AP", "12345678");
 
             // Thử kết nối lại STA với cùng config cũ
             if (WIFI_PASS[0] == '\0')

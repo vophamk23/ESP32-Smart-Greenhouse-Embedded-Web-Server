@@ -1,16 +1,10 @@
 """
-# TICH HOP NHOM 4: LOCAL IOT GATEWAY (T08, T09, T10)
-# - T08: Gateway Core (Serial/HTTP <-> CoreIOT MQTT)
-# - T09: Gateway AI Engine (Z-Score Anomaly & 30-min Forecast)
-# - T10: Gateway Desktop GUI (Tkinter Dark Mode)
+# Cleanroom Bio-Chamber Edge-AI — Local Fog IoT Gateway Launcher
 #
-gateway_app.py - Điểm khởi động Master IoT Gateway (Chạy đồng thời T08, T09, T10)
-Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
-Phân rã kiến trúc mô-đun chuẩn hóa:
-  - T08: gateway_core.py  (IoT Gateway Core Daemon, kết nối ESP32 & CoreIOT Cloud 2 chiều)
-  - T09: gateway_ai.py    (Chức năng Trí tuệ Nhân tạo phân tích dữ liệu trên Gateway)
-  - T10: gateway_gui.py   (Giao diện Desktop GUI giám sát & điều khiển cục bộ trên PC)
-Sinh viên thực hiện: Phạm Công Võ (MSSV: 2313946)
+# gateway_app.py - Điểm khởi động dịch vụ Fog Gateway hợp nhất:
+#   - gateway_core.py : Fog Gateway Core Daemon (Modbus/Serial/HTTP <-> CoreIOT MQTT)
+#   - gateway_ai.py   : Predictive Analytics (Z-Score Anomaly, 30-min OLS Forecast, Smart Mist AI)
+#   - gateway_gui.py  : Desktop BIO-SCADA Mission Control (Tkinter Dark Theme)
 """
 
 import sys
@@ -28,8 +22,8 @@ except ImportError:
 def main():
     if "--headless" in sys.argv:
         print("=================================================================")
-        print("  🌿 HCMUT LOCAL IOT GATEWAY — HEADLESS MODE (MÃ T08 & T09)      ")
-        print("  Đồng bộ dữ liệu ESP32 ↔ CoreIOT Cloud và chạy AI Gateway       ")
+        print("  BIOCHAMBER LOCAL IOT GATEWAY - HEADLESS MODE                   ")
+        print("  Dong bo du lieu ESP32-S3 <-> CoreIOT Cloud & Fog AI Engine    ")
         print("=================================================================")
         gateway_core = LocalIoTGatewayCore()
         try:
@@ -40,7 +34,7 @@ def main():
             print("\nĐã dừng Gateway Core an toàn.")
     else:
         root = tk.Tk()
-        # Khởi chạy Gateway Core (T08) lồng trong Giao diện Desktop GUI (T10)
+        # Khởi chạy Gateway Core lồng trong Giao diện Desktop BIO-SCADA GUI
         app = GatewayGUI(root)
         root.mainloop()
 

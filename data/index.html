@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Greenhouse IoT — Emerald Orbit</title>
+    <title>Cleanroom Bio-Chamber — BioChamber Orbit</title>
 
     <!--
       OFFLINE-FIRST: Không cần Tailwind CDN.
@@ -12,31 +12,31 @@
       Cấu trúc file:
         index.html          ← Shell chính (file này)
         partials/
-          login.html        ← Use case: Xác thực người dùng
-          sidebar.html      ← Use case: Điều hướng app
+          login.html        ← Use case: Xác thực người vận hành
+          sidebar.html      ← Use case: Điều hướng ứng dụng
           topbar.html       ← Use case: Tiêu đề & đồng hồ
         pages/
-          dashboard.html    ← Use case: Giám sát real-time
+          dashboard.html    ← Use case: Giám sát vi khí hậu buồng sạch real-time
           charts.html       ← Use case: Biểu đồ lịch sử cảm biến
-          logs.html         ← Use case: Nhật ký lần bơm
-          control.html      ← Use case: Điều khiển thủ công
-          threshold.html    ← Use case: Cấu hình ngưỡng tưới
-          schedule.html     ← Use case: Lập lịch tưới
-          smartlogic.html   ← Use case: Tưới thông minh theo thời tiết
+          logs.html         ← Use case: Nhật ký phun sương tạo ẩm
+          control.html      ← Use case: Điều khiển thủ công chấp hành
+          threshold.html    ← Use case: Cấu hình ngưỡng bù ẩm & nhiệt
+          schedule.html     ← Use case: Lập lịch phun sương chu kỳ
+          smartlogic.html   ← Use case: Điều phối chu kỳ thông minh
           devices.html      ← Use case: Quản lý thiết bị IoT
           notify.html       ← Use case: Cấu hình thông báo
           account.html      ← Use case: Quản lý tài khoản
         js/
           state.js          ← Single source of truth
           helpers.js        ← Utility: toast, modal, navigate, format
-          websocket.js      ← WebSocket ↔ ESP32
+          websocket.js      ← WebSocket ↔ ESP32-S3
           ui.js             ← Update DOM từ WS data
           auth.js           ← Đăng nhập / đăng xuất
           control.js        ← Gửi lệnh setPump/setFan/setMode
-          logs.js           ← CRUD nhật ký bơm
+          logs.js           ← CRUD nhật ký phun sương
           charts.js         ← Chart.js sensor history
-          threshold.js      ← Cấu hình ngưỡng tưới
-          schedule.js       ← Quản lý lịch tưới
+          threshold.js      ← Cấu hình ngưỡng phun sương & quạt
+          schedule.js       ← Quản lý lịch phun sương chu kỳ
           smartlogic.js     ← OpenWeather API integration
           devices.js        ← Factory Method quản lý thiết bị
           notify.js         ← Telegram + Email config

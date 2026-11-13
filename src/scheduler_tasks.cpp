@@ -20,7 +20,7 @@ void Task_ReadAirSensors(void)
     readLightSensor();
 }
 
-// Task 2: ĐỌC CẢM BIẾN ĐẤT
+// Task 2: ĐỌC CẢM BIẾN ĐỘ ẨM GIÁ THỂ / PHÔI NUÔI CẤY
 void Task_ReadSoilSensor(void)
 {
     readSoilMoisture();
@@ -145,7 +145,7 @@ void Task_TinyML_Inference(void)
 
 // ============================================================================
 // TASK: PUMP WATCHDOG (1 giây)
-// Bảo vệ bơm: tắt cưỡng bức nếu chạy quá PUMP_MAX_ON_TIME_MS
+// Bảo vệ bơm phun sương: tắt cưỡng bức nếu chạy quá PUMP_MAX_ON_TIME_MS
 // ============================================================================
 void Task_PumpWatchdog(void)
 {
@@ -200,7 +200,7 @@ void Task_PumpWatchdog(void)
 void Task_SendTelemetry(void)
 {
     iotBridge_sendTelemetry();
-    Serial.printf("[TELE] Queued: T=%.1f H=%.0f Soil=%.0f AI=%s (%.1f%%)\n",
+    Serial.printf("[TELE] Queued: T=%.1f H=%.0f Sub=%.0f AI=%s (%.1f%%)\n",
                   g_temperature, g_humidity, g_soilMoisture, g_aiStateStr, g_aiConfidence);
 }
 
@@ -213,7 +213,7 @@ void Task_ProcessRpc(void)
 }
 
 // ============================================================
-// TASK: KIỂM TRA LỊCH TƯỚI (5 giây)
+// TASK: KIỂM TRA LỊCH PHUN SƯƠNG CHU KỲ (5 giây)
 // ============================================================
 void Task_CheckSchedule(void)
 {
@@ -270,7 +270,7 @@ void Task_Heartbeat(void)
 {
     DateTime now = getRTCTime();
 
-    Serial.println("========== GREENHOUSE & AI STATUS ==========");
+    Serial.println("========== BIO-CHAMBER & AI STATUS ==========");
     Serial.printf("  Time: %02d/%02d/%04d %02d:%02d:%02d\n",
                   now.day(), now.month(), now.year(),
                   now.hour(), now.minute(), now.second());
@@ -281,9 +281,9 @@ void Task_Heartbeat(void)
     Serial.printf("  Temp:%.1fC%s  Humi:%.0f%%\n",
                   g_temperature, g_dhtError ? "[ERR]" : "",
                   g_humidity);
-    Serial.printf("  Soil:%.0f%%  Light:%.0flux\n",
+    Serial.printf("  Sub:%.0f%%   Light:%.0flux\n",
                   g_soilMoisture, g_lightLux);
-    Serial.printf("  PUMP:%-3s  FAN:%-3s  Mode:%s\n",
+    Serial.printf("  MIST:%-3s  FAN:%-3s  Mode:%s\n",
                   g_pumpState ? "ON" : "OFF",
                   g_fanState ? "ON" : "OFF",
                   g_autoMode ? "AUTO" : "MAN");

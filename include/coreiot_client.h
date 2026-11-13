@@ -1,8 +1,8 @@
 /*
- * task_coreiot_greenhouse.h - CoreIoT MQTT Task cho Greenhouse IoT
+ * coreiot_client.h - CoreIoT MQTT Task cho Cleanroom Bio-Chamber IoT
  *
- * Kết nối ThingsBoard/CoreIoT platform qua MQTT:
- *   - Publish telemetry: nhiệt độ, độ ẩm, đất, ánh sáng, trạng thái thiết bị
+ * Kết nối ThingsBoard/CoreIOT platform qua MQTT:
+ *   - Publish telemetry: nhiệt độ, độ ẩm không khí, độ ẩm giá thể, ánh sáng, trạng thái thiết bị
  *   - Publish attributes: pumpCount, totalPumpTime, autoMode, alerts
  *   - Subscribe RPC: setPump, setFan, setMode
  *   - WiFi reconnect tự động
@@ -31,15 +31,15 @@ extern char CORE_IOT_PORT  [6];
 // TASK ENTRY POINT
 // ============================================================================
 // Chạy trên Core 0, stack 8KB
-// xTaskCreatePinnedToCore(greenhouse_coreiot_task, "coreiot", 8192, NULL, 2, NULL, 0);
-void greenhouse_coreiot_task(void *pvParameters);
+// xTaskCreatePinnedToCore(coreiot_task, "coreiot", 8192, NULL, 2, NULL, 0);
+void coreiot_task(void *pvParameters);
 
 // ============================================================================
 // WIFI TASK
 // ============================================================================
 // Chạy trên Core 0, stack 4KB
-// xTaskCreatePinnedToCore(greenhouse_wifi_task, "wifi", 4096, NULL, 3, NULL, 0);
-void greenhouse_wifi_task(void *pvParameters);
+// xTaskCreatePinnedToCore(wifi_task, "wifi", 4096, NULL, 3, NULL, 0);
+void wifi_task(void *pvParameters);
 
 
 #endif // COREIOT_CLIENT_H

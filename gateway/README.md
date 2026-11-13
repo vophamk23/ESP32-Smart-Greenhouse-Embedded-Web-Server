@@ -1,40 +1,37 @@
-# 🖥️ Local IoT Gateway — Smart Greenhouse System (Nhóm 4)
+# BIO-SCADA Fog Gateway & Predictive Analytics
 
-**ĐỒ ÁN MÔN HỌC INTERNET OF THINGS (CO3061 / CO3062) — ĐH BÁCH KHOA TP.HCM (HCMUT)**  
-**Sinh viên thực hiện:** Phạm Công Võ — **MSSV:** 2313946  
-**Giảng viên hướng dẫn:** TS. Lê Trọng Nhân
+Thư mục này chứa dịch vụ **Fog Gateway** đa luồng chạy trên máy trạm PC / Raspberry Pi, đóng vai trò cầu nối song công giữa tầng Biên (**ESP32-S3 Cleanroom Bio-Chamber**) và tầng Đám mây (**CoreIOT / ThingsBoard**), đồng thời vận hành **AI Engine** và **Desktop SCADA GUI**.
 
----
+## Kiến trúc & Chức năng chính
 
-## 📋 Phân rã Mô-đun Tương Ứng Từng Tiêu Chí Nhóm 4
+1. **Cầu nối Đa giao thức (`gateway_core.py`)**:
+   - Đọc dữ liệu cảm biến trực tiếp từ phần cứng qua **Modbus RS485** (`minimalmodbus`), **USB-CDC Serial** (`115200 baud`), hoặc **Wi-Fi REST API** (`GET /api/status`), tự động chuyển sang chế độ giả lập telemetry khi chưa cắm phần cứng.
+   - Đóng gói và đẩy chuỗi dữ liệu vi khí hậu + chỉ số phân tích AI lên CoreIOT MQTT (`v1/devices/me/telemetry`) theo chu kỳ 2 giây.
+   - Lắng nghe lệnh RPC hai chiều từ Cloud (`setPump`, `setFan`, `setMode`) để điều phối xuống bộ chấp hành thực tế (Bơm phun sương tạo ẩm, Quạt đối lưu phòng sạch).
 
-Thư mục `gateway/` được phân tách thành 3 tệp độc lập, tương ứng chính xác với 3 mã công nghệ của Nhóm 4 trong đề bài BTL:
+2. **Bộ suy luận AI trên Gateway (`gateway_ai.py`)**:
+   - **Phát hiện dị thường đa biến (Z-Score + Derivative Drift):** Phát hiện tăng/giảm nhiệt đột ngột, sốc nhiệt hoặc nguy cơ khô giá thể (`DROUGHT_STRESS` / suy giảm độ ẩm phôi).
+   - **Dự báo xu hướng nhiệt độ 30 phút (OLS Linear Regression):** Tính tốc độ biến thiên nhiệt (°C/phút) trên cửa sổ trượt `window_size=20` mẫu và độ tin cậy $R^2$.
+   - **Tư vấn phun sương thông minh:** Tính toán thời lượng kích hoạt bơm phun sương tạo ẩm (15–120 giây) dựa trên mức hụt ẩm giá thể và nhiệt độ buồng nuôi cấy.
 
-| Mã tiêu chí | Tệp mã nguồn | Điểm | Mô tả chi tiết chức năng |
-| :---: | :--- | :---: | :--- |
-| **`T08`** | **[`gateway_core.py`](file:///C:/Users/ASUS/Documents/Report/BTL_IoT/ESP32-Smart-Greenhouse-Embedded-Web-Server/gateway/gateway_core.py)** | **1.0** | **IoT Gateway Daemon:** Thu thập dữ liệu từ ESP32 qua Serial (USB) hoặc WiFi REST API, tổng hợp dữ liệu, gửi lên CoreIOT Cloud (`app.coreiot.io`), nhận lệnh điều khiển RPC từ CoreIOT và phân phối cho thiết bị local. |
-| **`T09`** | **[`gateway_ai.py`](file:///C:/Users/ASUS/Documents/Report/BTL_IoT/ESP32-Smart-Greenhouse-Embedded-Web-Server/gateway/gateway_ai.py)** | **1.0** | **Chức năng AI trên Gateway:** Mô hình phân tích chuỗi thời gian đa biến: phát hiện hơ lửa/cháy (`FLAME_HEAT_SPIKE`), dự báo nhiệt độ vi khí hậu 30 phút, và mô hình ra quyết định tưới thông minh (Smart Irrigation AI). |
-| **`T10`** | **[`gateway_gui.py`](file:///C:/Users/ASUS/Documents/Report/BTL_IoT/ESP32-Smart-Greenhouse-Embedded-Web-Server/gateway/gateway_gui.py)** | **1.0** | **Giao diện Desktop GUI trên PC:** Giao diện đồ họa Tkinter Dark Mode hiển thị 4 thẻ đo lường cảm biến, bảng phân tích AI Gateway, các nút điều khiển Bơm/Quạt/Mode và màn hình Console Log sự kiện. |
+3. **Giao diện Giám sát Công nghiệp BIO-SCADA (`gateway_gui.py`)**:
+   - Giao diện Tkinter Dark Theme tích hợp biểu đồ vector Sparklines, thước đo LED Anomaly Threat Gauge, khối điều khiển Actuator Matrix và Terminal lọc log gói tin MQTT / Serial / AI theo thời gian thực.
 
-👉 **TỔNG ĐIỂM NHÓM 4: 3.0 / 3.0 ĐIỂM TUYỆT ĐỐI!**
+## Hướng dẫn khởi chạy
 
----
-
-## 🚀 Hướng dẫn Chạy Từng Tệp
-
-### 1. Chạy riêng Giao diện Giám sát & Điều khiển (Mã `T10`):
+Cài đặt thư viện phụ thuộc (Python 3.10+):
 ```bash
-python gateway/gateway_gui.py
+pip install pyserial paho-mqtt requests numpy minimalmodbus
 ```
-*Cửa sổ Desktop GUI sẽ xuất hiện ngay lập tức với các thẻ đo lường và nút bấm điều khiển.*
 
-### 2. Chạy riêng Gateway Core Daemon không cần giao diện (Mã `T08`):
+Chạy chế độ giao diện Desktop SCADA (mặc định):
 ```bash
-python gateway/gateway_core.py
+python gateway_app.py
 ```
-*Thích hợp khi triển khai trên Raspberry Pi hoặc máy chủ mini không có màn hình.*
 
-### 3. Chạy Tổng hợp Cả Hệ thống (T08 + T09 + T10):
+Chạy chế độ Headless Daemon (không GUI, phù hợp cho Raspberry Pi / Server):
 ```bash
-python gateway/gateway_app.py
+python gateway_app.py --headless
 ```
+
+Kiểm tra cấu hình kết nối tại [config.json](./config.json).

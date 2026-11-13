@@ -1,12 +1,7 @@
-/*
- * [N06] HE THONG GHI NHAN SU KIEN (RECORD EVENT LOGGING) & XUAT FILE CSV
- * Yeu to cong nghe N06: Ghi nhan lich su tuoi, thoi gian bat dau/ket thuc, thoi luong chay,
- * ly do kich hoat (Auto Soil / Manual / Timer Schedule), ty le thanh cong, va export greenhouse_logs.csv
- */
 /* ============================================================
-   logs.js — Greenhouse IoT
-   Ghi log các lần bơm nước.
-   Được trigger tự động từ websocket.js khi pump state thay đổi.
+   logs.js — Cleanroom Bio-Chamber Edge-AI Web UI
+   Ghi log chu kỳ phun sương tạo ẩm & xuất file biochamber_logs.csv.
+   Được trigger tự động từ websocket.js khi trạng thái bơm phun sương thay đổi.
 ============================================================ */
 "use strict";
 
@@ -223,7 +218,7 @@ function updateLogStats() {
 }
 
 function clearLogs() {
-  showConfirm("Xóa nhật ký", "Xóa toàn bộ nhật ký bơm nước?", () => {
+  showConfirm("Xóa nhật ký", "Xóa toàn bộ nhật ký phun sương?", () => {
     State.logs = [];
     State.logsPage = 1;
     renderLogs();
@@ -253,7 +248,7 @@ function exportLogs() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "greenhouse_logs.csv";
+  a.download = "biochamber_logs.csv";
   a.click();
   URL.revokeObjectURL(url);
   showToast("Đã xuất CSV.");

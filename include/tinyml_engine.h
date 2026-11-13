@@ -35,8 +35,8 @@ struct TinyML_Result_t {
     uint32_t inferenceTimeUs;   // Thời gian suy luận (micro-giây)
     char stateStr[32];          // Chuỗi trạng thái hiển thị
     char forecastStr[64];       // Chuỗi dự báo xu hướng vi khí hậu
-    bool shouldTriggerFan;      // Đề xuất AI kích hoạt quạt
-    bool shouldTriggerPump;     // Đề xuất AI kích hoạt bơm tưới
+    bool shouldTriggerFan;      // Đề xuất AI kích hoạt quạt đối lưu
+    bool shouldTriggerPump;     // Đề xuất AI kích hoạt bơm phun sương
 
     // 2. Phát hiện Dị thường Cảm biến (Sensor Anomaly Detection)
     float anomalyScore;         // Điểm dị thường (0.00 - 1.00, > 0.60 là bất thường)

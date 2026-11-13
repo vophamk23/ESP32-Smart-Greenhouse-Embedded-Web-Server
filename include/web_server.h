@@ -1,5 +1,5 @@
 /*
- * task_webserver_greenhouse.h
+ * web_server.h - Async WebServer Task cho Cleanroom Bio-Chamber
  */
 
 #ifndef WEB_SERVER_H
@@ -10,10 +10,10 @@
 #include "global_vars.h"
 
 // Task entry point
-// xTaskCreatePinnedToCore(greenhouse_webserver_task, "webserver", 8192, NULL, 1, NULL, 0);
-void greenhouse_webserver_task(void *pvParameters);
+// xTaskCreatePinnedToCore(webserver_task, "webserver", 8192, NULL, 1, NULL, 0);
+void webserver_task(void *pvParameters);
 
-// Hàm load lịch tưới từ LittleFS, được gọi trong setup() sau khi init iotBridge để có mutex
+// Hàm load lịch phun sương từ LittleFS, được gọi trong setup() sau khi init iotBridge để có mutex
 void loadSchedulesFromFS();
 
 void loadThresholdFromFS();

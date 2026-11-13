@@ -1,12 +1,12 @@
 /* ============================================================
-   schedule.js — Greenhouse IoT
-   Quản lý lịch tưới — CRUD + send to ESP32
+   schedule.js — Cleanroom Bio-Chamber Edge-AI Web UI
+   Quản lý lịch phun sương chu kỳ — CRUD + send to ESP32
    
    Luồng hoạt động:
      1. Khi mở trang → loadSchedulesFromESP32() fetch /api/schedules
      2. Người dùng chỉnh sửa → cập nhật State.schedules (local)
      3. Nhấn "Lưu" → saveSchedule() gửi qua WebSocket
-     4. ESP32 lưu vào LittleFS, tự động tưới theo lịch
+     4. ESP32 lưu vào LittleFS, tự động phun sương theo lịch chu kỳ
 ============================================================ */
 "use strict";
 
@@ -47,13 +47,13 @@ function loadSchedulesFromESP32() {
 }
 
 // ============================================================
-// BẬT / TẮT TOÀN BỘ LỊCH TƯỚI
+// BẬT / TẮT TOÀN BỘ LỊCH PHUN SƯƠNG
 // ============================================================
 function toggleSchedule() {
   const enabled = document.getElementById("schedEnable")?.checked;
   State.scheduleEnabled = !!enabled;
   sendWS({ cmd: "setScheduleEnabled", value: State.scheduleEnabled });
-  showToast("Lịch tưới: " + (State.scheduleEnabled ? "BẬT" : "TẮT"));
+  showToast("Lịch phun sương: " + (State.scheduleEnabled ? "BẬT" : "TẮT"));
 }
 
 // ============================================================
@@ -90,7 +90,7 @@ function renderScheduleList() {
     el.innerHTML = `
       <div class="text-center py-8 text-on-surface-variant/50 italic text-sm 
                   border-2 border-dashed border-outline-variant/30 rounded-2xl">
-        Chưa có lịch tưới nào. Nhấn "Thêm lịch mới".
+        Chưa có lịch phun sương nào. Nhấn "Thêm lịch mới".
       </div>`;
     return;
   }
@@ -214,7 +214,7 @@ function toggleSchedEnabled(id, val) {
 // ============================================================
 function saveSchedule() {
   if (State.schedules.length === 0) {
-    showToast("Chưa có lịch tưới nào để lưu.", true);
+    showToast("Chưa có lịch phun sương nào để lưu.", true);
     return;
   }
 
@@ -235,5 +235,5 @@ function saveSchedule() {
     }, 1000);
   }
 
-  showToast("✓ Đã lưu " + State.schedules.length + " lịch tưới.");
+  showToast("✓ Đã lưu " + State.schedules.length + " lịch phun sương.");
 }

@@ -1,12 +1,7 @@
-/*
- * [N06] GIAO DIEN DASHBOARD THIET KE RIENG - PHAT HIEN (DETECT) VA GHI NHAN (RECORD) SU KIEN
- * Yeu to cong nghe N06: Custom Web Dashboard LittleFS SPA
- * Quan ly giao dien, Realtime Chart, hien thi Anomaly Alert Badge (FLAME_TAMPER, RAPID_DRIFT, HIGH_HEAT)
- */
 /* ============================================================
-   ui.js — Greenhouse IoT
+   ui.js — Cleanroom Bio-Chamber Edge-AI Web UI
    updateUI(d) — called every WebSocket message.
-   Maps ESP32 JSON fields → DOM elements.
+   Maps ESP32-S3 JSON telemetry & Edge AI insights → DOM elements.
 ============================================================ */
 "use strict";
 
@@ -165,7 +160,7 @@ function updateUI(d) {
   if (d.lcdPage != null) {
     const pages = [
       "Nhiệt độ & Độ ẩm",
-      "Đất & Ánh sáng",
+      "Giá thể & Ánh sáng",
       "Thiết bị",
       "Thống kê",
     ];
@@ -188,7 +183,7 @@ function updateUI(d) {
     const isLow = d.lightLux < 500;
     const specEl = document.getElementById("light-badge-spectrum");
     const statEl = document.getElementById("light-badge-status");
-    if (specEl) specEl.textContent = isLow ? "Grow Light ON" : "Phổ tự nhiên";
+    if (specEl) specEl.textContent = isLow ? "Bio-LED ON" : "Đủ sáng chu kỳ";
     if (statEl) {
       statEl.textContent = isLow ? "CẦN ÁNH SÁNG" : "Tối ưu";
       statEl.className = isLow
@@ -221,7 +216,7 @@ function updateUI(d) {
     const crit = d.soilMoisture < 30;
     setText(
       "stat-soil-status",
-      crit ? "CRITICAL" : d.soilMoisture > 70 ? "QUÁ ẨM" : "MỤC TIÊU",
+      crit ? "CRITICAL" : d.soilMoisture > 70 ? "BÃO HÒA" : "MỤC TIÊU",
     );
     const el = document.getElementById("stat-soil-status");
     if (el) el.className = crit ? "text-error font-black" : "text-tertiary";
@@ -259,7 +254,7 @@ function updateUI(d) {
     setAlertChip(
       "al-soil",
       d.alertSoil,
-      d.alertSoil ? "🪴 ĐẤT KHÔ!" : "🪴 Đất OK",
+      d.alertSoil ? "🧪 GIÁ THỂ KHÔ!" : "🧪 Giá thể OK",
     );
   if (d.alertLight != null)
     setAlertChip(

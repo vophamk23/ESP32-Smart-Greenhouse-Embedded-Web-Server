@@ -1,5 +1,5 @@
 /*
- * global_vars.cpp - Định nghĩa biến toàn cục hệ thống Greenhouse IoT & Edge AI
+ * global_vars.cpp - Định nghĩa biến toàn cục hệ thống Cleanroom Bio-Chamber & Edge AI
  */
 #include "global_vars.h"
 #include "config.h"
@@ -43,14 +43,14 @@ bool g_fanState = false;
 bool g_ledGrowState = false;
 bool g_pumpManual = false;
 
-// ==================== LỊCH TƯỚI ====================
+// ==================== LỊCH PHUN SƯƠNG ====================
 ScheduleEntry_t g_schedules[MAX_SCHEDULES] = {};
 uint8_t g_scheduleCount = 0;
 bool g_scheduleEnabled = false;
 unsigned long g_scheduleOffTime = 0;
 bool g_scheduleTriggered = false;
 
-// ==================== THỜI GIAN BƠM ====================
+// ==================== THỜI GIAN BƠM PHUN SƯƠNG ====================
 unsigned long g_pumpStartTime = 0;
 unsigned long g_pumpLastOffTime = 0;
 bool g_pumpCooldown = false;

@@ -1,11 +1,7 @@
 """
-# [T10] GIAO DIEN GIAM SAT - DIEU KHIEN TREN IOT GATEWAY LOCAL (INDUSTRIAL SCADA DARK THEME)
-# Yeu to cong nghe T10: Giao dien giam sat - dieu khien tren IoT Gateway local
+# Cleanroom Bio-Chamber Edge-AI Gateway — SCADA Mission Control (Dark Theme)
 #
-# gateway_gui.py - Trạm Giám sát & Điều khiển Cục bộ Chuẩn Công nghiệp (SCADA Mission Control)
-# Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
-# Mã yếu tố công nghệ: T10 (1.0 Điểm)
-# Tác giả: Phạm Công Võ (MSSV: 2313946)
+# gateway_gui.py - Trạm Giám sát & Điều khiển Phòng sạch Nuôi cấy Vi tảo / Nấm Công nghiệp
 """
 
 import sys
@@ -141,11 +137,11 @@ class ThreatGaugeCanvas(tk.Canvas):
 
 class GatewayGUI:
     """
-    Giao diện Desktop GUI Giám sát & Điều khiển Chuẩn Công nghiệp (Mã T10).
+    Giao diện Desktop GUI Giám sát & Điều khiển Phòng sạch Bio-Chamber (SCADA Dark Theme).
     Thiết kế theo chuẩn SCADA Mission Control tông màu tối Obsidian / Slate:
-      - Header điều hành sứ mệnh: Đồng hồ nguyên tử, Link Badges, Heartbeat.
-      - 4 Thẻ vi khí hậu kỹ thuật số tích hợp Sparklines đa mẫu động.
-      - Trạm suy luận AI & Hồi quy ngoại suy 30 phút (Mã T09).
+      - Header điều hành hệ thống: Đồng hồ thời gian thực, Link Badges, Heartbeat.
+      - 4 Thẻ vi khí hậu buồng nuôi cấy tích hợp Sparklines đa mẫu động.
+      - Trạm suy luận Edge/Fog AI & Hồi quy ngoại suy nhiệt độ 30 phút.
       - Bảng công tắc chấp hành cảm ứng lực kèm đèn báo trạng thái LED.
       - Terminal dòng lệnh chuyên dụng kiểm tra gói tin Telemetry / MQTT.
     """
@@ -169,7 +165,7 @@ class GatewayGUI:
         self.current_filter = "ALL"
         self.auto_scroll = True
 
-        # Kết nối Gateway Core (T08)
+        # Kết nối Fog Gateway Core
         if gateway_core:
             self.gateway = gateway_core
             self.gateway.log_callback = self.append_log
@@ -194,7 +190,7 @@ class GatewayGUI:
         self.root.destroy()
 
     def setup_ui(self):
-        self.root.title("AGRI-SCADA Local IoT Gateway Mission Control")
+        self.root.title("BIO-SCADA Cleanroom Bio-Chamber Edge Gateway")
         self.root.geometry("1060x780")
         self.root.minsize(1000, 700)
         self.root.configure(bg="#0A0E17")
@@ -227,11 +223,11 @@ class GatewayGUI:
                                bg="#064E3B", fg="#34D399", padx=6, pady=2, bd=0)
         scada_badge.pack(side=tk.LEFT, padx=(0, 8))
 
-        title_lbl = tk.Label(logo_row, text="AGRI-SCADA", font=("Segoe UI", 13, "bold"),
+        title_lbl = tk.Label(logo_row, text="BIO-SCADA", font=("Segoe UI", 13, "bold"),
                              bg="#0D1322", fg="#FFFFFF")
         title_lbl.pack(side=tk.LEFT)
 
-        sub_title_lbl = tk.Label(logo_row, text=" | LOCAL IOT EDGE GATEWAY",
+        sub_title_lbl = tk.Label(logo_row, text=" | CLEANROOM BIO-CHAMBER GATEWAY",
                                  font=("Segoe UI", 11, "bold"), bg="#0D1322", fg="#38BDF8")
         sub_title_lbl.pack(side=tk.LEFT)
 
@@ -284,14 +280,14 @@ class GatewayGUI:
 
         self.card_soil = self.create_advanced_metric_card(
             cards_row, col=2,
-            title="SOIL MOISTURE", tag="ANALOG ADC1",
+            title="SUBSTRATE MOISTURE", tag="ANALOG ADC1",
             init_val="50.0", unit="%",
             accent_color="#10B981", fill_color="#0A251E", normal_range="40.0 - 70.0 %"
         )
 
         self.card_light = self.create_advanced_metric_card(
             cards_row, col=3,
-            title="AMBIENT ILLUMINANCE", tag="LDR SENSOR",
+            title="PHOTOPERIOD LIGHT", tag="LUX / LDR",
             init_val="720", unit="Lux",
             accent_color="#F59E0B", fill_color="#261C0E", normal_range="300 - 900 Lux"
         )
@@ -361,15 +357,15 @@ class GatewayGUI:
                                                 font=("Segoe UI", 7, "italic"), bg="#0D1322", fg="#64748B")
         self.lbl_forecast_confidence.pack(anchor=tk.W)
 
-        # Ô 3: AGRONOMIC ADVISOR & SMART IRRIGATION
+        # Ô 3: BIO-CHAMBER ADVISOR & MIST HUMIDIFICATION AI
         cell3 = tk.Frame(ai_grid, bg="#0D1322", padx=10, pady=6, relief=tk.FLAT)
         cell3.grid(row=1, column=0, columnspan=2, sticky="nsew", padx=3, pady=(4, 0))
 
-        tk.Label(cell3, text="AGRONOMIC ADVISOR & SMART IRRIGATION DECISION AI",
+        tk.Label(cell3, text="BIO-CHAMBER ADVISOR & MIST HUMIDIFICATION AI",
                  font=("Segoe UI", 8, "bold"), bg="#0D1322", fg="#94A3B8").pack(anchor=tk.W)
 
         self.lbl_irrigation_advice = tk.Label(
-            cell3, text="✓ ĐỘ ẨM ĐẤT TỐI ƯU (50%): Điều kiện sinh trưởng hoàn hảo, không cần bơm bù.",
+            cell3, text="✓ ĐỘ ẨM GIÁ THỂ TỐI ƯU (50%): Điều kiện nuôi cấy ổn định, không cần phun sương.",
             font=("Segoe UI", 9, "bold"), bg="#0D1322", fg="#F8FAFC", anchor=tk.W, justify=tk.LEFT
         )
         self.lbl_irrigation_advice.pack(anchor=tk.W, pady=(2, 2))
@@ -388,15 +384,15 @@ class GatewayGUI:
         for i in range(3):
             tiles_frame.columnconfigure(i, weight=1, uniform="act_tile")
 
-        # Tile 1: Water Pump
+        # Tile 1: Mist Humidifier Pump
         self.btn_pump_tile, self.lbl_pump_led = self.create_tactile_actuator_tile(
-            tiles_frame, col=0, icon="🚰", name="PUMP RELAY",
+            tiles_frame, col=0, icon="💧", name="MIST PUMP",
             state_text="STANDBY", active_color="#10B981", cmd_action=self.toggle_pump
         )
 
-        # Tile 2: Exhaust Fan
+        # Tile 2: Cleanroom Airflow Fan
         self.btn_fan_tile, self.lbl_fan_led = self.create_tactile_actuator_tile(
-            tiles_frame, col=1, icon="🌀", name="FAN RELAY",
+            tiles_frame, col=1, icon="🌀", name="AIRFLOW FAN",
             state_text="STANDBY", active_color="#0EA5E9", cmd_action=self.toggle_fan
         )
 
@@ -413,7 +409,7 @@ class GatewayGUI:
         action_row.columnconfigure(1, weight=3, uniform="act_row")
 
         self.btn_flame_test = tk.Button(
-            action_row, text="🔥 TEST HƠ LỬA AI (FLAME SIMULATION)", font=("Segoe UI", 8, "bold"),
+            action_row, text="🔥 TEST ĐỘT BIẾN NHIỆT AI (FLAME / HEAT TEST)", font=("Segoe UI", 8, "bold"),
             bg="#991B1B", fg="#FFFFFF", activebackground="#DC2626", activeforeground="#FFFFFF",
             relief=tk.FLAT, bd=0, padx=6, pady=6, cursor="hand2", command=self.trigger_flame_test
         )
@@ -680,9 +676,9 @@ class GatewayGUI:
             self.card_temp["status_lbl"].config(text=f"● NOMINAL ({self.card_temp['normal_range']})", fg="#10B981")
 
         if soil < 30.0:
-            self.card_soil["status_lbl"].config(text="▼ ALERT: CRITICAL DRY SOIL", fg="#EF4444")
+            self.card_soil["status_lbl"].config(text="▼ ALERT: CRITICAL DRY SUBSTRATE", fg="#EF4444")
         else:
-            self.card_soil["status_lbl"].config(text=f"● HYDRATED ({self.card_soil['normal_range']})", fg="#10B981")
+            self.card_soil["status_lbl"].config(text=f"● OPTIMAL MOISTURE ({self.card_soil['normal_range']})", fg="#10B981")
 
         # ---------------------------------------------------------------------
         # 2. CẬP NHẬT KẾT QUẢ AI & HỒI QUY
@@ -729,9 +725,9 @@ class GatewayGUI:
         conf = ai.get("confidence", 98.0)
         self.lbl_forecast_confidence.config(text=f"Model Confidence: {conf:.1f}% (OLS Linear Fit)")
 
-        # Lời khuyên nông học
+        # Khuyến nghị phun sương buồng nuôi cấy
         advice_txt = ai.get("irrigation_recommendation", "Đang cập nhật chỉ số...")
-        if "CẦN TƯỚI BÙ" in advice_txt or "CẢNH BÁO" in advice_txt:
+        if "CẦN PHUN SƯƠNG" in advice_txt or "CẢNH BÁO" in advice_txt:
             self.lbl_irrigation_advice.config(text=f"⚠️ {advice_txt}", fg="#FDE68A")
         else:
             self.lbl_irrigation_advice.config(text=f"✓ {advice_txt}", fg="#34D399")
@@ -750,7 +746,7 @@ class GatewayGUI:
         self.btn_pump_tile.custom_bg = p_bg
         self.btn_pump_tile.hover_bg = p_hover
         self.btn_pump_tile.config(
-            text="TẮT BƠM" if p_on else "BẬT BƠM",
+            text="TẮT PHUN SƯƠNG" if p_on else "BẬT PHUN SƯƠNG",
             bg=p_bg
         )
 
@@ -900,14 +896,14 @@ class GatewayGUI:
     def toggle_pump(self):
         new_state = not self.gateway.telemetry.get("pumpState", False)
         self.gateway.telemetry["pumpState"] = new_state
-        self.gateway.log(f"[ACTUATOR] Lệnh đóng/ngắt Bơm Nước -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
+        self.gateway.log(f"[ACTUATOR] Lệnh đóng/ngắt Bơm phun sương -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
         self.gateway.send_command_to_esp32("p")
         self.update_display()
 
     def toggle_fan(self):
         new_state = not self.gateway.telemetry.get("fanState", False)
         self.gateway.telemetry["fanState"] = new_state
-        self.gateway.log(f"[ACTUATOR] Lệnh đóng/ngắt Quạt Làm Mát -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
+        self.gateway.log(f"[ACTUATOR] Lệnh đóng/ngắt Quạt đối lưu phòng sạch -> {'BẬT (ON)' if new_state else 'TẮT (OFF)'}")
         self.gateway.send_command_to_esp32("f")
         self.update_display()
 
@@ -919,7 +915,7 @@ class GatewayGUI:
         self.update_display()
 
     def trigger_flame_test(self):
-        self.gateway.log("[TEST] !!! KÍCH HOẠT KỊCH BẢN HƠ LỬA THỬ NGHIỆM TRÊN GATEWAY GUI !!!")
+        self.gateway.log("[TEST] !!! KÍCH HOẠT KỊCH BẢN ĐỘT BIẾN NHIỆT THỬ NGHIỆM (FLAME / HEAT TEST) TRÊN GATEWAY GUI !!!")
         self.gateway.telemetry["temperature"] = 46.5
         self.gateway.telemetry["humidity"] = 18.0
         self.gateway.telemetry["fanState"] = True

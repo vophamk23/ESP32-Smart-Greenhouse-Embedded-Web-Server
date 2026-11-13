@@ -1,5 +1,5 @@
 /*
- * sensor_handler.cpp - Đọc cảm biến DHT20 (I2C) / DHT11, LDR, Soil Moisture
+ * sensor_handler.cpp - Đọc cảm biến Modbus RS485 / DHT20 (I2C), LDR, Substrate Moisture
  * Hỗ trợ chuyển đổi tự động cho Yolo:UNO (ESP32-S3) và cơ chế Fail-Safe.
  */
 
@@ -35,7 +35,7 @@ void initSensors()
     Wire.begin(SDA_PIN, SCL_PIN);
 
 #if USE_MODBUS_RS485
-    // 2. Khởi tạo UART1 phần cứng cho Cảm biến Công nghiệp Modbus RS485 (Yếu tố công nghệ T02)
+    // 2. Khởi tạo UART1 phần cứng cho Cảm biến Công nghiệp Modbus RS485
     s_rs485Serial.begin(RS485_BAUDRATE, SERIAL_8N1, RS485_RX_PIN, RS485_TX_PIN);
     s_modbusNode.begin(RS485_SLAVE_ID, s_rs485Serial);
     Serial.printf("[SENSOR] Modbus RS485 initialized (RX=%d, TX=%d, Baud=%d, SlaveID=%d)\n",
@@ -55,8 +55,8 @@ void initSensors()
     analogSetAttenuation(ADC_11db);
     Serial.printf("[SENSOR] Light ADC initialized (Pin GPIO%d, 12-bit)\n", LIGHT_SENSOR_PIN);
 
-    // 4. Cảm biến độ ẩm đất điện dung: Cấu hình ADC 12-bit kết hợp bộ lọc EMA (Alpha = 0.2)
-    Serial.printf("[SENSOR] Soil ADC initialized (Pin GPIO%d, 12-bit)\n", SOIL_MOISTURE_PIN);
+    // 4. Cảm biến độ ẩm giá thể/phôi điện dung: Cấu hình ADC 12-bit kết hợp bộ lọc EMA (Alpha = 0.2)
+    Serial.printf("[SENSOR] Substrate Moisture ADC initialized (Pin GPIO%d, 12-bit)\n", SOIL_MOISTURE_PIN);
 }
 
 // ==================== KHỞI TẠO RTC DS3231 ====================
@@ -112,7 +112,7 @@ DateTime getRTCTime()
 
 // ============================================================================
 // HÀM ĐỌC CẢM BIẾN NHIỆT ĐỘ & ĐỘ ẨM KHÔNG KHÍ (TÍCH HỢP ĐA GIAO THỨC & FAIL-SAFE)
-// - Yếu tố công nghệ T02: Cảm biến Modbus RS485 công nghiệp (1.0 Điểm)
+// - Kênh chính: Cảm biến Modbus RS485 công nghiệp (RTU Function Code 03)
 // - Dự phòng song song: Cảm biến I2C DHT20 (0x38) / DHT11 (1-Wire)
 // - Đồng bộ liên nhân an toàn luồng: Khóa SemaphoreMutex SENSOR_LOCK()
 // ============================================================================
@@ -124,7 +124,7 @@ void readDHT()
 
 #if USE_MODBUS_RS485
     // ------------------------------------------------------------------------
-    // [ƯU TIÊN 1] Đọc cảm biến công nghiệp Modbus RS485 (Yếu tố công nghệ T02)
+    // [ƯU TIÊN 1] Đọc cảm biến công nghiệp Modbus RS485
     // - Chuẩn giao thức: Modbus RTU qua bus vi sai RS485 (UART1: RX=GPIO44, TX=GPIO43)
     // - Function Code: 03 (Read Holding Registers)
     // - Địa chỉ bắt đầu: RS485_REG_HUMI (0), số lượng đọc: 2 thanh ghi 16-bit
@@ -232,7 +232,7 @@ void readLightSensor()
     SENSOR_UNLOCK();
 }
 
-// ==================== MAP ADC -> % ĐỘ ẨM ĐẤT ====================
+// ==================== MAP ADC -> % ĐỘ ẨM GIÁ THỂ ====================
 static float mapSoilADC(int adcValue)
 {
     int clamped = constrain(adcValue, SOIL_ADC_WET, SOIL_ADC_DRY);
@@ -242,7 +242,7 @@ static float mapSoilADC(int adcValue)
     return constrain(moisture, 0.0f, 100.0f);
 }
 
-// ==================== ĐỌC ĐỘ ẨM ĐẤT (ADC + BỘ LỌC EMA) ====================
+// ==================== ĐỌC ĐỘ ẨM GIÁ THỂ (ADC + BỘ LỌC EMA) ====================
 void readSoilMoisture()
 {
     long sum = 0;

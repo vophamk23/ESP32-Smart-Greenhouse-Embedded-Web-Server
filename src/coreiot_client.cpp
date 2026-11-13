@@ -1,16 +1,11 @@
 /*
- * [T11] NEN TANG COREIOT: DEVICE PROFILE, TEMPLATE VA DASHBOARD
- * [T12] SU DUNG RULECHAIN DE PHAT TRIEN TINH NANG THONG MINH
- * [T13] GUI CANH BAO NOTIFICATION KHI DU LIEU VUOT NGUONG
- * [T14] DONG BO VA CAP NHAT FIRMWARE OTA CHO THIET BI
+ * coreiot_client.cpp - CoreIoT Cloud MQTT Platform cho Cleanroom Bio-Chamber
+ * Chạy trên Core 0 (FreeRTOS Task), kết nối app.coreiot.io:1883
  *
- * coreiot_greenhouse.cpp - CoreIoT Cloud MQTT Platform cho Greenhouse IoT
- * Chạy trên Core 0 (FreeRTOS Task), kết nối trực tiếp app.coreiot.io:1883
- * 
- * Đã lược bỏ hoàn toàn phần Backend cũ (NestJS / emqx) để tối ưu hiệu năng:
- *   - 1 MQTT Client duy nhất kết nối CoreIOT Cloud của Thầy Lê Trọng Nhân.
- *   - Bắn Telemetry đầy đủ thông số cảm biến và kết quả AI TinyML.
- *   - Lắng nghe RPC 2 chiều từ Dashboard điều khiển Bơm/Quạt và phản hồi tức thì.
+ * Tính năng:
+ *   - Kết nối MQTT tới Cloud CoreIOT / ThingsBoard Platform.
+ *   - Publish Telemetry thông số vi khí hậu buồng sạch và kết quả AI TinyML.
+ *   - Lắng nghe RPC 2 chiều từ Dashboard điều khiển Bơm phun sương / Quạt đối lưu.
  */
 
 #include "coreiot_client.h"
@@ -90,7 +85,7 @@ static void onMqttMessage(char *topic, byte *payload, unsigned int length)
     if (!method)
         return;
 
-    // 1. Điều khiển Bơm nước
+    // 1. Điều khiển Bơm phun sương tạo ẩm
     if (strcmp(method, "setPump") == 0)
     {
         bool state = doc["params"].as<bool>();
@@ -98,7 +93,7 @@ static void onMqttMessage(char *topic, byte *payload, unsigned int length)
         xQueueSend(xRpcCommandQueue, &pkt, 0);
         sendRpcResponse(requestId, method, true, "pump", state ? "ON" : "OFF");
     }
-    // 2. Điều khiển Quạt làm mát
+    // 2. Điều khiển Quạt đối lưu phòng sạch
     else if (strcmp(method, "setFan") == 0)
     {
         bool state = doc["params"].as<bool>();
@@ -168,7 +163,7 @@ static bool mqttReconnect()
 
     Serial.printf("[CoreIoT] Connecting to %s:%s (Token: %s)...\n",
                   CORE_IOT_SERVER, CORE_IOT_PORT, CORE_IOT_TOKEN);
-    String clientId = "YoloUNO-GH-" + String(random(0xffff), HEX);
+    String clientId = "YoloUNO-BC-" + String(random(0xffff), HEX);
 
     // Xác thực bằng Device Access Token của ThingsBoard/CoreIOT
     if (s_mqttClient.connect(clientId.c_str(), CORE_IOT_TOKEN, nullptr))
@@ -236,7 +231,7 @@ static void publishTelemetry(const TelemetryPacket_t &pkt)
 // ============================================================================
 // COREIOT TASK (Core 0 - FreeRTOS)
 // ============================================================================
-void greenhouse_coreiot_task(void *pvParameters)
+void coreiot_task(void *pvParameters)
 {
     // Đợi WiFi kết nối thành công trước khi bắt đầu
     if (xWiFiEventGroup != nullptr)

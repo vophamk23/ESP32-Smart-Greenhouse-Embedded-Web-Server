@@ -1,5 +1,5 @@
 /*
- * actuator_handler.cpp - Điều khiển Relay bơm/quạt và NeoPixel LED
+ * actuator_handler.cpp - Điều khiển Relay bơm phun sương, quạt đối lưu và NeoPixel LED
  */
 
 #include "actuator_handler.h"
@@ -14,7 +14,7 @@ static Adafruit_NeoPixel s_neoPixel(NEO_COUNT, NEO_PIN, NEO_GRB + NEO_KHZ800);
 // ============================================================================
 void initActuators()
 {
-    // ---- Relay bơm ----
+    // ---- Relay bơm phun sương ----
     pinMode(RELAY_PUMP_PIN, OUTPUT);
     digitalWrite(RELAY_PUMP_PIN, RELAY_OFF);
     // ---- Fan Yolo: chỉ S1 ----
@@ -32,15 +32,15 @@ void initActuators()
 }
 
 // ============================================================================
-// BƠM NƯỚC
+// BƠM PHUN SƯƠNG TẠO ẨM
 // ============================================================================
-// Bật bơm nếu chưa bật, kiểm tra cooldown và cập nhật trạng thái
+// Bật bơm phun sương nếu chưa bật, kiểm tra cooldown và cập nhật trạng thái
 void pumpOn()
 {
     if (g_pumpState)
         return;
 
-    // Cooldown: bỏ qua nếu MANUAL hoặc do LỊCH TƯỚI kích hoạt
+    // Cooldown: bỏ qua nếu MANUAL hoặc do LỊCH PHUN SƯƠNG kích hoạt
     if (!g_pumpManual && !g_scheduleTriggered && g_pumpCooldown)
     {
         unsigned long elapsed = millis() - g_pumpLastOffTime;
@@ -160,9 +160,9 @@ void turnOffAllLEDs()
 void ledColorGood() { setAllLEDs(0, 255, 0); }          // Xanh lá
 void ledColorWarning() { setAllLEDs(255, 200, 0); }     // Vàng cam
 void ledColorDanger() { setAllLEDs(255, 0, 0); }        // Đỏ
-void ledColorWatering() { setAllLEDs(0, 100, 255); }    // Xanh dương (tưới nước)
+void ledColorWatering() { setAllLEDs(0, 100, 255); }    // Xanh dương (đang phun sương)
 void ledColorFanOn() { setAllLEDs(200, 0, 100); }       // Hồng
-void ledColorGrowLight() { setAllLEDs(255, 255, 255); } // Trắng (grow light)
+void ledColorGrowLight() { setAllLEDs(255, 255, 255); } // Trắng (đèn chu kỳ sinh học)
 
 void ledColorPumpFan() { setAllLEDs(0, 230, 255); } // Cyan (pump + fan)
 void ledColorNight() { turnOffAllLEDs(); }
@@ -183,7 +183,7 @@ void updateAlerts()
 }
 
 // ============================================================================
-// TỰ ĐỘNG ĐIỀU KHIỂN BƠM
+// TỰ ĐỘNG ĐIỀU KHIỂN BƠM PHUN SƯƠNG
 // ============================================================================
 void autoControlPump()
 {
@@ -194,16 +194,16 @@ void autoControlPump()
 
     if (!g_pumpState)
     {
-        // Điều kiện bật bơm: đất quá khô
+        // Điều kiện bật phun sương: giá thể khô
         if (g_soilMoisture < g_soilDryThreshold)
             pumpOn();
     }
     else
     {
-        // Điều kiện tắt bơm: đất đủ ẩm HOẶC đã bơm quá lâu
+        // Điều kiện tắt phun sương: giá thể đủ ẩm HOẶC đã phun quá lâu
         if (g_soilMoisture >= g_soilWetThreshold)
         {
-            Serial.println("[AUTO] Soil wet enough -> pump OFF");
+            Serial.println("[AUTO] Substrate moisture optimal -> mist pump OFF");
             pumpOff();
         }
         else if (millis() - g_pumpStartTime >= g_pumpMaxOnMs)
@@ -240,8 +240,8 @@ void autoControlFan()
 //           2. Pump + Fan cùng bật → cyan
 //           3. Chỉ pump → xanh dương
 //           4. Chỉ fan bật thủ công → tím
-//           5. Thiếu sáng → grow light trắng
-//           6. Cảnh báo nhẹ (nhiệt độ cao, ẩm thấp, đất khô) → vàng cam
+//           5. Thiếu sáng → đèn chu kỳ sinh học trắng
+//           6. Cảnh báo nhẹ (nhiệt độ cao, ẩm thấp, giá thể khô) → vàng cam
 //           7. Bình thường → xanh lá
 // ============================================================================
 void autoControlLED()

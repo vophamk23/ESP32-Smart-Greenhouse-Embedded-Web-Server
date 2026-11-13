@@ -2,7 +2,7 @@
 #define GLOBAL_VARS_H
 
 /*
- * global_vars.h - Khai báo biến toàn cục hệ thống Greenhouse IoT & Edge AI
+ * global_vars.h - Khai báo biến toàn cục hệ thống Cleanroom Bio-Chamber & Edge AI
  */
 
 #include <Arduino.h>
@@ -19,15 +19,15 @@ extern char CORE_IOT_SERVER[128];
 extern char CORE_IOT_PORT[6];
 
 // ============================================================================
-// LỊCH TƯỚI NƯỚC
+// LỊCH PHUN SƯƠNG TẠO ẨM CHU KỲ
 // ============================================================================
 #define MAX_SCHEDULES 10
 
 struct ScheduleEntry_t
 {
-    uint8_t hour;     // Giờ bật bơm (0-23)
-    uint8_t minute;   // Phút bật bơm (0-59)
-    uint8_t duration; // Thời lượng tưới (phút, 1-120)
+    uint8_t hour;     // Giờ bật phun sương (0-23)
+    uint8_t minute;   // Phút bật phun sương (0-59)
+    uint8_t duration; // Thời lượng phun (phút, 1-120)
     uint8_t days;     // Bitmask: bit0=CN bit1=T2 ... bit6=T7
     bool enabled;     // Bật/tắt lịch này
 };

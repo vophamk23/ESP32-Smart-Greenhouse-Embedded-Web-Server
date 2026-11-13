@@ -1,13 +1,9 @@
 """
-# [T08] IOT GATEWAY HIEN THUC TREN PC (HOAC RASPBERRY PI)
-# Yeu to cong nghe T08: Tong hop du lieu, gui len CoreIOT, nhan lenh dieu khien tu CoreIOT
-# va phan phoi cho cac thiet bi trong mang local
+# Cleanroom Bio-Chamber Edge-AI — Multi-Threaded Fog IoT Gateway Core
 #
-gateway_core.py - Core IoT Gateway Cục bộ trên PC / Raspberry Pi
-Đồ án Môn học: Internet of Things (CO3061 / CO3062) - ĐH Bách Khoa TP.HCM (HCMUT)
-Mã yếu tố công nghệ: T08 (1.0 Điểm)
-Chức năng: Tổng hợp dữ liệu từ ESP32, gửi lên CoreIOT Cloud, nhận lệnh điều khiển RPC từ CoreIOT và phân phối cho thiết bị trong mạng local.
-Sinh viên thực hiện: Phạm Công Võ (MSSV: 2313946)
+# gateway_core.py - Core IoT Gateway Cục bộ trên PC / Raspberry Pi:
+#   Thu thập telemetry từ ESP32-S3 / Modbus RS485, chạy AI phân tích tại tầng Fog,
+#   đẩy dữ liệu lên CoreIOT Cloud và phân phối lệnh RPC 2 chiều xuống tầng Edge.
 """
 
 import os
@@ -43,11 +39,11 @@ except ImportError:
 
 class LocalIoTGatewayCore:
     """
-    Hiện thực mã T08:
-      - Quản lý kênh kết nối Local với ESP32 (qua cáp USB Serial hoặc WiFi HTTP).
-      - Quản lý kết nối MQTT hai chiều với Server CoreIOT Cloud (app.coreiot.io).
-      - Đóng gói Telemetry đẩy lên Cloud.
-      - Nhận lệnh RPC từ CoreIOT và chuyển tiếp (phân phối) xuống thiết bị local.
+    Fog Gateway đa luồng cho hệ thống Cleanroom Bio-Chamber:
+      - Quản lý kênh kết nối Local với ESP32-S3 (Modbus RS485 / USB-CDC Serial / Wi-Fi HTTP).
+      - Quản lý kết nối MQTT hai chiều với CoreIOT Cloud (app.coreiot.io).
+      - Đóng gói Telemetry kèm kết quả Fog AI đẩy lên Cloud.
+      - Nhận lệnh RPC từ CoreIOT và phân phối xuống bộ chấp hành tại tầng Edge.
     """
 
     def __init__(self, log_callback=None, update_callback=None):
@@ -55,7 +51,7 @@ class LocalIoTGatewayCore:
         self.update_callback = update_callback
         self.running = True
 
-        # Mô hình AI trên Gateway (Mã T09)
+        # Bộ suy luận AI trên Fog Gateway
         self.ai_engine = GatewayAIEngine(window_size=20)
 
         # Dữ liệu vi khí hậu hiện tại
@@ -73,7 +69,7 @@ class LocalIoTGatewayCore:
             "onlineAccuracy": 98.5
         }
 
-        # Kết quả AI Gateway phân tích (T09)
+        # Kết quả phân tích từ AI Gateway
         self.ai_results = {
             "anomaly_score": 0.05,
             "is_anomaly": False,
@@ -96,7 +92,7 @@ class LocalIoTGatewayCore:
         self.ser = None
         self.mqtt_client = None
 
-        # Khởi động thread chạy Gateway nền (T08)
+        # Khởi động thread chạy Gateway nền
         self.worker_thread = threading.Thread(target=self.gateway_loop, daemon=True)
         self.worker_thread.start()
 
@@ -157,7 +153,7 @@ class LocalIoTGatewayCore:
         return cfg
 
     # =========================================================================
-    # COREIOT MQTT GIAO TIẾP 2 CHIỀU (T08)
+    # COREIOT MQTT GIAO TIẾP 2 CHIỀU
     # =========================================================================
     def init_coreiot_mqtt(self):
         try:
@@ -168,7 +164,7 @@ class LocalIoTGatewayCore:
                 if rc == 0:
                     self.coreiot_connected = True
                     self.log("[COREIOT MQTT] ✓ Kết nối thành công Cloud CoreIOT (app.coreiot.io:1883)")
-                    # Lắng nghe lệnh điều khiển RPC từ xa (T08)
+                    # Lắng nghe lệnh điều khiển RPC từ xa
                     client.subscribe("v1/devices/me/rpc/request/+")
                     self.log("[COREIOT MQTT] ✓ Đã đăng ký nhận lệnh điều khiển RPC từ Cloud")
                 else:
@@ -195,7 +191,7 @@ class LocalIoTGatewayCore:
 
     def handle_coreiot_rpc(self, topic: str, payload_str: str):
         """
-        Nhận lệnh RPC từ CoreIOT và phân phối xuống mạng local ESP32 (T08).
+        Nhận lệnh RPC từ CoreIOT và phân phối xuống mạng local ESP32-S3.
         """
         self.log(f"[RPC NHẬN TỪ CLOUD] Topic: {topic} | Data: {payload_str}")
         try:
@@ -230,7 +226,7 @@ class LocalIoTGatewayCore:
 
             # Phản hồi hoàn tất RPC về CoreIOT Cloud
             resp_topic = f"v1/devices/me/rpc/response/{req_id}"
-            resp_payload = json.dumps({"status": "SUCCESS", "gateway": "HCMUT-Gateway", "method": method})
+            resp_payload = json.dumps({"status": "SUCCESS", "gateway": "BIOCHAMBER-Gateway", "method": method})
             if self.mqtt_client and self.coreiot_connected:
                 self.mqtt_client.publish(resp_topic, resp_payload)
                 self.log(f"[RPC PHẢN HỒI] {resp_topic} -> SUCCESS")
@@ -239,7 +235,7 @@ class LocalIoTGatewayCore:
             self.log(f"[RPC LỖI] {e}")
 
     # =========================================================================
-    # GIAO TIẾP VỚI ESP32 TRONG MẠNG LOCAL (T08)
+    # GIAO TIẾP VỚI ESP32-S3 TRONG MẠNG LOCAL
     # =========================================================================
     def connect_serial(self):
         if not SERIAL_AVAILABLE:
@@ -265,7 +261,7 @@ class LocalIoTGatewayCore:
         return False
 
     def poll_modbus_rs485(self):
-        """Đọc trực tiếp từ Cảm biến Nhiệt ẩm Modbus RS485 (Mã T02)."""
+        """Đọc trực tiếp từ Cảm biến Nhiệt ẩm công nghiệp Modbus RS485."""
         if not MINIMALMODBUS_AVAILABLE:
             return False
         try:
@@ -360,7 +356,7 @@ class LocalIoTGatewayCore:
                 self.log(f"[SERIAL SEND ERROR] {e}")
 
     # =========================================================================
-    # VÒNG LẶP CHÍNH CỦA GATEWAY (T08, T09)
+    # VÒNG LẶP CHÍNH CỦA GATEWAY & FOG AI ENGINE
     # =========================================================================
     def gateway_loop(self):
         self.connect_serial()
@@ -370,17 +366,17 @@ class LocalIoTGatewayCore:
             # 1. Thu thập dữ liệu từ ESP32
             self.poll_esp32()
 
-            # 2. Phân tích AI trên Gateway (T09)
+            # 2. Phân tích AI trên Fog Gateway
             self.ai_results = self.ai_engine.add_sample(
                 temp=self.telemetry["temperature"],
                 hum=self.telemetry["humidity"],
                 soil=self.telemetry["soilMoisture"]
             )
 
-            # 3. Đẩy dữ liệu tổng hợp lên CoreIOT Cloud (T08)
+            # 3. Đẩy dữ liệu tổng hợp lên CoreIOT Cloud
             self.publish_to_coreiot()
 
-            # 4. Báo cho giao diện GUI cập nhật nếu có callback (T10)
+            # 4. Báo cho giao diện GUI cập nhật nếu có callback
             if self.update_callback:
                 try:
                     self.update_callback()
@@ -401,7 +397,7 @@ class LocalIoTGatewayCore:
             "pump": self.telemetry["pumpState"],
             "fan": self.telemetry["fanState"],
             "mode": "AUTO" if self.telemetry["autoMode"] else "MANUAL",
-            # Dữ liệu phân tích từ AI Gateway (T09)
+            # Dữ liệu phân tích từ AI Fog Gateway
             "gateway_ai_anomaly_score": self.ai_results["anomaly_score"],
             "gateway_ai_is_anomaly": self.ai_results["is_anomaly"],
             "gateway_ai_type": self.ai_results["anomaly_type"],
@@ -413,13 +409,13 @@ class LocalIoTGatewayCore:
         try:
             self.mqtt_client.publish("v1/devices/me/telemetry", json.dumps(payload))
             self.log(f"[GATEWAY → COREIOT] T={payload['temperature']}°C | H={payload['humidity']}% | "
-                     f"Soil={payload['soil']}% | AI_Score={payload['gateway_ai_anomaly_score']} ({payload['gateway_ai_type']})")
+                     f"Sub={payload['soil']}% | AI_Score={payload['gateway_ai_anomaly_score']} ({payload['gateway_ai_type']})")
         except Exception as e:
             self.log(f"[MQTT PUBLISH ERROR] {e}")
 
 
 if __name__ == "__main__":
-    print("=== CHẠY IOT GATEWAY CORE (T08) Ở CHẾ ĐỘ TERMINAL DAEMON ===")
+    print("=== CHẠY FOG IOT GATEWAY CORE Ở CHẾ ĐỘ TERMINAL DAEMON ===")
     gw = LocalIoTGatewayCore()
     try:
         while True:

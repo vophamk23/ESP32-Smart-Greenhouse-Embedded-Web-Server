@@ -1,5 +1,5 @@
 /* ============================================================
-   devices.js — Greenhouse IoT
+   devices.js — Cleanroom Bio-Chamber Edge-AI Web UI
    Quản lý thiết bị — Factory Method Pattern
    Hiển thị device grid, thêm/xóa thiết bị
 ============================================================ */
@@ -26,20 +26,20 @@ const DEVICE_FACTORY = {
     bg: "bg-amber-50",
   },
   sensor_soil: {
-    icon: "grass",
-    label: "Cảm biến Đất",
+    icon: "humidity_mid",
+    label: "Cảm biến Ẩm giá thể",
     color: "text-tertiary",
     bg: "bg-tertiary/10",
   },
   actuator_pump: {
     icon: "water_drop",
-    label: "Máy bơm nước",
+    label: "Bơm phun sương",
     color: "text-primary",
     bg: "bg-primary/10",
   },
   actuator_fan: {
     icon: "air",
-    label: "Quạt thông gió",
+    label: "Quạt đối lưu phòng sạch",
     color: "text-tertiary",
     bg: "bg-tertiary/10",
   },
