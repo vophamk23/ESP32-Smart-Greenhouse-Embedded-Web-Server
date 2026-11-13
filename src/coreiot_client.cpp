@@ -160,6 +160,8 @@ static bool mqttReconnect()
         return true;
     if (WiFi.status() != WL_CONNECTED)
         return false;
+    if (CORE_IOT_TOKEN[0] == '\0' || strncmp(CORE_IOT_TOKEN, "YOUR_", 5) == 0)
+        return false;
 
     Serial.printf("[CoreIoT] Connecting to %s:%s (Token: %s)...\n",
                   CORE_IOT_SERVER, CORE_IOT_PORT, CORE_IOT_TOKEN);

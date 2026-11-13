@@ -27,8 +27,8 @@ void initWiFi()
 
     // ── Kiểm tra đã có config STA chưa ──
     // WIFI_SSID được load từ file /info.dat (LittleFS) trong check_info_File()
-    // Nếu chưa cấu hình thì SSID rỗng → chỉ chạy AP, không thử kết nối
-    if (WIFI_SSID[0] == '\0')
+    // Nếu chưa cấu hình (rỗng hoặc placeholder YOUR_*) → chỉ chạy AP, không thử kết nối
+    if (WIFI_SSID[0] == '\0' || strncmp(WIFI_SSID, "YOUR_", 5) == 0)
     {
         Serial.println("[WiFi] No STA config - AP only");
         return;
@@ -74,7 +74,7 @@ void wifi_task(void *pvParameters)
     {
         vTaskDelay(pdMS_TO_TICKS(10000));
 
-        if (WIFI_SSID[0] == '\0')
+        if (WIFI_SSID[0] == '\0' || strncmp(WIFI_SSID, "YOUR_", 5) == 0)
             continue;
 
         if (WiFi.status() != WL_CONNECTED)

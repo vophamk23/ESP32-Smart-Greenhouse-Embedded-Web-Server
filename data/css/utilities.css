@@ -737,10 +737,10 @@
 }
 
 /* Special backgrounds */
-.bg-greenhouse {
+.bg-biochamber {
   background-image:
     linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.3)),
-    url(../image/ecogreenhouse.jpg);
+    url(../image/biochamber-bg.jpg);
   background-size: cover;
   background-position: center;
 }

@@ -110,7 +110,7 @@ class LocalIoTGatewayCore:
         cfg = {
             "coreiot_server": "app.coreiot.io",
             "coreiot_port": 1883,
-            "coreiot_token": "h8ycpa6d5uodkqr011cz",
+            "coreiot_token": "YOUR_COREIOT_TOKEN",
             "esp32_ip": "192.168.1.100",
             "serial_port": "AUTO",
             "serial_baud": 115200,
@@ -126,7 +126,9 @@ class LocalIoTGatewayCore:
             try:
                 with open(info_dat_path, "r", encoding="utf-8") as f:
                     dat = json.load(f)
-                    cfg["coreiot_token"] = dat.get("CORE_IOT_TOKEN", cfg["coreiot_token"])
+                    tok = dat.get("CORE_IOT_TOKEN", "")
+                    if tok and "YOUR_" not in tok:
+                        cfg["coreiot_token"] = tok
                     cfg["coreiot_server"] = dat.get("CORE_IOT_SERVER", cfg["coreiot_server"])
                     cfg["coreiot_port"] = int(dat.get("CORE_IOT_PORT", cfg["coreiot_port"]))
             except Exception as e:
@@ -156,9 +158,13 @@ class LocalIoTGatewayCore:
     # COREIOT MQTT GIAO TIẾP 2 CHIỀU
     # =========================================================================
     def init_coreiot_mqtt(self):
+        token = (self.config.get("coreiot_token") or "").strip()
+        if not token or "YOUR_" in token:
+            self.log("[COREIOT MQTT] Chưa cấu hình Device Token (YOUR_COREIOT_TOKEN) - bỏ qua kết nối Cloud")
+            return
         try:
             self.mqtt_client = mqtt.Client(client_id=f"PC_Gateway_{int(time.time())}")
-            self.mqtt_client.username_pw_set(self.config["coreiot_token"])
+            self.mqtt_client.username_pw_set(token)
 
             def on_connect(client, userdata, flags, rc):
                 if rc == 0:

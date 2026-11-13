@@ -32,7 +32,7 @@ Hệ thống IoT công nghiệp 3 tầng (**Edge – Fog – Cloud**) tích hợ
 | **Đồng bộ liên nhân (IPC)** | `xQueue` (`xTelemetryQueue`, `xRpcCommandQueue`), `SemaphoreHandle_t` (`g_sensorMutex`), `EventGroup` (`xWiFiEventGroup`) | Trao đổi snapshot dữ liệu & hàng đợi lệnh RPC không chặn, an toàn đa luồng giữa 2 nhân. |
 | **Cảm biến & Bus công nghiệp** | **Modbus RTU RS485** (`ModbusMaster@^2.0.1` trên UART1 `9600 bps`), **I2C Bus** (`DHT20`, `RTClib DS3231`, `LCD 1602`), **ADC1 12-bit + Lọc EMA** ($\alpha = 0{,}2$) | Ưu tiên đầu dò RS485 công nghiệp, tự động **Fail-Safe sang `DHT20`** khi đứt cáp/timeout; chọn **ADC1** để không xung đột Wi-Fi; đồng bộ giờ **NTP $\leftrightarrow$ DS3231 RTC**. |
 | **Edge AI / TinyML** | **TensorFlow / Keras** $\rightarrow$ **TFLite FlatBuffer** (`dht_anomaly_model.h`, `1.836 bytes`) + **C++32-bit Static Forward Pass** + **NOAA Heat Index** + **Decision Forest (4 cây)** | Suy luận MLP `2 → 8 (ReLU) → 1 (Sigmoid)` cấp phát tĩnh (`malloc`-free) ngay trên ESP32-S3 với độ trễ **`~50 µs`**, kết hợp đạo hàm vật lý ($\Delta T/\Delta t, \Delta RH/\Delta t$). |
-| **Embedded Web Server & OTA** | **ESPAsyncWebServer**, **AsyncTCP**, **LittleFS** (`~2,06 MB`), **ArduinoJson 6**, **ElegantOTA** (`3.1.7`) | Giao diện **BioChamber Orbit SPA** (`10` trang HTML, `13` module JS ES6, **Chart.js 4.4**, **OpenWeather API**, xuất `biochamber_logs.csv`), WebSocket `1 Hz` và nạp OTA tại `/update`. |
+| **Embedded Web Server & OTA** | **ESPAsyncWebServer**, **AsyncTCP**, **LittleFS** (`~3,94 MB`), **ArduinoJson 6**, **ElegantOTA** (`3.1.7`) | Giao diện **BioChamber Orbit SPA** (`10` trang HTML, `13` module JS ES6, **Chart.js 4.4**, **OpenWeather API**, xuất `biochamber_logs.csv`), WebSocket `1 Hz` và nạp Dual-OTA (`app0`/`app1`) tại `/update`. |
 | **Tầng Fog Gateway & AI** | **Python 3** đa luồng (`threading`), `paho-mqtt`, `pyserial`, `requests`, `NumPy`, `minimalmodbus` (tùy chọn), **Tkinter Dark Mode (`BIO-SCADA`)** | Thu thập kép **RS485 / USB-CDC Serial / Wi-Fi HTTP REST / Simulation**, chạy **Z-Score + Inverse Coupling Anomaly**, hồi quy **OLS (`np.polyfit`)** dự báo `+30 phút`, khuyến nghị **Smart Mist AI**. |
 | **Tầng Cloud** | **CoreIOT (ThingsBoard Platform)** qua **MQTT v3.1.1** (`PubSubClient` / `paho-mqtt`, TCP `1883`) | Xác thực Access Token, lưu Telemetry dài hạn, **RuleChain** phát Alarm tự động và **Two-Way RPC** điều khiển từ xa. |
 
@@ -105,7 +105,8 @@ Chạy trong lớp `GatewayAIEngine(window_size=20)` trên trạm Gateway:
 | **Cụm 3 nút nhấn vật lý** | `Mode` / `Mist Pump` / `Airflow Fan` | `GPIO17` (`D8`), `GPIO18` (`D9`), `GPIO21` (`D10`) | `INPUT_PULLUP` | Quét mỗi `50 ms`, chống dội phím |
 
 ### 4.2. Phân vùng Flash `8 MB` (`partitions.csv`) & Logic vận hành an toàn
-- **Bảng phân vùng [`partitions.csv`](partitions.csv):** `nvs` (`20 KB`), `otadata` (`8 KB`), `app0` (`ota_0`, `~1,875 MB` cho Firmware), `spiffs` (mount **LittleFS**, `~2,06 MB` cho Web SPA + `/info.dat` + `/threshold.dat` + `/schedules.dat`).
+- **Bảng phân vùng Dual-OTA [`partitions.csv`](partitions.csv) (`yolo_uno`, Flash `8 MB`):** `nvs` (`20 KB`), `otadata` (`8 KB`), **`app0` (`ota_0`, `2,0 MB`) + `app1` (`ota_1`, `2,0 MB`)** hỗ trợ cập nhật không dây cả Firmware lẫn hệ thống tập tin qua **ElegantOTA** (`/update`), và **`spiffs`** (mount **LittleFS**, `~3,94 MB` tại `0x410000`) cho Web SPA + `/info.dat` + `/threshold.dat` + `/schedules.dat`.
+- **Bảng phân vùng dự phòng 4 MB [`partitions_4mb.csv`](partitions_4mb.csv) (`esp32dev`):** `app0` / `app1` (`~1,56 MB` / `0x190000` mỗi slot) và `spiffs` (`832 KB` / `0xD0000`, chứa đủ gói Web SPA).
 - **Luật điều khiển & Fail-Safe (`src/actuator_handler.cpp`):**
   - **Bơm phun sương (Hysteresis):** Bật khi `soilMoisture < 30%`, ngắt khi `soilMoisture >= 65%` (mặc định). Tự động kích hoạt **Smart Mist Skip** hoãn phun khi độ ẩm buồng `RH > 85%` để tránh ngưng tụ nước/nhiễm tạp.
   - **Pump Watchdog & Cooldown:** Cưỡng bức ngắt nếu chạy liên tục vượt `120 s` (phòng tuột cảm biến/cạn nước) và ép nghỉ giải nhiệt `30 s` giữa các chu kỳ.
@@ -170,7 +171,8 @@ Chạy trong lớp `GatewayAIEngine(window_size=20)` trên trạm Gateway:
 ```text
 cleanroom-biochamber-edge-ai/
 ├── platformio.ini                 # Cấu hình PlatformIO (yolo_uno & esp32dev, ElegantOTA, LittleFS)
-├── partitions.csv                 # Bảng phân vùng Flash 8MB (nvs, otadata, app0, spiffs/LittleFS)
+├── partitions.csv                 # Bảng phân vùng Flash 8MB Dual-OTA (nvs, otadata, app0, app1, spiffs)
+├── partitions_4mb.csv             # Bảng phân vùng dự phòng Flash 4MB Dual-OTA cho env esp32dev
 ├── biochamber_block_diagram.html  # Sơ đồ khối phần cứng & kiến trúc tương tác
 ├── include/
 │   ├── config.h                   # Chân GPIO, thông số Modbus RS485, ADC, ngưỡng & Watchdog
@@ -222,11 +224,11 @@ pio run -e yolo_uno
 # 2. Nạp Firmware qua cổng USB-CDC
 pio run -t upload -e yolo_uno
 
-# 3. Đóng gói và nạp Web SPA & cấu hình vào phân vùng LittleFS
+# 3. Cập nhật thông tin Wi-Fi & CoreIOT Token trong data/info.dat (thay YOUR_*) rồi nạp LittleFS
 pio run -t buildfs -e yolo_uno
 pio run -t uploadfs -e yolo_uno
 ```
-- Truy cập giao diện cục bộ qua IP của ESP32 trong mạng LAN, hoặc kết nối Wi-Fi **`BioChamber-AP`** (mật khẩu mặc định `12345678`) rồi mở `http://192.168.4.1`.
+- Truy cập giao diện cục bộ qua IP của ESP32 trong mạng LAN, hoặc kết nối Wi-Fi **`BioChamber-AP`** (mật khẩu mặc định `12345678`) rồi mở `http://192.168.4.1` (mặc định nếu chưa điền `data/info.dat` thiết bị tự giữ chế độ AP).
 - Nạp cập nhật phần mềm/giao diện không dây qua trình duyệt tại `http://<ESP32_IP>/update` (**ElegantOTA**).
 
 ### 8.2. Chạy trạm Fog Gateway (`BIO-SCADA GUI` hoặc `Headless`)

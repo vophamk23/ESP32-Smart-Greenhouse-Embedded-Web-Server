@@ -1,7 +1,7 @@
 {
-  "WIFI_SSID": "Vopham",
-  "WIFI_PASS": "congvolv0",
-  "CORE_IOT_TOKEN": "h8ycpa6d5uodkqr011cz",
+  "WIFI_SSID": "YOUR_WIFI_SSID",
+  "WIFI_PASS": "YOUR_WIFI_PASS",
+  "CORE_IOT_TOKEN": "YOUR_COREIOT_TOKEN",
   "CORE_IOT_SERVER": "app.coreiot.io",
   "CORE_IOT_PORT": "1883",
   "LOCAL_MQTT_HOST": "broker.emqx.io",
