@@ -10,7 +10,7 @@
 
 Hệ thống IoT công nghiệp 3 tầng (**Edge – Fog – Cloud**) tích hợp **Trí tuệ nhân tạo tại biên (TinyML C++ On-Chip)** và **trạm Fog Gateway đa luồng (BIO-SCADA)**, thiết kế cho bài toán **giám sát và điều khiển buồng sạch nuôi cấy vi tảo / nấm công nghiệp (*Cleanroom Bio-Chamber*)** trên bo mạch **Yolo:UNO (`ESP32-S3`)**.
 
----
+
 
 ## Mục lục
 - [1. Ngăn xếp công nghệ (Technology Stack)](#1-ngăn-xếp-công-nghệ-technology-stack)
@@ -22,7 +22,6 @@ Hệ thống IoT công nghiệp 3 tầng (**Edge – Fog – Cloud**) tích hợ
 - [7. Cấu trúc mã nguồn](#7-cấu-trúc-mã-nguồn)
 - [8. Hướng dẫn cài đặt & vận hành](#8-hướng-dẫn-cài-đặt--vận-hành)
 
----
 
 ## 1. Ngăn xếp công nghệ (Technology Stack)
 
@@ -37,7 +36,6 @@ Hệ thống IoT công nghiệp 3 tầng (**Edge – Fog – Cloud**) tích hợ
 | **Tầng Fog Gateway & AI** | **Python 3** đa luồng (`threading`), `paho-mqtt`, `pyserial`, `requests`, `NumPy`, `minimalmodbus` (tùy chọn), **Tkinter Dark Mode (`BIO-SCADA`)** | Thu thập kép **RS485 / USB-CDC Serial / Wi-Fi HTTP REST / Simulation**, chạy **Z-Score + Inverse Coupling Anomaly**, hồi quy **OLS (`np.polyfit`)** dự báo `+30 phút`, khuyến nghị **Smart Mist AI**. |
 | **Tầng Cloud** | **CoreIOT (ThingsBoard Platform)** qua **MQTT v3.1.1** (`PubSubClient` / `paho-mqtt`, TCP `1883`) | Xác thực Access Token, lưu Telemetry dài hạn, **RuleChain** phát Alarm tự động và **Two-Way RPC** điều khiển từ xa. |
 
----
 
 ## 2. Kiến trúc hệ thống 3 tầng
 
@@ -62,13 +60,13 @@ Hệ thống IoT công nghiệp 3 tầng (**Edge – Fog – Cloud**) tích hợ
 |  • Core 0 (Network — FreeRTOS Preemptive):                                        |
 |      wifi_task (AP+STA + NTP) | coreiot_task (MQTT) | webserver_task (WS+OTA)     |
 |  • Core 1 (Real-Time — Cooperative Scheduler 10 ms tick, 14 tác vụ):              |
-|      Modbus/DHT20 + EMA → TinyML On-Chip (~50 µs) → Hysteresis + Watchdog 120s   |
+|      Modbus/DHT20 + EMA → TinyML On-Chip (~50 µs) → Hysteresis + Watchdog 120s    |
 +-----------------------------------------------------------------------------------+
 ```
 
 > Xem trực quan kiến trúc chân, luồng tín hiệu và scheduler tại sơ đồ tương tác: [`biochamber_block_diagram.html`](biochamber_block_diagram.html).
 
----
+
 
 ## 3. Trí tuệ nhân tạo hai tầng (Dual-Tier Edge & Fog AI)
 
@@ -88,7 +86,7 @@ Chạy trong lớp `GatewayAIEngine(window_size=20)` trên trạm Gateway:
 - **Hồi quy ngoại suy nhiệt độ 30 phút tới:** Khớp đường xu hướng OLS (`np.polyfit`) trên cửa sổ trượt (`>= 5` mẫu), có giới hạn độ dốc chống nhiễu tức thời và ràng buộc biên vật lý buồng sạch.
 - **Smart Mist AI Advisor:** Tính thời lượng phun sương khuyến nghị (`15–120 s`) dựa trên mức thiếu hụt độ ẩm giá thể (mục tiêu `60%`) nhân hệ số bù bay hơi theo nhiệt độ buồng nuôi.
 
----
+
 
 ## 4. Quy hoạch phần cứng, Flash & Logic bảo vệ
 
@@ -114,7 +112,7 @@ Chạy trong lớp `GatewayAIEngine(window_size=20)` trên trạm Gateway:
   - **Lịch phun tuần theo DS3231 RTC:** Hỗ trợ tối đa `8` khung giờ (`MAX_SCHEDULES = 8`) lưu bền vững trên LittleFS `/schedules.dat`, thời lượng mỗi phiên `1..120 s`.
   - **Điều khiển khẩn cấp từ AI:** Ngắt an toàn khi phát hiện `FLAME_TAMPER`; hỗ trợ lệnh nối tiếp gỡ lỗi qua Serial `115200 bps`: `'a'` (AUTO/MANUAL), `'p'` (bơm), `'f'` (quạt), `'n'` (trang LCD), `'s'` (in thông số), `'j'` (xuất 1 dòng JSON telemetry).
 
----
+
 
 ## 5. Lập lịch đa nhiệm Dual-Core AMP (`Core 0` & `Core 1`)
 
@@ -141,7 +139,7 @@ Chạy trong lớp `GatewayAIEngine(window_size=20)` trên trạm Gateway:
 | `Task_CheckSchedule` | `5.000 ms` | Đối chiếu giờ thực tế từ DS3231 RTC để kích hoạt lịch phun sương tuần |
 | `Task_Heartbeat` | `15.000 ms` | In nhật ký tình trạng Free Heap, mạng và AI lên Serial Monitor |
 
----
+
 
 ## 6. Giao tiếp API, WebSocket & CoreIOT MQTT
 
@@ -165,7 +163,7 @@ Chạy trong lớp `GatewayAIEngine(window_size=20)` trên trạm Gateway:
 - **Fog Gateway (`gateway/gateway_core.py`):**
   - Gửi bổ sung lên `v1/devices/me/telemetry`: `soil`, `light`, `mode`, `gateway_ai_anomaly_score`, `gateway_ai_is_anomaly`, `gateway_ai_type`, `gateway_projected_temp_30m`, `gateway_irrigation_advice`, `gateway_ai_confidence`; chuyển tiếp RPC `setPump`, `setFan`, `setMode` xuống ESP32 qua Serial hoặc `POST /api/control`.
 
----
+
 
 ## 7. Cấu trúc mã nguồn
 
@@ -208,7 +206,7 @@ cleanroom-biochamber-edge-ai/
     └── train_dht_anomaly.ipynb    # Notebook phân tích & trực quan hóa mô hình
 ```
 
----
+
 
 ## 8. Hướng dẫn cài đặt & vận hành
 
