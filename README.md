@@ -66,7 +66,7 @@ Hệ thống IoT công nghiệp 3 tầng (**Edge – Fog – Cloud**) tích hợ
 +-----------------------------------------------------------------------------------+
 ```
 
-> Xem trực quan kiến trúc chân, luồng tín hiệu và scheduler tại sơ đồ tương tác: [`greenhouse_block_diagram.html`](greenhouse_block_diagram.html).
+> Xem trực quan kiến trúc chân, luồng tín hiệu và scheduler tại sơ đồ tương tác: [`biochamber_block_diagram.html`](biochamber_block_diagram.html).
 
 ---
 
@@ -170,10 +170,10 @@ Chạy trong lớp `GatewayAIEngine(window_size=20)` trên trạm Gateway:
 ## 7. Cấu trúc mã nguồn
 
 ```text
-ESP32-Smart-Greenhouse-Embedded-Web-Server/
+cleanroom-biochamber-edge-ai/
 ├── platformio.ini                 # Cấu hình PlatformIO (yolo_uno & esp32dev, ElegantOTA, LittleFS)
 ├── partitions.csv                 # Bảng phân vùng Flash 8MB (nvs, otadata, app0, spiffs/LittleFS)
-├── greenhouse_block_diagram.html  # Sơ đồ khối phần cứng & kiến trúc tương tác
+├── biochamber_block_diagram.html  # Sơ đồ khối phần cứng & kiến trúc tương tác
 ├── include/
 │   ├── config.h                   # Chân GPIO, thông số Modbus RS485, ADC, ngưỡng & Watchdog
 │   ├── dht_anomaly_model.h        # Mảng TFLite FlatBuffer C++ (1.836 bytes)
@@ -215,8 +215,8 @@ ESP32-Smart-Greenhouse-Embedded-Web-Server/
 ### 8.1. Biên dịch & Nạp Firmware + Web SPA (`ESP32-S3`)
 Yêu cầu cài đặt **PlatformIO CLI** hoặc VS Code + PlatformIO IDE:
 ```bash
-git clone https://github.com/vophamk23/edge-fog-cloud-iot-system.git
-cd edge-fog-cloud-iot-system  # (hoặc cd ESP32-Smart-Greenhouse-Embedded-Web-Server trong workspace cục bộ)
+git clone https://github.com/vophamk23/cleanroom-biochamber-edge-ai.git
+cd cleanroom-biochamber-edge-ai  # (hoặc cd ESP32-Smart-Greenhouse-Embedded-Web-Server trong workspace cục bộ)
 
 # 1. Biên dịch Firmware (mặc định env yolo_uno)
 pio run -e yolo_uno
